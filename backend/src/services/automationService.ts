@@ -202,6 +202,13 @@ export class AutomationService {
 
       for (const growbox of growboxes) {
         try {
+          // Test HA connection first
+          const isConnected = await haService.testConnection();
+          if (!isConnected) {
+            console.log(`Skipping environment data collection for growbox ${growbox.id} - HA not available`);
+            continue;
+          }
+
           const tempState = await haService.getState(growbox.sensors.temperature);
           const humidityState = await haService.getState(growbox.sensors.humidity);
 

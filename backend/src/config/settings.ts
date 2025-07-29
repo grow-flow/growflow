@@ -10,7 +10,7 @@ export const CONFIG = {
   },
   
   HOME_ASSISTANT: {
-    URL: process.env.HA_URL || 'http://supervisor/core',
+    URL: process.env.HA_URL || 'http://localhost:8123',
     TOKEN: process.env.HA_TOKEN || '',
     TIMEOUT: 5000
   },

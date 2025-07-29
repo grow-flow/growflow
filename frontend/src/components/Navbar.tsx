@@ -25,6 +25,14 @@ const Navbar: React.FC = () => {
           <Button
             color="inherit"
             component={Link}
+            to="/plants"
+            sx={{ opacity: location.pathname === '/plants' ? 1 : 0.7 }}
+          >
+            Plants
+          </Button>
+          <Button
+            color="inherit"
+            component={Link}
             to="/settings"
             sx={{ opacity: location.pathname === '/settings' ? 1 : 0.7 }}
           >
