@@ -14,14 +14,14 @@ import {
   Box,
   Chip
 } from '@mui/material';
-import { apiService } from '../services/api';
+import { useGrowboxes } from '../hooks/useGrowboxes';
 import { Plant, PlantPhase } from '../types/models';
 
 interface CreatePlantDialogProps {
   open: boolean;
   onClose: () => void;
   onSuccess: (plantData: Partial<Plant>) => Promise<void>;
-  growboxId: number;
+  growboxId?: number; // Optional now - can be selected in dialog
 }
 
 const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({
@@ -30,11 +30,14 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({
   onSuccess,
   growboxId
 }) => {
+  const { data: growboxes = [] } = useGrowboxes();
+  
   const [formData, setFormData] = useState({
     name: '',
     strain: '',
     breeder: '',
     phenotype: '',
+    growbox_id: growboxId || (growboxes[0]?.id || 0),
     medium: 'soil' as 'soil' | 'hydro' | 'coco' | 'dwc',
     pot_size_liters: 20,
     light_schedule: {
@@ -58,7 +61,6 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({
     try {
       await onSuccess({
         ...formData,
-        growbox_id: growboxId,
         germination_date: new Date(),
         current_phase: PlantPhase.GERMINATION,
         is_active: true
@@ -70,6 +72,7 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({
         strain: '',
         breeder: '',
         phenotype: '',
+        growbox_id: growboxId || (growboxes[0]?.id || 0),
         medium: 'soil',
         pot_size_liters: 20,
         light_schedule: { vegetation: '18/6', flowering: '12/12' },
@@ -126,6 +129,23 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({
                 required
                 placeholder="White Widow"
               />
+            </Grid>
+
+            <Grid item xs={12}>
+              <FormControl fullWidth required>
+                <InputLabel>Growbox</InputLabel>
+                <Select
+                  value={formData.growbox_id}
+                  onChange={(e) => setFormData({ ...formData, growbox_id: Number(e.target.value) })}
+                  label="Growbox"
+                >
+                  {growboxes.map((growbox) => (
+                    <MenuItem key={growbox.id} value={growbox.id}>
+                      {growbox.name} ({growbox.type})
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Grid>
 
             <Grid item xs={12} sm={6}>

@@ -31,6 +31,8 @@ import { useGrowbox } from '../hooks/useGrowboxes';
 import { useCreatePlant } from '../hooks/usePlants';
 import { Growbox, Plant } from '../types/models';
 import CreatePlantDialog from '../components/CreatePlantDialog';
+import GrowboxVisualization from '../components/GrowboxVisualization';
+import PlantDataColumns from '../components/PlantDataColumns';
 
 const GrowboxDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -115,6 +117,9 @@ const GrowboxDetail: React.FC = () => {
           Add Plant
         </Button>
       </Box>
+
+      {/* Growbox Visualization */}
+      <GrowboxVisualization growbox={growbox} plants={plants} />
 
       <Grid container spacing={3}>
         {/* Environment Panel */}
@@ -289,6 +294,9 @@ const GrowboxDetail: React.FC = () => {
           </Paper>
         </Grid>
       </Grid>
+
+      {/* Plant Data Columns */}
+      <PlantDataColumns plants={plants} />
 
       <CreatePlantDialog
         open={createPlantDialogOpen}

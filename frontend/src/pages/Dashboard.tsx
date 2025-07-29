@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
 import { Grid, Typography, Card, CardContent, Button, Box, CircularProgress, Alert } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
+import { Add as AddIcon, LocalFlorist as PlantIcon } from '@mui/icons-material';
 import { useGrowboxes, useCreateGrowbox } from '../hooks/useGrowboxes';
-import { Growbox } from '../types/models';
+import { useCreatePlant } from '../hooks/usePlants';
+import { Growbox, Plant } from '../types/models';
 import GrowboxCard from '../components/GrowboxCard';
 import CreateGrowboxDialog from '../components/CreateGrowboxDialog';
+import CreatePlantDialog from '../components/CreatePlantDialog';
 import QuickStats from '../components/QuickStats';
 import RecentActivities from '../components/RecentActivities';
 
 const Dashboard: React.FC = () => {
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createGrowboxDialogOpen, setCreateGrowboxDialogOpen] = useState(false);
+  const [createPlantDialogOpen, setCreatePlantDialogOpen] = useState(false);
   
   const { 
     data: growboxes = [], 
@@ -19,13 +22,23 @@ const Dashboard: React.FC = () => {
   } = useGrowboxes();
   
   const createGrowboxMutation = useCreateGrowbox();
+  const createPlantMutation = useCreatePlant();
 
   const handleGrowboxCreated = async (growboxData: Partial<Growbox>) => {
     try {
       await createGrowboxMutation.mutateAsync(growboxData);
-      setCreateDialogOpen(false);
+      setCreateGrowboxDialogOpen(false);
     } catch (error) {
       console.error('Failed to create growbox:', error);
+    }
+  };
+
+  const handlePlantCreated = async (plantData: Partial<Plant>) => {
+    try {
+      await createPlantMutation.mutateAsync(plantData);
+      setCreatePlantDialogOpen(false);
+    } catch (error) {
+      console.error('Failed to create plant:', error);
     }
   };
 
@@ -56,13 +69,23 @@ const Dashboard: React.FC = () => {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
         <Typography variant="h4">Dashboard</Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setCreateDialogOpen(true)}
-        >
-          New Growbox
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<PlantIcon />}
+            onClick={() => setCreatePlantDialogOpen(true)}
+            disabled={growboxes.length === 0}
+          >
+            Add Plant
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setCreateGrowboxDialogOpen(true)}
+          >
+            New Growbox
+          </Button>
+        </Box>
       </Box>
 
       <QuickStats growboxes={growboxes} />
@@ -89,7 +112,7 @@ const Dashboard: React.FC = () => {
                     <Button
                       variant="contained"
                       startIcon={<AddIcon />}
-                      onClick={() => setCreateDialogOpen(true)}
+                      onClick={() => setCreateGrowboxDialogOpen(true)}
                     >
                       Create Growbox
                     </Button>
@@ -106,9 +129,16 @@ const Dashboard: React.FC = () => {
       </Grid>
 
       <CreateGrowboxDialog
-        open={createDialogOpen}
-        onClose={() => setCreateDialogOpen(false)}
+        open={createGrowboxDialogOpen}
+        onClose={() => setCreateGrowboxDialogOpen(false)}
         onSuccess={handleGrowboxCreated}
+      />
+
+      <CreatePlantDialog
+        open={createPlantDialogOpen}
+        onClose={() => setCreatePlantDialogOpen(false)}
+        onSuccess={handlePlantCreated}
+        growboxId={0} // Will be selected in dialog
       />
     </Box>
   );
