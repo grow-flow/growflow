@@ -1,5 +1,5 @@
 import * as mqtt from 'mqtt';
-import { CONFIG } from '../../../config/settings';
+import { CONFIG } from '../config/settings';
 import { AppDataSource } from '../database';
 import { Growbox, Plant } from '../models';
 

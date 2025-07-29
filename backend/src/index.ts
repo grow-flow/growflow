@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import { CONFIG } from '../../config/settings';
+import { CONFIG } from './config/settings';
 import { initializeDatabase } from './database';
 import { errorHandler } from './middleware/errorHandler';
 import { growboxRoutes } from './controllers/growboxController';

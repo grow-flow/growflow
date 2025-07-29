@@ -5,10 +5,13 @@ import { Link } from 'react-router-dom';
 import { apiService } from '../services/api';
 import { Growbox } from '../types/models';
 import GrowboxCard from '../components/GrowboxCard';
+import CreateGrowboxDialog from '../components/CreateGrowboxDialog';
+import QuickStats from '../components/QuickStats';
 
 const Dashboard: React.FC = () => {
   const [growboxes, setGrowboxes] = useState<Growbox[]>([]);
   const [loading, setLoading] = useState(true);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchGrowboxes = async () => {
@@ -25,6 +28,10 @@ const Dashboard: React.FC = () => {
     fetchGrowboxes();
   }, []);
 
+  const handleGrowboxCreated = (newGrowbox: Growbox) => {
+    setGrowboxes(prev => [...prev, newGrowbox]);
+  };
+
   if (loading) return <Typography>Loading...</Typography>;
 
   return (
@@ -34,11 +41,13 @@ const Dashboard: React.FC = () => {
         <Button
           variant="contained"
           startIcon={<AddIcon />}
-          sx={{ ml: 2 }}
+          onClick={() => setCreateDialogOpen(true)}
         >
           New Growbox
         </Button>
       </Box>
+
+      <QuickStats growboxes={growboxes} />
 
       <Grid container spacing={3}>
         {growboxes.map((growbox) => (
@@ -57,7 +66,11 @@ const Dashboard: React.FC = () => {
                 <Typography color="textSecondary" sx={{ mb: 3 }}>
                   Create your first growbox to start tracking your plants
                 </Typography>
-                <Button variant="contained" startIcon={<AddIcon />}>
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => setCreateDialogOpen(true)}
+                >
                   Create Growbox
                 </Button>
               </CardContent>
@@ -65,6 +78,12 @@ const Dashboard: React.FC = () => {
           </Grid>
         )}
       </Grid>
+
+      <CreateGrowboxDialog
+        open={createDialogOpen}
+        onClose={() => setCreateDialogOpen(false)}
+        onSuccess={handleGrowboxCreated}
+      />
     </Box>
   );
 };

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { CONFIG } from '../../../config/settings';
+import { CONFIG } from '../config/settings';
 
 interface HAServiceCall {
   domain: string;

@@ -1,5 +1,5 @@
 import * as cron from 'node-cron';
-import { CONFIG } from '../../../config/settings';
+import { CONFIG } from '../config/settings';
 import { AppDataSource } from '../database';
 import { Growbox, Plant, EnvironmentLog, PlantPhase } from '../models';
 import { haService } from './homeAssistantService';

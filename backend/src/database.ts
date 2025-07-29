@@ -1,5 +1,5 @@
 import { DataSource } from 'typeorm';
-import { CONFIG } from '../../config/settings';
+import { CONFIG } from './config/settings';
 import { Growbox, Plant, WateringLog, FeedingLog, ObservationLog, EnvironmentLog } from './models';
 
 export const AppDataSource = new DataSource({
