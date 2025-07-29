@@ -19,7 +19,7 @@ import { Growbox } from '../types/models';
 interface CreateGrowboxDialogProps {
   open: boolean;
   onClose: () => void;
-  onSuccess: (growbox: Growbox) => void;
+  onSuccess: (growboxData: Partial<Growbox>) => Promise<void>;
 }
 
 const CreateGrowboxDialog: React.FC<CreateGrowboxDialogProps> = ({
@@ -63,12 +63,12 @@ const CreateGrowboxDialog: React.FC<CreateGrowboxDialogProps> = ({
 
     setLoading(true);
     try {
-      const growbox = await apiService.createGrowbox({
+      await onSuccess({
         ...formData,
         automation_enabled: false
       });
-      onSuccess(growbox);
-      onClose();
+      
+      // Reset form only on success
       setFormData({
         name: '',
         type: 'indoor',

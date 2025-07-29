@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import {
   Typography,
   Grid,
@@ -15,7 +15,9 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TableRow
+  TableRow,
+  CircularProgress,
+  Alert
 } from '@mui/material';
 import { 
   Thermostat, 
@@ -25,15 +27,15 @@ import {
   Add as AddIcon 
 } from '@mui/icons-material';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { apiService } from '../services/api';
+import { useGrowbox } from '../hooks/useGrowboxes';
+import { useCreatePlant } from '../hooks/usePlants';
 import { Growbox, Plant } from '../types/models';
+import CreatePlantDialog from '../components/CreatePlantDialog';
 
 const GrowboxDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [growbox, setGrowbox] = useState<Growbox | null>(null);
-  const [plants, setPlants] = useState<Plant[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [envData, setEnvData] = useState({
+  const [createPlantDialogOpen, setCreatePlantDialogOpen] = useState(false);
+  const [envData] = useState({
     temperature: 24.2,
     humidity: 58,
     vpd: 1.1,
@@ -50,37 +52,66 @@ const GrowboxDetail: React.FC = () => {
     { time: '20:00', temperature: 24.2, humidity: 58, vpd: 1.1 }
   ]);
 
-  useEffect(() => {
-    if (id) {
-      fetchGrowboxData(parseInt(id));
-    }
-  }, [id]);
-
-  const fetchGrowboxData = async (growboxId: number) => {
-    try {
-      const growboxData = await apiService.getGrowbox(growboxId);
-      setGrowbox(growboxData);
-      setPlants(growboxData.plants || []);
-    } catch (error) {
-      console.error('Failed to fetch growbox:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const growboxId = id ? parseInt(id) : 0;
+  const { 
+    data: growbox, 
+    isLoading, 
+    error,
+    refetch 
+  } = useGrowbox(growboxId);
+  
+  const createPlantMutation = useCreatePlant();
+  
+  const plants = growbox?.plants || [];
 
   const handleEquipmentToggle = async (equipment: string, isOn: boolean) => {
     // Implementation für HA API calls
     console.log(`Toggle ${equipment}: ${isOn}`);
   };
 
-  if (loading) return <Typography>Loading...</Typography>;
+  const handlePlantCreated = async (plantData: Partial<Plant>) => {
+    try {
+      await createPlantMutation.mutateAsync(plantData);
+      setCreatePlantDialogOpen(false);
+    } catch (error) {
+      console.error('Failed to create plant:', error);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert 
+        severity="error"
+        action={
+          <Button color="inherit" size="small" onClick={() => refetch()}>
+            Retry
+          </Button>
+        }
+      >
+        Failed to load growbox. Please try again.
+      </Alert>
+    );
+  }
+
   if (!growbox) return <Typography>Growbox not found</Typography>;
 
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">{growbox.name}</Typography>
-        <Button variant="contained" startIcon={<AddIcon />}>
+        <Button 
+          variant="contained" 
+          startIcon={<AddIcon />}
+          onClick={() => setCreatePlantDialogOpen(true)}
+        >
           Add Plant
         </Button>
       </Box>
@@ -214,7 +245,16 @@ const GrowboxDetail: React.FC = () => {
                   <TableBody>
                     {plants.map((plant) => (
                       <TableRow key={plant.id}>
-                        <TableCell>{plant.name}</TableCell>
+                        <TableCell>
+                          <Button
+                            component={Link}
+                            to={`/plant/${plant.id}`}
+                            variant="text"
+                            sx={{ textTransform: 'none', p: 0 }}
+                          >
+                            {plant.name}
+                          </Button>
+                        </TableCell>
                         <TableCell>{plant.strain}</TableCell>
                         <TableCell>{plant.current_phase}</TableCell>
                         <TableCell>12 days</TableCell>
@@ -237,7 +277,11 @@ const GrowboxDetail: React.FC = () => {
                 <Typography color="textSecondary" gutterBottom>
                   No plants in this growbox yet
                 </Typography>
-                <Button variant="contained" startIcon={<AddIcon />}>
+                <Button 
+                  variant="contained" 
+                  startIcon={<AddIcon />}
+                  onClick={() => setCreatePlantDialogOpen(true)}
+                >
                   Add First Plant
                 </Button>
               </Box>
@@ -245,6 +289,13 @@ const GrowboxDetail: React.FC = () => {
           </Paper>
         </Grid>
       </Grid>
+
+      <CreatePlantDialog
+        open={createPlantDialogOpen}
+        onClose={() => setCreatePlantDialogOpen(false)}
+        onSuccess={handlePlantCreated}
+        growboxId={growbox.id}
+      />
     </Box>
   );
 };
