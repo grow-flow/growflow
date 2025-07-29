@@ -1,0 +1,26 @@
+import React from 'react';
+import { Routes, Route } from 'react-router-dom';
+import { Container } from '@mui/material';
+import Navbar from './components/Navbar';
+import Dashboard from './pages/Dashboard';
+import GrowboxDetail from './pages/GrowboxDetail';
+import PlantDetail from './pages/PlantDetail';
+import Settings from './pages/Settings';
+
+function App() {
+  return (
+    <>
+      <Navbar />
+      <Container maxWidth="xl" sx={{ mt: 3 }}>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/growbox/:id" element={<GrowboxDetail />} />
+          <Route path="/plant/:id" element={<PlantDetail />} />
+          <Route path="/settings" element={<Settings />} />
+        </Routes>
+      </Container>
+    </>
+  );
+}
+
+export default App;

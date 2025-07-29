@@ -1,0 +1,40 @@
+.claude
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Backend
+backend/dist/
+backend/node_modules/
+backend/.env
+
+# Frontend
+frontend/build/
+frontend/node_modules/
+frontend/.env
+
+# Database
+*.db
+data/
+
+# Logs
+logs/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
