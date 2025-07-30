@@ -23,7 +23,7 @@ import { format } from 'date-fns';
 import { Plant, PlantPhase } from '../types/models';
 import { useUpdatePlant, usePlant } from '../hooks/usePlants';
 import { useStrains } from '../hooks/useStrains';
-import { generateTimeline, getCurrentPhase, getUpdateFieldForPhase, getNextPhase, isPhaseReadyForNext, PHASE_ORDER, validatePhaseDate } from '../utils/timelineUtils';
+import { generateTimeline, getCurrentPhase, getUpdateFieldForPhase, getNextPhase, isPhaseReadyForNext, PHASE_ORDER, validatePhaseDate, getPhaseDate } from '../utils/timelineUtils';
 
 interface SimpleTimelineProps {
   plant: Plant;
@@ -47,7 +47,7 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({ plant: initialPlant }) 
   const currentPhaseInfo = timeline.find(p => p.isCurrent);
 
   const handleDateChange = async (phase: PlantPhase, date: Date | null) => {
-    // Validate the date
+    // Validate the date (null dates are allowed for clearing)
     const validation = validatePhaseDate(date, phase, plant);
     if (!validation.isValid) {
       console.warn('Invalid date:', validation.error);
@@ -198,7 +198,34 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({ plant: initialPlant }) 
                       label={phase.label}
                       value={phase.actualDate}
                       onChange={(date) => handleDateChange(phase.phase, date)}
-                      maxDate={new Date()}
+                      maxDate={(() => {
+                        // Max date is today or the next phase's date (whichever is earlier)
+                        const today = new Date();
+                        const phaseIndex = PHASE_ORDER.indexOf(phase.phase);
+                        
+                        // Find the earliest next phase date
+                        for (let i = phaseIndex + 1; i < PHASE_ORDER.length; i++) {
+                          const nextPhaseDate = getPhaseDate(plant, PHASE_ORDER[i]);
+                          if (nextPhaseDate) {
+                            // Subtract 1 day to ensure this phase can't be on or after next phase
+                            const maxAllowed = new Date(nextPhaseDate);
+                            maxAllowed.setDate(maxAllowed.getDate() - 1);
+                            return maxAllowed < today ? maxAllowed : today;
+                          }
+                        }
+                        return today;
+                      })()}
+                      minDate={(() => {
+                        // Min date is the latest previous phase's date
+                        const phaseIndex = PHASE_ORDER.indexOf(phase.phase);
+                        for (let i = phaseIndex - 1; i >= 0; i--) {
+                          const prevPhaseDate = getPhaseDate(plant, PHASE_ORDER[i]);
+                          if (prevPhaseDate) {
+                            return prevPhaseDate;
+                          }
+                        }
+                        return undefined; // No minimum for first phase
+                      })()}
                       format="dd/MM/yy"
                       slotProps={{ 
                         textField: { 
@@ -206,7 +233,9 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({ plant: initialPlant }) 
                           variant: 'outlined',
                           sx: { minWidth: 140 }
                         },
-                        actionBar: { actions: ['clear', 'today'] }
+                        actionBar: { 
+                          actions: ['clear', 'today']
+                        }
                       }}
                     />
                     
