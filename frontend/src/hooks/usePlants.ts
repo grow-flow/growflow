@@ -86,6 +86,11 @@ export const useUpdatePlant = () => {
       queryClient.setQueryData(plantKeys.lists(), (old: Plant[] = []) =>
         old.map(plant => plant.id === updatedPlant.id ? updatedPlant : plant)
       );
+      
+      // Force refresh of plant detail
+      queryClient.invalidateQueries({ 
+        queryKey: plantKeys.detail(updatedPlant.id) 
+      });
     },
   });
 };

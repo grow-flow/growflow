@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   Typography,
@@ -21,9 +21,9 @@ import {
   Opacity, 
   Restaurant 
 } from '@mui/icons-material';
-import { apiService } from '../services/api';
-import { Plant, PlantPhase, WateringLog, FeedingLog, ObservationLog } from '../types/models';
-import PlantTimeline from '../components/PlantTimeline';
+import { usePlant, useLogWatering, useLogFeeding } from '../hooks/usePlants';
+import { PlantPhase, WateringLog, FeedingLog, ObservationLog } from '../types/models';
+import SimpleTimeline from '../components/SimpleTimeline';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -39,50 +39,34 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => (
 
 const PlantDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [plant, setPlant] = useState<Plant | null>(null);
+  const plantId = id ? parseInt(id) : 0;
+  
+  const { data: plant, isLoading, error } = usePlant(plantId);
+  
   const [tabValue, setTabValue] = useState(0);
-  const [careHistory, setCareHistory] = useState<{
+  const [careHistory] = useState<{
     watering: WateringLog[];
     feeding: FeedingLog[];
     observations: ObservationLog[];
   }>({ watering: [], feeding: [], observations: [] });
   const [quickActionDialog, setQuickActionDialog] = useState<'water' | 'feed' | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (id) {
-      fetchPlantData(parseInt(id));
-    }
-  }, [id]);
-
-  const fetchPlantData = async (plantId: number) => {
-    try {
-      const [plantData, history] = await Promise.all([
-        apiService.getPlant(plantId),
-        apiService.getCareHistory(plantId)
-      ]);
-      setPlant(plantData);
-      setCareHistory(history);
-    } catch (error) {
-      console.error('Failed to fetch plant data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  
+  const logWateringMutation = useLogWatering();
+  const logFeedingMutation = useLogFeeding();
 
   const handleQuickAction = async (action: 'water' | 'feed') => {
     if (!plant) return;
     
     try {
       if (action === 'water') {
-        await apiService.logWatering({
+        await logWateringMutation.mutateAsync({
           plant_id: plant.id,
           amount_ml: 500,
           ph_level: 6.2,
           notes: 'Quick watering'
         });
       } else {
-        await apiService.logFeeding({
+        await logFeedingMutation.mutateAsync({
           plant_id: plant.id,
           nutrients: [{ name: 'Base Nutrients', amount_ml: 10 }],
           ph_level: 6.0,
@@ -90,9 +74,6 @@ const PlantDetail: React.FC = () => {
         });
       }
       
-      // Refresh care history
-      const history = await apiService.getCareHistory(plant.id);
-      setCareHistory(history);
       setQuickActionDialog(null);
     } catch (error) {
       console.error(`Failed to log ${action}:`, error);
@@ -135,7 +116,8 @@ const PlantDetail: React.FC = () => {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
-  if (loading) return <Typography>Loading...</Typography>;
+  if (isLoading) return <Typography>Loading...</Typography>;
+  if (error) return <Typography>Error loading plant</Typography>;
   if (!plant) return <Typography>Plant not found</Typography>;
 
   return (
@@ -182,20 +164,14 @@ const PlantDetail: React.FC = () => {
         {/* Timeline */}
         <Grid item xs={12} md={4}>
           <Paper sx={{ p: 3, height: 'fit-content' }}>
-            <PlantTimeline
-              currentPhase={plant.current_phase}
-              germinationDate={new Date(plant.germination_date)}
-              vegetationStartDate={plant.vegetation_start_date ? new Date(plant.vegetation_start_date) : undefined}
-              floweringStartDate={plant.flowering_start_date ? new Date(plant.flowering_start_date) : undefined}
-              harvestDate={plant.harvest_date ? new Date(plant.harvest_date) : undefined}
-            />
+            <SimpleTimeline plant={plant} />
           </Paper>
         </Grid>
 
         {/* Care History Tabs */}
         <Grid item xs={12} md={8}>
           <Paper>
-            <Tabs value={tabValue} onChange={(e, v) => setTabValue(v)}>
+            <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)}>
               <Tab label={`Watering (${careHistory.watering.length})`} />
               <Tab label={`Feeding (${careHistory.feeding.length})`} />
               <Tab label={`Observations (${careHistory.observations.length})`} />

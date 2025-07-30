@@ -33,6 +33,14 @@ const Navbar: React.FC = () => {
           <Button
             color="inherit"
             component={Link}
+            to="/strains"
+            sx={{ opacity: location.pathname === '/strains' ? 1 : 0.7 }}
+          >
+            Strains
+          </Button>
+          <Button
+            color="inherit"
+            component={Link}
             to="/settings"
             sx={{ opacity: location.pathname === '/settings' ? 1 : 0.7 }}
           >

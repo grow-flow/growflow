@@ -11,7 +11,6 @@ export enum PlantPhase {
   PRE_FLOWER = 'pre_flower',
   FLOWERING = 'flowering',
   FLUSHING = 'flushing',
-  HARVEST = 'harvest',
   DRYING = 'drying',
   CURING = 'curing'
 }
@@ -40,13 +39,25 @@ export class Plant {
   germination_date: Date;
 
   @Column({ nullable: true })
+  seedling_start_date?: Date;
+
+  @Column({ nullable: true })
   vegetation_start_date?: Date;
+
+  @Column({ nullable: true })
+  pre_flower_start_date?: Date;
 
   @Column({ nullable: true })
   flowering_start_date?: Date;
 
   @Column({ nullable: true })
-  harvest_date?: Date;
+  flushing_start_date?: Date;
+
+  @Column({ nullable: true })
+  drying_start_date?: Date;
+
+  @Column({ nullable: true })
+  curing_start_date?: Date;
 
   @Column({ type: 'varchar', default: PlantPhase.GERMINATION })
   current_phase: PlantPhase;

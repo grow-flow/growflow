@@ -175,10 +175,10 @@ const PlantDataColumns: React.FC<PlantDataColumnsProps> = ({ plants }) => {
                     </Box>
                   )}
                   
-                  {plant.harvest_date && (
+                  {plant.drying_start_date && (
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 3 }}>
                       <Typography variant="body2" color="textSecondary">
-                        Harvest: {format(new Date(plant.harvest_date), 'MMM dd')}
+                        Harvested: {format(new Date(plant.drying_start_date), 'MMM dd')}
                       </Typography>
                     </Box>
                   )}

@@ -42,7 +42,6 @@ const PhaseManagementDialog: React.FC<PhaseManagementDialogProps> = ({
     germination_date: plant?.germination_date ? new Date(plant.germination_date) : new Date(),
     vegetation_start_date: plant?.vegetation_start_date ? new Date(plant.vegetation_start_date) : null,
     flowering_start_date: plant?.flowering_start_date ? new Date(plant.flowering_start_date) : null,
-    harvest_date: plant?.harvest_date ? new Date(plant.harvest_date) : null,
   });
   const updatePlantMutation = useUpdatePlant();
 
@@ -53,8 +52,7 @@ const PhaseManagementDialog: React.FC<PhaseManagementDialogProps> = ({
     { phase: PlantPhase.PRE_FLOWER, label: 'Pre-Flower', days: 14 },
     { phase: PlantPhase.FLOWERING, label: 'Flowering', days: 63 },
     { phase: PlantPhase.FLUSHING, label: 'Flushing', days: 14 },
-    { phase: PlantPhase.HARVEST, label: 'Harvest', days: 1 },
-    { phase: PlantPhase.DRYING, label: 'Drying', days: 10 },
+    { phase: PlantPhase.DRYING, label: 'Drying (Harvest)', days: 10 },
     { phase: PlantPhase.CURING, label: 'Curing', days: 28 }
   ];
 
@@ -73,7 +71,6 @@ const PhaseManagementDialog: React.FC<PhaseManagementDialogProps> = ({
       germination_date: germDate,
       vegetation_start_date: null as Date | null,
       flowering_start_date: null as Date | null,
-      harvest_date: null as Date | null,
     };
 
     // Calculate automatic dates based on typical phase durations
@@ -83,8 +80,6 @@ const PhaseManagementDialog: React.FC<PhaseManagementDialogProps> = ({
     currentDate.setDate(currentDate.getDate() + 56); // Vegetation + Pre-flower
     dates.flowering_start_date = new Date(currentDate);
 
-    currentDate.setDate(currentDate.getDate() + 77); // Flowering + Flushing
-    dates.harvest_date = new Date(currentDate);
 
     return dates;
   };
@@ -103,8 +98,8 @@ const PhaseManagementDialog: React.FC<PhaseManagementDialogProps> = ({
         updates.vegetation_start_date = now;
       } else if (newPhase === PlantPhase.FLOWERING && !plant.flowering_start_date) {
         updates.flowering_start_date = now;
-      } else if (newPhase === PlantPhase.HARVEST && !plant.harvest_date) {
-        updates.harvest_date = now;
+      } else if (newPhase === PlantPhase.DRYING && !plant.drying_start_date) {
+        updates.drying_start_date = now;
       }
 
       await updatePlantMutation.mutateAsync({
@@ -128,7 +123,6 @@ const PhaseManagementDialog: React.FC<PhaseManagementDialogProps> = ({
           germination_date: customDates.germination_date,
           vegetation_start_date: customDates.vegetation_start_date || undefined,
           flowering_start_date: customDates.flowering_start_date || undefined,
-          harvest_date: customDates.harvest_date || undefined,
         }
       });
       onClose();
@@ -285,12 +279,6 @@ const PhaseManagementDialog: React.FC<PhaseManagementDialogProps> = ({
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  <DatePicker
-                    label="Harvest Date"
-                    value={customDates.harvest_date}
-                    onChange={(date) => setCustomDates({ ...customDates, harvest_date: date })}
-                    slotProps={{ textField: { fullWidth: true } }}
-                  />
                 </Grid>
               </Grid>
 

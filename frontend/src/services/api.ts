@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { Growbox, Plant, WateringLog, FeedingLog, ObservationLog } from '../types/models';
+import { Strain, CreateStrainData, UpdateStrainData } from '../types/strain';
 
 const API_BASE = '/api';
 
@@ -79,5 +80,30 @@ export const apiService = {
   getCareHistory: async (plantId: number) => {
     const response = await api.get(`/care/${plantId}/history`);
     return response.data;
+  },
+
+  // Strain endpoints
+  getStrains: async (): Promise<Strain[]> => {
+    const response = await api.get('/strains');
+    return response.data;
+  },
+
+  getStrain: async (id: number): Promise<Strain> => {
+    const response = await api.get(`/strains/${id}`);
+    return response.data;
+  },
+
+  createStrain: async (data: CreateStrainData): Promise<Strain> => {
+    const response = await api.post('/strains', data);
+    return response.data;
+  },
+
+  updateStrain: async (id: number, data: Partial<UpdateStrainData>): Promise<Strain> => {
+    const response = await api.put(`/strains/${id}`, data);
+    return response.data;
+  },
+
+  deleteStrain: async (id: number): Promise<void> => {
+    await api.delete(`/strains/${id}`);
   },
 };

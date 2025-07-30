@@ -12,10 +12,13 @@ import {
   Select,
   MenuItem,
   Box,
-  Chip
+  Typography
 } from '@mui/material';
 import { useGrowboxes } from '../hooks/useGrowboxes';
+import { useStrains } from '../hooks/useStrains';
+import { usePlants } from '../hooks/usePlants';
 import { Plant, PlantPhase } from '../types/models';
+import { Strain } from '../types/strain';
 
 interface CreatePlantDialogProps {
   open: boolean;
@@ -31,54 +34,70 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({
   growboxId
 }) => {
   const { data: growboxes = [] } = useGrowboxes();
+  const { data: strains = [] } = useStrains();
+  const { data: plants = [] } = usePlants();
   
   const [formData, setFormData] = useState({
     name: '',
-    strain: '',
-    breeder: '',
-    phenotype: '',
+    strain_id: null as number | null,
     growbox_id: growboxId || (growboxes[0]?.id || 0),
-    medium: 'soil' as 'soil' | 'hydro' | 'coco' | 'dwc',
-    pot_size_liters: 20,
-    light_schedule: {
-      vegetation: '18/6',
-      flowering: '12/12'
-    },
-    training_methods: [] as string[],
-    notes: '',
-    is_mother_plant: false
+    medium: 'soil' as 'soil' | 'hydro' | 'coco' | 'dwc'
   });
 
   const [loading, setLoading] = useState(false);
-  const [newTrainingMethod, setNewTrainingMethod] = useState('');
 
-  const trainingOptions = ['LST', 'SCROG', 'Topping', 'FIM', 'Supercropping', 'Defoliation', 'Lollipopping'];
+  // Auto-generate plant name based on selected strain
+  const generatePlantName = (strain: Strain): string => {
+    const existingCount = plants.filter(p => p.strain === strain.name).length;
+    return `${strain.name} #${existingCount + 1}`;
+  };
+
+  const handleStrainChange = (strainId: number) => {
+    const selectedStrain = strains.find(s => s.id === strainId);
+    if (selectedStrain) {
+      setFormData({
+        ...formData,
+        strain_id: strainId,
+        name: generatePlantName(selectedStrain)
+      });
+    }
+  };
 
   const handleSubmit = async () => {
-    if (!formData.name.trim() || !formData.strain.trim()) return;
+    if (!formData.name.trim() || !formData.strain_id) return;
+
+    const selectedStrain = strains.find(s => s.id === formData.strain_id);
+    if (!selectedStrain) return;
 
     setLoading(true);
     try {
+      // Auto-detect light schedule based on strain type
+      const lightSchedule = selectedStrain.is_autoflower 
+        ? { vegetation: '18/6', flowering: '18/6' }
+        : { vegetation: '18/6', flowering: '12/12' };
+
       await onSuccess({
-        ...formData,
+        name: formData.name,
+        strain: selectedStrain.name,
+        breeder: selectedStrain.breeder,
+        growbox_id: formData.growbox_id,
+        medium: formData.medium,
+        pot_size_liters: 20, // Default pot size
+        light_schedule: lightSchedule,
+        training_methods: [], // Empty initially - added via events
+        notes: '',
+        is_mother_plant: false,
         germination_date: new Date(),
         current_phase: PlantPhase.GERMINATION,
         is_active: true
       });
       
-      // Reset form only on success
+      // Reset form
       setFormData({
         name: '',
-        strain: '',
-        breeder: '',
-        phenotype: '',
+        strain_id: null,
         growbox_id: growboxId || (growboxes[0]?.id || 0),
-        medium: 'soil',
-        pot_size_liters: 20,
-        light_schedule: { vegetation: '18/6', flowering: '12/12' },
-        training_methods: [],
-        notes: '',
-        is_mother_plant: false
+        medium: 'soil'
       });
     } catch (error) {
       console.error('Failed to create plant:', error);
@@ -87,22 +106,6 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({
     }
   };
 
-  const addTrainingMethod = () => {
-    if (newTrainingMethod && !formData.training_methods.includes(newTrainingMethod)) {
-      setFormData({
-        ...formData,
-        training_methods: [...formData.training_methods, newTrainingMethod]
-      });
-      setNewTrainingMethod('');
-    }
-  };
-
-  const removeTrainingMethod = (method: string) => {
-    setFormData({
-      ...formData,
-      training_methods: formData.training_methods.filter(m => m !== method)
-    });
-  };
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -110,64 +113,60 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({
       <DialogContent>
         <Box sx={{ pt: 1 }}>
           <Grid container spacing={3}>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Plant Name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-                placeholder="White Widow #1"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Strain"
-                value={formData.strain}
-                onChange={(e) => setFormData({ ...formData, strain: e.target.value })}
-                required
-                placeholder="White Widow"
-              />
-            </Grid>
-
+            {/* Strain Selection - FIRST and most important */}
             <Grid item xs={12}>
               <FormControl fullWidth required>
-                <InputLabel>Growbox</InputLabel>
+                <InputLabel>Select Strain</InputLabel>
                 <Select
-                  value={formData.growbox_id}
-                  onChange={(e) => setFormData({ ...formData, growbox_id: Number(e.target.value) })}
-                  label="Growbox"
+                  value={formData.strain_id || ''}
+                  onChange={(e) => handleStrainChange(Number(e.target.value))}
+                  label="Select Strain"
                 >
-                  {growboxes.map((growbox) => (
-                    <MenuItem key={growbox.id} value={growbox.id}>
-                      {growbox.name} ({growbox.type})
+                  {strains.map((strain) => (
+                    <MenuItem key={strain.id} value={strain.id}>
+                      {strain.name} {strain.is_autoflower ? '(Auto)' : '(Photo)'} - {strain.type}
+                      {strain.breeder && ` by ${strain.breeder}`}
                     </MenuItem>
                   ))}
                 </Select>
               </FormControl>
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            {/* Plant Name - Auto-filled but editable */}
+            <Grid item xs={12}>
               <TextField
                 fullWidth
-                label="Breeder"
-                value={formData.breeder}
-                onChange={(e) => setFormData({ ...formData, breeder: e.target.value })}
-                placeholder="White Label Seeds"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Phenotype"
-                value={formData.phenotype}
-                onChange={(e) => setFormData({ ...formData, phenotype: e.target.value })}
-                placeholder="Indica Dominant"
+                label="Plant Name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+                placeholder="Will be auto-filled when strain is selected"
+                disabled={!formData.strain_id}
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            {/* Growbox Selection */}
+            {growboxes.length > 1 && (
+              <Grid item xs={12}>
+                <FormControl fullWidth required>
+                  <InputLabel>Growbox</InputLabel>
+                  <Select
+                    value={formData.growbox_id}
+                    onChange={(e) => setFormData({ ...formData, growbox_id: Number(e.target.value) })}
+                    label="Growbox"
+                  >
+                    {growboxes.map((growbox) => (
+                      <MenuItem key={growbox.id} value={growbox.id}>
+                        {growbox.name} ({growbox.type})
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+            )}
+
+            {/* Growing Medium */}
+            <Grid item xs={12}>
               <FormControl fullWidth>
                 <InputLabel>Growing Medium</InputLabel>
                 <Select
@@ -178,92 +177,22 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({
                   <MenuItem value="soil">Soil</MenuItem>
                   <MenuItem value="hydro">Hydroponic</MenuItem>
                   <MenuItem value="coco">Coco Coir</MenuItem>
-                  <MenuItem value="dwc">DWC</MenuItem>
+                  <MenuItem value="dwc">DWC (Deep Water Culture)</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                fullWidth
-                label="Pot Size (Liters)"
-                type="number"
-                value={formData.pot_size_liters}
-                onChange={(e) => setFormData({ ...formData, pot_size_liters: Number(e.target.value) })}
-              />
-            </Grid>
 
-            <Grid item xs={12}>
-              <DialogTitle sx={{ px: 0 }}>Light Schedule</DialogTitle>
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="Vegetation Schedule"
-                value={formData.light_schedule.vegetation}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  light_schedule: { ...formData.light_schedule, vegetation: e.target.value }
-                })}
-                placeholder="18/6"
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="Flowering Schedule"
-                value={formData.light_schedule.flowering}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  light_schedule: { ...formData.light_schedule, flowering: e.target.value }
-                })}
-                placeholder="12/12"
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <DialogTitle sx={{ px: 0 }}>Training Methods</DialogTitle>
-              <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-                {formData.training_methods.map((method) => (
-                  <Chip
-                    key={method}
-                    label={method}
-                    onDelete={() => removeTrainingMethod(method)}
-                    color="primary"
-                  />
-                ))}
-              </Box>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <FormControl sx={{ minWidth: 120 }}>
-                  <InputLabel>Add Method</InputLabel>
-                  <Select
-                    value={newTrainingMethod}
-                    onChange={(e) => setNewTrainingMethod(e.target.value)}
-                    label="Add Method"
-                  >
-                    {trainingOptions.map((option) => (
-                      <MenuItem key={option} value={option}>
-                        {option}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-                <Button variant="outlined" onClick={addTrainingMethod}>
-                  Add
-                </Button>
-              </Box>
-            </Grid>
-
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Notes"
-                multiline
-                rows={3}
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Additional notes about this plant..."
-              />
-            </Grid>
+            {/* Info about what gets set automatically */}
+            {formData.strain_id && (
+              <Grid item xs={12}>
+                <Box sx={{ p: 2, bgcolor: 'info.light', borderRadius: 1 }}>
+                  <Typography variant="caption" color="info.dark">
+                    ℹ️ Light schedule, pot size, and training methods will be set automatically based on the strain type. 
+                    You can add training methods and observations later through the plant timeline.
+                  </Typography>
+                </Box>
+              </Grid>
+            )}
           </Grid>
         </Box>
       </DialogContent>
@@ -272,7 +201,7 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({
         <Button
           onClick={handleSubmit}
           variant="contained"
-          disabled={loading || !formData.name.trim() || !formData.strain.trim()}
+          disabled={loading || !formData.name.trim() || !formData.strain_id}
         >
           {loading ? 'Creating...' : 'Create Plant'}
         </Button>

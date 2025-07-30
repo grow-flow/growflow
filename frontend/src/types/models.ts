@@ -39,7 +39,6 @@ export enum PlantPhase {
   PRE_FLOWER = 'pre_flower',
   FLOWERING = 'flowering',
   FLUSHING = 'flushing',
-  HARVEST = 'harvest',
   DRYING = 'drying',
   CURING = 'curing'
 }
@@ -52,9 +51,13 @@ export interface Plant {
   breeder?: string;
   phenotype?: string;
   germination_date: Date;
+  seedling_start_date?: Date;
   vegetation_start_date?: Date;
+  pre_flower_start_date?: Date;
   flowering_start_date?: Date;
-  harvest_date?: Date;
+  flushing_start_date?: Date;
+  drying_start_date?: Date;
+  curing_start_date?: Date;
   current_phase: PlantPhase;
   light_schedule: {
     vegetation: string;

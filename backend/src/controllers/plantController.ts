@@ -68,8 +68,8 @@ router.put('/:id/phase', async (req: Request, res: Response) => {
     if (phase === PlantPhase.FLOWERING && !plant.flowering_start_date) {
       plant.flowering_start_date = new Date();
     }
-    if (phase === PlantPhase.HARVEST && !plant.harvest_date) {
-      plant.harvest_date = new Date();
+    if (phase === PlantPhase.DRYING && !plant.drying_start_date) {
+      plant.drying_start_date = new Date();
     }
     
     const saved = await plantRepo.save(plant);
