@@ -1,6 +1,6 @@
 import { DataSource } from 'typeorm';
 import { CONFIG } from './config/settings';
-import { Growbox, Plant, WateringLog, FeedingLog, ObservationLog, EnvironmentLog } from './models';
+import { Growbox, Plant, WateringLog, FeedingLog, ObservationLog, EnvironmentLog, Strain } from './models';
 
 export const AppDataSource = new DataSource({
   type: 'sqlite',
@@ -13,7 +13,8 @@ export const AppDataSource = new DataSource({
     WateringLog,
     FeedingLog,
     ObservationLog,
-    EnvironmentLog
+    EnvironmentLog,
+    Strain
   ],
 });
 
