@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -5,7 +6,7 @@ import morgan from 'morgan';
 import { CONFIG } from './config/settings';
 import { initializeDatabase } from './database';
 import { errorHandler } from './middleware/errorHandler';
-import { growboxRoutes } from './controllers/growboxController';
+import { growAreaRoutes } from './controllers/growAreaController';
 import { plantRoutes } from './controllers/plantController';
 import { careRoutes } from './controllers/careController';
 import { strainRoutes } from './controllers/strainController';
@@ -19,7 +20,27 @@ app.use(cors({ origin: CONFIG.API.CORS_ORIGIN }));
 app.use(morgan('combined'));
 app.use(express.json());
 
-app.use('/api/growboxes', growboxRoutes);
+// Request logging middleware
+app.use((req, res, next) => {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] ${req.method} ${req.path}`);
+  
+  if (req.method === 'POST' || req.method === 'PUT') {
+    console.log(`[${timestamp}] Request body:`, JSON.stringify(req.body, null, 2));
+  }
+  
+  const originalSend = res.json;
+  res.json = function(body) {
+    if (res.statusCode >= 400) {
+      console.error(`[${timestamp}] Error response ${res.statusCode}:`, body);
+    }
+    return originalSend.call(this, body);
+  };
+  
+  next();
+});
+
+app.use('/api/grow-areas', growAreaRoutes);
 app.use('/api/plants', plantRoutes);
 app.use('/api/care', careRoutes);
 app.use('/api/strains', strainRoutes);
@@ -35,7 +56,7 @@ const start = async () => {
     await initializeDatabase();
     
     await mqttService.connect();
-    automationService.start();
+    await automationService.start();
     
     app.listen(CONFIG.API.PORT, () => {
       console.log(`Server running on port ${CONFIG.API.PORT}`);

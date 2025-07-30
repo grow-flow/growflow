@@ -1,18 +1,18 @@
 import React from 'react';
 import { Grid, Paper, Typography, Box } from '@mui/material';
 import { LocalFlorist, Thermostat, Opacity, Schedule } from '@mui/icons-material';
-import { Growbox } from '../types/models';
+import { GrowArea } from '../types/models';
 
 interface QuickStatsProps {
-  growboxes: Growbox[];
+  growAreas: GrowArea[];
 }
 
-const QuickStats: React.FC<QuickStatsProps> = ({ growboxes }) => {
-  const totalPlants = growboxes.reduce((sum, box) => sum + (box.plants?.length || 0), 0);
-  const activePlants = growboxes.reduce((sum, box) => 
-    sum + (box.plants?.filter(p => p.is_active).length || 0), 0
+const QuickStats: React.FC<QuickStatsProps> = ({ growAreas }) => {
+  const totalPlants = growAreas.reduce((sum, area) => sum + (area.plants?.length || 0), 0);
+  const activePlants = growAreas.reduce((sum, area) => 
+    sum + (area.plants?.filter(p => p.is_active).length || 0), 0
   );
-  const activeGrowboxes = growboxes.length;
+  const activeGrowAreas = growAreas.length;
   const avgTemp = 24.5; // Mock data
   const avgHumidity = 58; // Mock data
 
@@ -24,8 +24,8 @@ const QuickStats: React.FC<QuickStatsProps> = ({ growboxes }) => {
       color: '#4caf50'
     },
     {
-      title: 'Growboxes',
-      value: activeGrowboxes,
+      title: 'Grow Areas',
+      value: activeGrowAreas,
       icon: <Schedule />,
       color: '#2196f3'
     },

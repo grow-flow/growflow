@@ -1,35 +1,35 @@
 import React, { useState } from 'react';
 import { Grid, Typography, Card, CardContent, Button, Box, CircularProgress, Alert } from '@mui/material';
 import { Add as AddIcon, LocalFlorist as PlantIcon } from '@mui/icons-material';
-import { useGrowboxes, useCreateGrowbox } from '../hooks/useGrowboxes';
+import { useGrowAreas, useCreateGrowArea } from '../hooks/useGrowAreas';
 import { useCreatePlant } from '../hooks/usePlants';
-import { Growbox, Plant } from '../types/models';
-import GrowboxCard from '../components/GrowboxCard';
-import CreateGrowboxDialog from '../components/CreateGrowboxDialog';
+import { GrowArea, Plant } from '../types/models';
+import GrowAreaCard from '../components/GrowAreaCard';
+import CreateGrowAreaDialog from '../components/CreateGrowAreaDialog';
 import CreatePlantDialog from '../components/CreatePlantDialog';
 import QuickStats from '../components/QuickStats';
 import RecentActivities from '../components/RecentActivities';
 
 const Dashboard: React.FC = () => {
-  const [createGrowboxDialogOpen, setCreateGrowboxDialogOpen] = useState(false);
+  const [createGrowAreaDialogOpen, setCreateGrowAreaDialogOpen] = useState(false);
   const [createPlantDialogOpen, setCreatePlantDialogOpen] = useState(false);
   
   const { 
-    data: growboxes = [], 
+    data: growAreas = [], 
     isLoading, 
     error,
     refetch 
-  } = useGrowboxes();
+  } = useGrowAreas();
   
-  const createGrowboxMutation = useCreateGrowbox();
+  const createGrowAreaMutation = useCreateGrowArea();
   const createPlantMutation = useCreatePlant();
 
-  const handleGrowboxCreated = async (growboxData: Partial<Growbox>) => {
+  const handleGrowAreaCreated = async (growAreaData: Partial<GrowArea>) => {
     try {
-      await createGrowboxMutation.mutateAsync(growboxData);
-      setCreateGrowboxDialogOpen(false);
+      await createGrowAreaMutation.mutateAsync(growAreaData);
+      setCreateGrowAreaDialogOpen(false);
     } catch (error) {
-      console.error('Failed to create growbox:', error);
+      console.error('Failed to create grow area:', error);
     }
   };
 
@@ -60,7 +60,7 @@ const Dashboard: React.FC = () => {
           </Button>
         }
       >
-        Failed to load growboxes. Please try again.
+        Failed to load grow areas. Please try again.
       </Alert>
     );
   }
@@ -74,47 +74,47 @@ const Dashboard: React.FC = () => {
             variant="outlined"
             startIcon={<PlantIcon />}
             onClick={() => setCreatePlantDialogOpen(true)}
-            disabled={growboxes.length === 0}
+            disabled={growAreas.length === 0}
           >
             Add Plant
           </Button>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => setCreateGrowboxDialogOpen(true)}
+            onClick={() => setCreateGrowAreaDialogOpen(true)}
           >
-            New Growbox
+            New Grow Area
           </Button>
         </Box>
       </Box>
 
-      <QuickStats growboxes={growboxes} />
+      <QuickStats growAreas={growAreas} />
 
       <Grid container spacing={3}>
         <Grid item xs={12} lg={8}>
           <Grid container spacing={3}>
-            {growboxes.map((growbox) => (
-              <Grid item xs={12} md={6} key={growbox.id}>
-                <GrowboxCard growbox={growbox} />
+            {growAreas.map((growArea) => (
+              <Grid item xs={12} md={6} key={growArea.id}>
+                <GrowAreaCard growArea={growArea} />
               </Grid>
             ))}
             
-            {growboxes.length === 0 && (
+            {growAreas.length === 0 && (
               <Grid item xs={12}>
                 <Card>
                   <CardContent sx={{ textAlign: 'center', py: 6 }}>
                     <Typography variant="h6" color="textSecondary" gutterBottom>
-                      No growboxes yet
+                      No grow areas yet
                     </Typography>
                     <Typography color="textSecondary" sx={{ mb: 3 }}>
-                      Create your first growbox to start tracking your plants
+                      Create your first grow area to start tracking your plants
                     </Typography>
                     <Button
                       variant="contained"
                       startIcon={<AddIcon />}
-                      onClick={() => setCreateGrowboxDialogOpen(true)}
+                      onClick={() => setCreateGrowAreaDialogOpen(true)}
                     >
-                      Create Growbox
+                      Create Grow Area
                     </Button>
                   </CardContent>
                 </Card>
@@ -128,17 +128,17 @@ const Dashboard: React.FC = () => {
         </Grid>
       </Grid>
 
-      <CreateGrowboxDialog
-        open={createGrowboxDialogOpen}
-        onClose={() => setCreateGrowboxDialogOpen(false)}
-        onSuccess={handleGrowboxCreated}
+      <CreateGrowAreaDialog
+        open={createGrowAreaDialogOpen}
+        onClose={() => setCreateGrowAreaDialogOpen(false)}
+        onSuccess={handleGrowAreaCreated}
       />
 
       <CreatePlantDialog
         open={createPlantDialogOpen}
         onClose={() => setCreatePlantDialogOpen(false)}
         onSuccess={handlePlantCreated}
-        growboxId={0} // Will be selected in dialog
+        growAreaId={0} // Will be selected in dialog
       />
     </Box>
   );

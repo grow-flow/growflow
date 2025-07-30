@@ -1,4 +1,4 @@
-export interface Growbox {
+export interface GrowArea {
   id: number;
   name: string;
   type: 'indoor' | 'outdoor';
@@ -45,7 +45,7 @@ export enum PlantPhase {
 
 export interface Plant {
   id: number;
-  growbox_id: number;
+  grow_area_id: number;
   name: string;
   strain: string;
   breeder?: string;

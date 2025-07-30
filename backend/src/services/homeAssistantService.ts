@@ -21,9 +21,13 @@ export class HomeAssistantService {
     try {
       const response = await this.api.post(`/api/services/${domain}/${service}`, serviceData);
       return response.data;
-    } catch (error) {
-      console.error(`HA Service call failed: ${domain}.${service}`, error);
-      throw error;
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        console.warn(`Service ${domain}.${service} not found in Home Assistant (404)`);
+        return null;
+      }
+      console.error(`HA Service call failed: ${domain}.${service}`, error.message);
+      return null;
     }
   }
 
@@ -31,9 +35,13 @@ export class HomeAssistantService {
     try {
       const response = await this.api.get(`/api/states/${entityId}`);
       return response.data;
-    } catch (error) {
-      console.error(`Failed to get state for ${entityId}:`, error);
-      throw error;
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        console.warn(`Entity ${entityId} not found in Home Assistant (404)`);
+        return null;
+      }
+      console.error(`Failed to get state for ${entityId}:`, error.message);
+      return null;
     }
   }
 
@@ -79,12 +87,22 @@ export class HomeAssistantService {
 
   async testConnection(): Promise<boolean> {
     try {
-      await this.api.get('/api/');
+      const response = await this.api.get('/api/');
+      console.log('Home Assistant connection successful');
       return true;
-    } catch (error) {
-      console.error('HA connection test failed:', error);
+    } catch (error: any) {
+      if (error.code === 'ECONNREFUSED') {
+        console.warn('Home Assistant not reachable (connection refused)');
+      } else {
+        console.warn('Home Assistant connection test failed:', error.message);
+      }
       return false;
     }
+  }
+
+  async isEntityAvailable(entityId: string): Promise<boolean> {
+    const state = await this.getState(entityId);
+    return state !== null && state.state !== 'unavailable';
   }
 
   calculateVPD(temperature: number, humidity: number): number {

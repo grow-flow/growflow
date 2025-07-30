@@ -1,7 +1,7 @@
 import * as cron from 'node-cron';
 import { CONFIG } from '../config/settings';
 import { AppDataSource } from '../database';
-import { Growbox, Plant, EnvironmentLog, PlantPhase } from '../models';
+import { GrowArea, Plant, EnvironmentLog, PlantPhase } from '../models';
 import { haService } from './homeAssistantService';
 import { mqttService } from './mqttService';
 
@@ -9,11 +9,17 @@ export class AutomationService {
   private tasks: cron.ScheduledTask[] = [];
   private isRunning = false;
 
-  start() {
+  async start() {
     if (this.isRunning) return;
 
     this.isRunning = true;
     console.log('Starting automation service...');
+
+    // Test HA connection on startup
+    const haConnected = await haService.testConnection();
+    if (!haConnected) {
+      console.log('Automation service started in limited mode - Home Assistant not available');
+    }
 
     // VPD monitoring and control
     const vpdTask = cron.schedule('*/1 * * * *', () => {
@@ -48,24 +54,24 @@ export class AutomationService {
 
   private async checkVPDAutomation() {
     try {
-      const growboxes = await AppDataSource.getRepository(Growbox).find({
+      const growAreas = await AppDataSource.getRepository(GrowArea).find({
         where: { automation_enabled: true },
         relations: ['plants']
       });
 
-      for (const growbox of growboxes) {
-        await this.processGrowboxVPD(growbox);
+      for (const growArea of growAreas) {
+        await this.processGrowAreaVPD(growArea);
       }
     } catch (error) {
       console.error('VPD automation error:', error);
     }
   }
 
-  private async processGrowboxVPD(growbox: Growbox) {
+  private async processGrowAreaVPD(growArea: GrowArea) {
     try {
       // Get current environment data
-      const tempState = await haService.getState(growbox.sensors.temperature);
-      const humidityState = await haService.getState(growbox.sensors.humidity);
+      const tempState = await haService.getState(growArea.sensors.temperature);
+      const humidityState = await haService.getState(growArea.sensors.humidity);
 
       if (!tempState || !humidityState) return;
 
@@ -73,14 +79,14 @@ export class AutomationService {
       const humidity = parseFloat(humidityState.state);
       const currentVPD = haService.calculateVPD(temperature, humidity);
 
-      // Determine target VPD based on plants in growbox
-      const targetVPD = this.calculateTargetVPD(growbox);
+      // Determine target VPD based on plants in grow area
+      const targetVPD = this.calculateTargetVPD(growArea);
       
       // Log environment data
-      await this.logEnvironmentData(growbox.id, temperature, humidity, currentVPD);
+      await this.logEnvironmentData(growArea.id, temperature, humidity, currentVPD);
 
       // Publish to MQTT
-      mqttService.publishGrowboxData(growbox.id, {
+      mqttService.publishGrowAreaData(growArea.id, {
         temperature,
         humidity,
         vpd: currentVPD
@@ -88,18 +94,18 @@ export class AutomationService {
 
       // Control equipment based on VPD
       if (Math.abs(currentVPD - targetVPD) > 0.1) {
-        await this.adjustVPD(growbox, currentVPD, targetVPD, temperature, humidity);
+        await this.adjustVPD(growArea, currentVPD, targetVPD, temperature, humidity);
       }
     } catch (error) {
-      console.error(`VPD processing error for growbox ${growbox.id}:`, error);
+      console.error(`VPD processing error for grow area ${growArea.id}:`, error);
     }
   }
 
-  private calculateTargetVPD(growbox: Growbox): number {
-    const activePlants = growbox.plants?.filter(p => p.is_active) || [];
+  private calculateTargetVPD(growArea: GrowArea): number {
+    const activePlants = growArea.plants?.filter(p => p.is_active) || [];
     
     if (activePlants.length === 0) {
-      return growbox.target_vpd_by_phase.vegetation;
+      return growArea.target_vpd_by_phase.vegetation;
     }
 
     // Use the most restrictive (lowest) VPD target if multiple plants in different phases
@@ -107,38 +113,38 @@ export class AutomationService {
     const vpdTargets = phases.map(phase => {
       switch (phase) {
         case PlantPhase.GERMINATION:
-          return growbox.target_vpd_by_phase.germination;
+          return growArea.target_vpd_by_phase.germination;
         case PlantPhase.SEEDLING:
-          return growbox.target_vpd_by_phase.seedling;
+          return growArea.target_vpd_by_phase.seedling;
         case PlantPhase.VEGETATION:
         case PlantPhase.PRE_FLOWER:
-          return growbox.target_vpd_by_phase.vegetation;
+          return growArea.target_vpd_by_phase.vegetation;
         case PlantPhase.FLOWERING:
         case PlantPhase.FLUSHING:
-          return growbox.target_vpd_by_phase.flowering;
+          return growArea.target_vpd_by_phase.flowering;
         default:
-          return growbox.target_vpd_by_phase.vegetation;
+          return growArea.target_vpd_by_phase.vegetation;
       }
     });
 
     return Math.min(...vpdTargets);
   }
 
-  private async adjustVPD(growbox: Growbox, currentVPD: number, targetVPD: number, temperature: number, humidity: number) {
+  private async adjustVPD(growArea: GrowArea, currentVPD: number, targetVPD: number, temperature: number, humidity: number) {
     const vpdDiff = currentVPD - targetVPD;
 
     if (vpdDiff > 0.1) {
       // VPD too high - increase humidity or decrease temperature
-      if (growbox.equipment.humidifier) {
-        await haService.turnOnSwitch(growbox.equipment.humidifier);
+      if (growArea.equipment.humidifier) {
+        await haService.turnOnSwitch(growArea.equipment.humidifier);
       }
     } else if (vpdDiff < -0.1) {
       // VPD too low - decrease humidity or increase temperature
-      if (growbox.equipment.dehumidifier) {
-        await haService.turnOnSwitch(growbox.equipment.dehumidifier);
+      if (growArea.equipment.dehumidifier) {
+        await haService.turnOnSwitch(growArea.equipment.dehumidifier);
       }
-      if (growbox.equipment.humidifier) {
-        await haService.turnOffSwitch(growbox.equipment.humidifier);
+      if (growArea.equipment.humidifier) {
+        await haService.turnOffSwitch(growArea.equipment.humidifier);
       }
     }
   }
@@ -147,7 +153,7 @@ export class AutomationService {
     try {
       const plants = await AppDataSource.getRepository(Plant).find({
         where: { is_active: true },
-        relations: ['growbox']
+        relations: ['grow_area']
       });
 
       for (const plant of plants) {
@@ -165,7 +171,7 @@ export class AutomationService {
     const now = new Date();
     const shouldLightsBeOn = this.shouldLightsBeOn(schedule, now);
 
-    for (const lightEntity of plant.growbox.equipment.lights) {
+    for (const lightEntity of plant.grow_area.equipment.lights) {
       try {
         const currentState = await haService.getState(lightEntity);
         const isCurrentlyOn = currentState.state === 'on';
@@ -198,35 +204,57 @@ export class AutomationService {
 
   private async collectEnvironmentData() {
     try {
-      const growboxes = await AppDataSource.getRepository(Growbox).find();
+      const growAreas = await AppDataSource.getRepository(GrowArea).find();
 
-      for (const growbox of growboxes) {
+      for (const growArea of growAreas) {
         try {
-          // Test HA connection first
-          const isConnected = await haService.testConnection();
-          if (!isConnected) {
-            console.log(`Skipping environment data collection for growbox ${growbox.id} - HA not available`);
+          // Skip if no sensors configured
+          if (!growArea.sensors?.temperature || !growArea.sensors?.humidity) {
+            console.log(`Skipping environment data collection for grow area ${growArea.id} - no sensors configured`);
             continue;
           }
 
-          const tempState = await haService.getState(growbox.sensors.temperature);
-          const humidityState = await haService.getState(growbox.sensors.humidity);
+          // Test HA connection first
+          const isConnected = await haService.testConnection();
+          if (!isConnected) {
+            console.log(`Skipping environment data collection for grow area ${growArea.id} - HA not available`);
+            continue;
+          }
+
+          // Check if entities exist and are available
+          const tempAvailable = await haService.isEntityAvailable(growArea.sensors.temperature);
+          const humidityAvailable = await haService.isEntityAvailable(growArea.sensors.humidity);
+
+          if (!tempAvailable || !humidityAvailable) {
+            console.log(`Skipping environment data collection for grow area ${growArea.id} - sensors not available (temp: ${tempAvailable}, humidity: ${humidityAvailable})`);
+            continue;
+          }
+
+          const tempState = await haService.getState(growArea.sensors.temperature);
+          const humidityState = await haService.getState(growArea.sensors.humidity);
 
           if (tempState && humidityState) {
             const temperature = parseFloat(tempState.state);
             const humidity = parseFloat(humidityState.state);
+            
+            // Validate sensor values
+            if (isNaN(temperature) || isNaN(humidity) || temperature < -50 || temperature > 100 || humidity < 0 || humidity > 100) {
+              console.warn(`Invalid sensor data for grow area ${growArea.id}: temp=${temperature}, humidity=${humidity}`);
+              continue;
+            }
+
             const vpd = haService.calculateVPD(temperature, humidity);
 
-            await this.logEnvironmentData(growbox.id, temperature, humidity, vpd);
+            await this.logEnvironmentData(growArea.id, temperature, humidity, vpd);
             
-            mqttService.publishGrowboxData(growbox.id, {
+            mqttService.publishGrowAreaData(growArea.id, {
               temperature,
               humidity,
               vpd
             });
           }
-        } catch (error) {
-          console.error(`Environment data collection error for growbox ${growbox.id}:`, error);
+        } catch (error: any) {
+          console.warn(`Environment data collection error for grow area ${growArea.id}: ${error.message}`);
         }
       }
     } catch (error) {
@@ -234,11 +262,11 @@ export class AutomationService {
     }
   }
 
-  private async logEnvironmentData(growboxId: number, temperature: number, humidity: number, vpd: number) {
+  private async logEnvironmentData(growAreaId: number, temperature: number, humidity: number, vpd: number) {
     try {
       const envLogRepo = AppDataSource.getRepository(EnvironmentLog);
       const log = envLogRepo.create({
-        growbox_id: growboxId,
+        grow_area_id: growAreaId,
         temperature,
         humidity,
         vpd_calculated: vpd,

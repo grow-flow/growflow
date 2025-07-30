@@ -3,7 +3,7 @@ import { Plant } from './Plant';
 import { EnvironmentLog } from './EnvironmentLog';
 
 @Entity()
-export class Growbox {
+export class GrowArea {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -54,9 +54,9 @@ export class Growbox {
   @UpdateDateColumn()
   updated_at: Date;
 
-  @OneToMany(() => Plant, plant => plant.growbox)
+  @OneToMany(() => Plant, plant => plant.grow_area)
   plants: Plant[];
 
-  @OneToMany(() => EnvironmentLog, log => log.growbox)
+  @OneToMany(() => EnvironmentLog, log => log.grow_area)
   environment_logs: EnvironmentLog[];
 }

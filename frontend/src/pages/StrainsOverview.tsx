@@ -52,6 +52,7 @@ const StrainsOverview: React.FC = () => {
   
   const [formData, setFormData] = useState<CreateStrainData & { phase_durations?: { [key: string]: number } }>({
     name: '',
+    abbreviation: '',
     type: 'hybrid',
     is_autoflower: false,
     flowering_time_min: 56,
@@ -94,6 +95,7 @@ const StrainsOverview: React.FC = () => {
     setSelectedStrain(strain);
     setFormData({
       name: strain.name,
+      abbreviation: strain.abbreviation || '',
       type: strain.type,
       is_autoflower: strain.is_autoflower,
       flowering_time_min: strain.flowering_time_min,
@@ -147,6 +149,7 @@ const StrainsOverview: React.FC = () => {
   const resetForm = () => {
     setFormData({
       name: '',
+      abbreviation: '',
       type: 'hybrid',
       is_autoflower: false,
       flowering_time_min: 56,
@@ -223,6 +226,7 @@ const StrainsOverview: React.FC = () => {
             <TableHead>
               <TableRow>
                 <TableCell>Name</TableCell>
+                <TableCell>Abbrev.</TableCell>
                 <TableCell>Type</TableCell>
                 <TableCell>Flowering Time</TableCell>
                 <TableCell>THC/CBD</TableCell>
@@ -251,6 +255,18 @@ const StrainsOverview: React.FC = () => {
                         )}
                       </Box>
                     </Box>
+                  </TableCell>
+                  <TableCell>
+                    {strain.abbreviation ? (
+                      <Chip 
+                        label={strain.abbreviation} 
+                        size="small" 
+                        variant="outlined"
+                        sx={{ fontFamily: 'monospace', fontWeight: 'bold' }}
+                      />
+                    ) : (
+                      <Typography variant="caption" color="text.disabled">—</Typography>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Chip
@@ -310,7 +326,7 @@ const StrainsOverview: React.FC = () => {
               ))}
               {strains.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
+                  <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
                     <Typography color="textSecondary">
                       No strains yet. Create your first strain to get started.
                     </Typography>
@@ -327,13 +343,24 @@ const StrainsOverview: React.FC = () => {
         <DialogTitle>Create New Strain</DialogTitle>
         <DialogContent>
           <Grid container spacing={3} sx={{ mt: 1 }}>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} md={8}>
               <TextField
                 fullWidth
                 label="Strain Name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                label="Abbreviation"
+                value={formData.abbreviation}
+                onChange={(e) => setFormData({ ...formData, abbreviation: e.target.value.slice(0, 4).toUpperCase() })}
+                placeholder="WW, GG, AK..."
+                inputProps={{ maxLength: 4 }}
+                helperText="Max 4 characters"
               />
             </Grid>
             <Grid item xs={12} md={6}>
@@ -486,13 +513,24 @@ const StrainsOverview: React.FC = () => {
         <DialogTitle>Edit Strain: {selectedStrain?.name}</DialogTitle>
         <DialogContent>
           <Grid container spacing={3} sx={{ mt: 1 }}>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} md={8}>
               <TextField
                 fullWidth
                 label="Strain Name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                label="Abbreviation"
+                value={formData.abbreviation}
+                onChange={(e) => setFormData({ ...formData, abbreviation: e.target.value.slice(0, 4).toUpperCase() })}
+                placeholder="WW, GG, AK..."
+                inputProps={{ maxLength: 4 }}
+                helperText="Max 4 characters"
               />
             </Grid>
             <Grid item xs={12} md={6}>

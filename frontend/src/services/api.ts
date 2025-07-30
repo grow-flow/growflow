@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Growbox, Plant, WateringLog, FeedingLog, ObservationLog } from '../types/models';
+import { GrowArea, Plant, WateringLog, FeedingLog, ObservationLog } from '../types/models';
 import { Strain, CreateStrainData, UpdateStrainData } from '../types/strain';
 
 const API_BASE = '/api';
@@ -10,29 +10,29 @@ const api = axios.create({
 });
 
 export const apiService = {
-  // Growbox endpoints
-  getGrowboxes: async (): Promise<Growbox[]> => {
-    const response = await api.get('/growboxes');
+  // Grow Area endpoints
+  getGrowAreas: async (): Promise<GrowArea[]> => {
+    const response = await api.get('/grow-areas');
     return response.data;
   },
 
-  getGrowbox: async (id: number): Promise<Growbox> => {
-    const response = await api.get(`/growboxes/${id}`);
+  getGrowArea: async (id: number): Promise<GrowArea> => {
+    const response = await api.get(`/grow-areas/${id}`);
     return response.data;
   },
 
-  createGrowbox: async (data: Partial<Growbox>): Promise<Growbox> => {
-    const response = await api.post('/growboxes', data);
+  createGrowArea: async (data: Partial<GrowArea>): Promise<GrowArea> => {
+    const response = await api.post('/grow-areas', data);
     return response.data;
   },
 
-  updateGrowbox: async (id: number, data: Partial<Growbox>): Promise<Growbox> => {
-    const response = await api.put(`/growboxes/${id}`, data);
+  updateGrowArea: async (id: number, data: Partial<GrowArea>): Promise<GrowArea> => {
+    const response = await api.put(`/grow-areas/${id}`, data);
     return response.data;
   },
 
-  deleteGrowbox: async (id: number): Promise<void> => {
-    await api.delete(`/growboxes/${id}`);
+  deleteGrowArea: async (id: number): Promise<void> => {
+    await api.delete(`/grow-areas/${id}`);
   },
 
   // Plant endpoints
@@ -59,6 +59,10 @@ export const apiService = {
   updatePlantPhase: async (id: number, phase: string): Promise<Plant> => {
     const response = await api.put(`/plants/${id}/phase`, { phase });
     return response.data;
+  },
+
+  deletePlant: async (id: number): Promise<void> => {
+    await api.delete(`/plants/${id}`);
   },
 
   // Care endpoints

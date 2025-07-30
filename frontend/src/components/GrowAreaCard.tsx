@@ -2,13 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, Typography, Box, Chip, IconButton } from '@mui/material';
 import { Link } from 'react-router-dom';
 import { Settings as SettingsIcon, Thermostat as ThermostatIcon, Opacity as OpacityIcon, Circle as CircleIcon } from '@mui/icons-material';
-import { Growbox } from '../types/models';
+import { GrowArea } from '../types/models';
 
-interface GrowboxCardProps {
-  growbox: Growbox;
+interface GrowAreaCardProps {
+  growArea: GrowArea;
 }
 
-const GrowboxCard: React.FC<GrowboxCardProps> = ({ growbox }) => {
+const GrowAreaCard: React.FC<GrowAreaCardProps> = ({ growArea }) => {
   const [envData, setEnvData] = useState<{ temperature: number | null; humidity: number | null; vpd: number | null }>({ 
     temperature: null, 
     humidity: null, 
@@ -16,8 +16,8 @@ const GrowboxCard: React.FC<GrowboxCardProps> = ({ growbox }) => {
   });
   const [status, setStatus] = useState<'good' | 'warning' | 'error'>('good');
   
-  const plantCount = growbox.plants?.length || 0;
-  const activePlants = growbox.plants?.filter(p => p.is_active).length || 0;
+  const plantCount = growArea.plants?.length || 0;
+  const activePlants = growArea.plants?.filter(p => p.is_active).length || 0;
   
   // Mock live data - in real app würde das von WebSocket oder API kommen
   useEffect(() => {
@@ -58,8 +58,8 @@ const GrowboxCard: React.FC<GrowboxCardProps> = ({ growbox }) => {
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <CircleIcon sx={{ fontSize: 12, color: getStatusColor() }} />
-            <Typography variant="h6" component={Link} to={`/growbox/${growbox.id}`} sx={{ textDecoration: 'none', color: 'inherit' }}>
-              {growbox.name}
+            <Typography variant="h6" component={Link} to={`/grow-area/${growArea.id}`} sx={{ textDecoration: 'none', color: 'inherit' }}>
+              {growArea.name}
             </Typography>
           </Box>
           <IconButton size="small">
@@ -68,7 +68,7 @@ const GrowboxCard: React.FC<GrowboxCardProps> = ({ growbox }) => {
         </Box>
 
         <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-          <Chip label={growbox.type} size="small" />
+          <Chip label={growArea.type} size="small" />
           <Chip label={`${activePlants}/${plantCount} plants`} size="small" color="primary" />
           <Chip label={status} size="small" color={status === 'good' ? 'success' : status === 'warning' ? 'warning' : 'error'} />
         </Box>
@@ -100,11 +100,11 @@ const GrowboxCard: React.FC<GrowboxCardProps> = ({ growbox }) => {
         </Box>
 
         <Typography variant="body2" color="textSecondary">
-          {growbox.dimensions.length} × {growbox.dimensions.width} × {growbox.dimensions.height} cm
+          {growArea.dimensions.length} × {growArea.dimensions.width} × {growArea.dimensions.height} cm
         </Typography>
       </CardContent>
     </Card>
   );
 };
 
-export default GrowboxCard;
+export default GrowAreaCard;

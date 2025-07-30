@@ -15,6 +15,9 @@ export class Strain {
   @Column({ unique: true })
   name: string;
 
+  @Column({ length: 4, nullable: true })
+  abbreviation?: string;
+
   @Column({ default: 'hybrid' })
   type: string;
 
@@ -39,7 +42,10 @@ export class Strain {
   @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
   cbd_content?: number;
 
-  @Column({ type: 'json' })
+  @Column({ 
+    type: 'json',
+    default: () => "'{}'"
+  })
   phase_durations: {
     [key: string]: number;
   };

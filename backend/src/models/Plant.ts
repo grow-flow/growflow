@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
-import { Growbox } from './Growbox';
+import { GrowArea } from './GrowArea';
 import { WateringLog } from './WateringLog';
 import { FeedingLog } from './FeedingLog';
 import { ObservationLog } from './ObservationLog';
@@ -21,7 +21,7 @@ export class Plant {
   id: number;
 
   @Column()
-  growbox_id: number;
+  grow_area_id: number;
 
   @Column()
   name: string;
@@ -92,16 +92,16 @@ export class Plant {
   @UpdateDateColumn()
   updated_at: Date;
 
-  @ManyToOne(() => Growbox, growbox => growbox.plants)
-  @JoinColumn({ name: 'growbox_id' })
-  growbox: Growbox;
+  @ManyToOne(() => GrowArea, growArea => growArea.plants)
+  @JoinColumn({ name: 'grow_area_id' })
+  grow_area: GrowArea;
 
-  @OneToMany(() => WateringLog, log => log.plant)
+  @OneToMany(() => WateringLog, log => log.plant, { cascade: true })
   watering_logs: WateringLog[];
 
-  @OneToMany(() => FeedingLog, log => log.plant)
+  @OneToMany(() => FeedingLog, log => log.plant, { cascade: true })
   feeding_logs: FeedingLog[];
 
-  @OneToMany(() => ObservationLog, log => log.plant)
+  @OneToMany(() => ObservationLog, log => log.plant, { cascade: true })
   observation_logs: ObservationLog[];
 }

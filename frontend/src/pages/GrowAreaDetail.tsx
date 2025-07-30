@@ -27,14 +27,14 @@ import {
   Add as AddIcon 
 } from '@mui/icons-material';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { useGrowbox } from '../hooks/useGrowboxes';
+import { useGrowArea } from '../hooks/useGrowAreas';
 import { useCreatePlant } from '../hooks/usePlants';
-import { Growbox, Plant } from '../types/models';
+import { GrowArea, Plant } from '../types/models';
 import CreatePlantDialog from '../components/CreatePlantDialog';
-import GrowboxVisualization from '../components/GrowboxVisualization';
+import GrowAreaVisualization from '../components/GrowAreaVisualization';
 import PlantDataColumns from '../components/PlantDataColumns';
 
-const GrowboxDetail: React.FC = () => {
+const GrowAreaDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [createPlantDialogOpen, setCreatePlantDialogOpen] = useState(false);
   const [envData] = useState({
@@ -54,17 +54,17 @@ const GrowboxDetail: React.FC = () => {
     { time: '20:00', temperature: 24.2, humidity: 58, vpd: 1.1 }
   ]);
 
-  const growboxId = id ? parseInt(id) : 0;
+  const growAreaId = id ? parseInt(id) : 0;
   const { 
-    data: growbox, 
+    data: growArea, 
     isLoading, 
     error,
     refetch 
-  } = useGrowbox(growboxId);
+  } = useGrowArea(growAreaId);
   
   const createPlantMutation = useCreatePlant();
   
-  const plants = growbox?.plants || [];
+  const plants = growArea?.plants || [];
 
   const handleEquipmentToggle = async (equipment: string, isOn: boolean) => {
     // Implementation für HA API calls
@@ -98,17 +98,17 @@ const GrowboxDetail: React.FC = () => {
           </Button>
         }
       >
-        Failed to load growbox. Please try again.
+        Failed to load grow area. Please try again.
       </Alert>
     );
   }
 
-  if (!growbox) return <Typography>Growbox not found</Typography>;
+  if (!growArea) return <Typography>Grow area not found</Typography>;
 
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">{growbox.name}</Typography>
+        <Typography variant="h4">{growArea.name}</Typography>
         <Button 
           variant="contained" 
           startIcon={<AddIcon />}
@@ -119,7 +119,7 @@ const GrowboxDetail: React.FC = () => {
       </Box>
 
       {/* Growbox Visualization */}
-      <GrowboxVisualization growbox={growbox} plants={plants} />
+      <GrowAreaVisualization growArea={growArea} plants={plants} />
 
       <Grid container spacing={3}>
         {/* Environment Panel */}
@@ -178,7 +178,7 @@ const GrowboxDetail: React.FC = () => {
             <Typography variant="h6" gutterBottom>Equipment Control</Typography>
             
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {growbox.equipment.lights.map((light, index) => (
+              {growArea.equipment.lights.map((light, index) => (
                 <Box key={index} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Lightbulb />
@@ -196,7 +196,7 @@ const GrowboxDetail: React.FC = () => {
                 </Box>
               ))}
               
-              {growbox.equipment.fans.map((fan, index) => (
+              {growArea.equipment.fans.map((fan, index) => (
                 <Box key={index} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Air />
@@ -218,7 +218,7 @@ const GrowboxDetail: React.FC = () => {
                 <FormControlLabel
                   control={
                     <Switch
-                      checked={growbox.automation_enabled}
+                      checked={growArea.automation_enabled}
                       onChange={(e) => console.log('Automation:', e.target.checked)}
                     />
                   }
@@ -280,7 +280,7 @@ const GrowboxDetail: React.FC = () => {
             ) : (
               <Box sx={{ textAlign: 'center', py: 4 }}>
                 <Typography color="textSecondary" gutterBottom>
-                  No plants in this growbox yet
+                  No plants in this grow area yet
                 </Typography>
                 <Button 
                   variant="contained" 
@@ -302,10 +302,10 @@ const GrowboxDetail: React.FC = () => {
         open={createPlantDialogOpen}
         onClose={() => setCreatePlantDialogOpen(false)}
         onSuccess={handlePlantCreated}
-        growboxId={growbox.id}
+        growAreaId={growArea.id}
       />
     </Box>
   );
 };
 
-export default GrowboxDetail;
+export default GrowAreaDetail;

@@ -23,27 +23,31 @@ import {
   DialogContent,
   DialogActions,
   CircularProgress,
-  Alert
+  Alert,
+  Checkbox,
+  Toolbar
 } from '@mui/material';
 import {
   Add as AddIcon,
   FilterList,
-  Edit as EditIcon,
-  Timeline as TimelineIcon
+  Delete as DeleteIcon,
+  Visibility as DeactivateIcon,
+  VisibilityOff as ActivateIcon
 } from '@mui/icons-material';
 import { Link, useSearchParams } from 'react-router-dom';
 import { format, differenceInDays } from 'date-fns';
-import { usePlants, useCreatePlant } from '../hooks/usePlants';
+import { usePlants, useCreatePlant, useDeletePlant, useUpdatePlant } from '../hooks/usePlants';
 import { Plant, PlantPhase } from '../types/models';
 import CreatePlantDialog from '../components/CreatePlantDialog';
-import PhaseManagementDialog from '../components/PhaseManagementDialog';
 
 const PlantsOverview: React.FC = () => {
   const [searchParams] = useSearchParams();
   const [filterOpen, setFilterOpen] = useState(false);
   const [createPlantDialogOpen, setCreatePlantDialogOpen] = useState(false);
-  const [phaseDialogOpen, setPhaseDialogOpen] = useState(false);
-  const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deactivateDialogOpen, setDeactivateDialogOpen] = useState(false);
+  const [selectedPlantIds, setSelectedPlantIds] = useState<number[]>([]);
+  const [bulkAction, setBulkAction] = useState<'delete' | 'deactivate' | 'activate' | null>(null);
   
   // Initialize filters from URL params and auto-open filter panel if strain is set
   const [filters, setFilters] = useState(() => {
@@ -72,6 +76,8 @@ const PlantsOverview: React.FC = () => {
   } = usePlants();
   
   const createPlantMutation = useCreatePlant();
+  const deletePlantMutation = useDeletePlant();
+  const updatePlantMutation = useUpdatePlant();
 
   // Filter plants based on current filters
   const filteredPlants = plants.filter(plant => {
@@ -96,6 +102,55 @@ const PlantsOverview: React.FC = () => {
       setCreatePlantDialogOpen(false);
     } catch (error) {
       console.error('Failed to create plant:', error);
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedPlantIds(filteredPlants.map(p => p.id));
+    } else {
+      setSelectedPlantIds([]);
+    }
+  };
+
+  const handleSelectPlant = (plantId: number, checked: boolean) => {
+    if (checked) {
+      setSelectedPlantIds(prev => [...prev, plantId]);
+    } else {
+      setSelectedPlantIds(prev => prev.filter(id => id !== plantId));
+    }
+  };
+
+  const handleBulkAction = (action: 'delete' | 'deactivate' | 'activate') => {
+    setBulkAction(action);
+    if (action === 'delete') {
+      setDeleteDialogOpen(true);
+    } else {
+      setDeactivateDialogOpen(true);
+    }
+  };
+
+  const executeBulkAction = async () => {
+    if (!bulkAction || selectedPlantIds.length === 0) return;
+
+    try {
+      if (bulkAction === 'delete') {
+        // Delete all selected plants
+        await Promise.all(selectedPlantIds.map(id => deletePlantMutation.mutateAsync(id)));
+      } else {
+        // Update is_active status for selected plants
+        const isActive = bulkAction === 'activate';
+        await Promise.all(selectedPlantIds.map(id => 
+          updatePlantMutation.mutateAsync({ id, data: { is_active: isActive } })
+        ));
+      }
+      
+      setSelectedPlantIds([]);
+      setDeleteDialogOpen(false);
+      setDeactivateDialogOpen(false);
+      setBulkAction(null);
+    } catch (error) {
+      console.error('Failed to execute bulk action:', error);
     }
   };
 
@@ -259,12 +314,51 @@ const PlantsOverview: React.FC = () => {
         </Paper>
       )}
 
+      {/* Bulk Actions Toolbar */}
+      {selectedPlantIds.length > 0 && (
+        <Paper sx={{ mb: 2 }}>
+          <Toolbar>
+            <Typography sx={{ flex: 1 }} variant="h6">
+              {selectedPlantIds.length} Pflanzen ausgewählt
+            </Typography>
+            <Button
+              startIcon={<DeactivateIcon />}
+              onClick={() => handleBulkAction('deactivate')}
+              sx={{ mr: 1 }}
+            >
+              Deaktivieren
+            </Button>
+            <Button
+              startIcon={<ActivateIcon />}
+              onClick={() => handleBulkAction('activate')}
+              sx={{ mr: 1 }}
+            >
+              Aktivieren
+            </Button>
+            <Button
+              startIcon={<DeleteIcon />}
+              onClick={() => handleBulkAction('delete')}
+              color="error"
+            >
+              Löschen
+            </Button>
+          </Toolbar>
+        </Paper>
+      )}
+
       {/* Plants Table */}
       <Paper>
         <TableContainer>
           <Table>
             <TableHead>
               <TableRow>
+                <TableCell padding="checkbox">
+                  <Checkbox
+                    indeterminate={selectedPlantIds.length > 0 && selectedPlantIds.length < filteredPlants.length}
+                    checked={filteredPlants.length > 0 && selectedPlantIds.length === filteredPlants.length}
+                    onChange={(e) => handleSelectAll(e.target.checked)}
+                  />
+                </TableCell>
                 <TableCell>Plant</TableCell>
                 <TableCell>Strain</TableCell>
                 <TableCell>Phase</TableCell>
@@ -273,26 +367,31 @@ const PlantsOverview: React.FC = () => {
                 <TableCell>Medium</TableCell>
                 <TableCell>Germination Date</TableCell>
                 <TableCell>Status</TableCell>
-                <TableCell>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {filteredPlants.map((plant) => (
-                <TableRow key={plant.id} hover>
-                  <TableCell>
-                    <Button
-                      component={Link}
-                      to={`/plant/${plant.id}`}
-                      variant="text"
-                      sx={{ textTransform: 'none', p: 0, justifyContent: 'flex-start' }}
-                    >
-                      <Box>
-                        <Typography variant="subtitle2">{plant.name}</Typography>
-                        {plant.is_mother_plant && (
-                          <Chip label="Mother" size="small" color="success" sx={{ mt: 0.5 }} />
-                        )}
-                      </Box>
-                    </Button>
+                <TableRow 
+                  key={plant.id} 
+                  hover 
+                  selected={selectedPlantIds.includes(plant.id)}
+                >
+                  <TableCell padding="checkbox">
+                    <Checkbox
+                      checked={selectedPlantIds.includes(plant.id)}
+                      onChange={(e) => handleSelectPlant(plant.id, e.target.checked)}
+                    />
+                  </TableCell>
+                  <TableCell 
+                    sx={{ cursor: 'pointer' }}
+                    onClick={() => window.location.href = `/plant/${plant.id}`}
+                  >
+                    <Box>
+                      <Typography variant="subtitle2">{plant.name}</Typography>
+                      {plant.is_mother_plant && (
+                        <Chip label="Mother" size="small" color="success" sx={{ mt: 0.5 }} />
+                      )}
+                    </Box>
                   </TableCell>
                   <TableCell>{plant.strain}</TableCell>
                   <TableCell>
@@ -317,18 +416,6 @@ const PlantsOverview: React.FC = () => {
                       color={plant.is_active ? 'success' : 'default'}
                     />
                   </TableCell>
-                  <TableCell>
-                    <IconButton
-                      size="small"
-                      onClick={() => {
-                        setSelectedPlant(plant);
-                        setPhaseDialogOpen(true);
-                      }}
-                      title="Manage Phase"
-                    >
-                      <TimelineIcon />
-                    </IconButton>
-                  </TableCell>
                 </TableRow>
               ))}
               {filteredPlants.length === 0 && (
@@ -352,15 +439,49 @@ const PlantsOverview: React.FC = () => {
         onSuccess={handlePlantCreated}
       />
 
-      {/* Phase Management Dialog */}
-      <PhaseManagementDialog
-        open={phaseDialogOpen}
-        onClose={() => {
-          setPhaseDialogOpen(false);
-          setSelectedPlant(null);
-        }}
-        plant={selectedPlant}
-      />
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle>Pflanzen löschen</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Sind Sie sicher, dass Sie {selectedPlantIds.length} Pflanze(n) löschen möchten? 
+            Diese Aktion kann nicht rückgängig gemacht werden.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Abbrechen</Button>
+          <Button 
+            onClick={executeBulkAction} 
+            color="error" 
+            variant="contained"
+            disabled={deletePlantMutation.isPending}
+          >
+            {deletePlantMutation.isPending ? 'Löschen...' : 'Löschen'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Deactivate/Activate Confirmation Dialog */}
+      <Dialog open={deactivateDialogOpen} onClose={() => setDeactivateDialogOpen(false)}>
+        <DialogTitle>
+          Pflanzen {bulkAction === 'activate' ? 'aktivieren' : 'deaktivieren'}
+        </DialogTitle>
+        <DialogContent>
+          <Typography>
+            Sind Sie sicher, dass Sie {selectedPlantIds.length} Pflanze(n) {bulkAction === 'activate' ? 'aktivieren' : 'deaktivieren'} möchten?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeactivateDialogOpen(false)}>Abbrechen</Button>
+          <Button 
+            onClick={executeBulkAction} 
+            variant="contained"
+            disabled={updatePlantMutation.isPending}
+          >
+            {updatePlantMutation.isPending ? 'Wird ausgeführt...' : (bulkAction === 'activate' ? 'Aktivieren' : 'Deaktivieren')}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService } from '../services/api';
 import { Plant, WateringLog, FeedingLog, ObservationLog } from '../types/models';
-import { growboxKeys } from './useGrowboxes';
+import { growAreaKeys } from './useGrowAreas';
 
 // Query Keys
 export const plantKeys = {
@@ -52,10 +52,10 @@ export const useCreatePlant = () => {
       // Invalidate plants list
       queryClient.invalidateQueries({ queryKey: plantKeys.lists() });
       
-      // Invalidate growbox detail to update plant count
-      if (newPlant.growbox_id) {
+      // Invalidate grow area detail to update plant count
+      if (newPlant.grow_area_id) {
         queryClient.invalidateQueries({ 
-          queryKey: growboxKeys.detail(newPlant.growbox_id) 
+          queryKey: growAreaKeys.detail(newPlant.grow_area_id) 
         });
       }
 
@@ -111,6 +111,30 @@ export const useUpdatePlantPhase = () => {
       queryClient.setQueryData(plantKeys.lists(), (old: Plant[] = []) =>
         old.map(plant => plant.id === updatedPlant.id ? updatedPlant : plant)
       );
+    },
+  });
+};
+
+// Delete Plant Mutation
+export const useDeletePlant = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => apiService.deletePlant(id),
+    onSuccess: (_, deletedId) => {
+      // Remove from plants list cache
+      queryClient.setQueryData(plantKeys.lists(), (old: Plant[] = []) =>
+        old.filter(plant => plant.id !== deletedId)
+      );
+      
+      // Invalidate plants list to ensure consistency
+      queryClient.invalidateQueries({ queryKey: plantKeys.lists() });
+      
+      // Remove plant detail from cache
+      queryClient.removeQueries({ queryKey: plantKeys.detail(deletedId) });
+      
+      // Remove care history from cache
+      queryClient.removeQueries({ queryKey: plantKeys.careHistory(deletedId) });
     },
   });
 };

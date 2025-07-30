@@ -12,10 +12,14 @@ import {
   Select,
   MenuItem,
   Box,
-  Typography
+  Typography,
+  Autocomplete,
+  ListItem,
+  ListItemText
 } from '@mui/material';
-import { useGrowboxes } from '../hooks/useGrowboxes';
-import { useStrains } from '../hooks/useStrains';
+import { Add as AddIcon } from '@mui/icons-material';
+import { useGrowAreas } from '../hooks/useGrowAreas';
+import { useStrains, useCreateStrain } from '../hooks/useStrains';
 import { usePlants } from '../hooks/usePlants';
 import { Plant, PlantPhase } from '../types/models';
 import { Strain } from '../types/strain';
@@ -24,49 +28,106 @@ interface CreatePlantDialogProps {
   open: boolean;
   onClose: () => void;
   onSuccess: (plantData: Partial<Plant>) => Promise<void>;
-  growboxId?: number; // Optional now - can be selected in dialog
+  growAreaId?: number; // Optional now - can be selected in dialog
 }
 
 const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({
   open,
   onClose,
   onSuccess,
-  growboxId
+  growAreaId
 }) => {
-  const { data: growboxes = [] } = useGrowboxes();
+  const { data: growAreas = [] } = useGrowAreas();
   const { data: strains = [] } = useStrains();
   const { data: plants = [] } = usePlants();
+  const createStrainMutation = useCreateStrain();
   
   const [formData, setFormData] = useState({
     name: '',
     strain_id: null as number | null,
-    growbox_id: growboxId || (growboxes[0]?.id || 0),
+    grow_area_id: growAreaId || (growAreas[0]?.id || 0),
     medium: 'soil' as 'soil' | 'hydro' | 'coco' | 'dwc'
   });
 
   const [loading, setLoading] = useState(false);
+  const [newStrainName, setNewStrainName] = useState('');
 
-  // Auto-generate plant name based on selected strain
+  // Auto-generate plant name based on selected strain abbreviation and count
   const generatePlantName = (strain: Strain): string => {
     const existingCount = plants.filter(p => p.strain === strain.name).length;
-    return `${strain.name} #${existingCount + 1}`;
+    const shortName = strain.abbreviation || strain.name.substring(0, 2).toUpperCase();
+    return `${shortName}#${existingCount + 1}`;
   };
 
-  const handleStrainChange = (strainId: number) => {
-    const selectedStrain = strains.find(s => s.id === strainId);
-    if (selectedStrain) {
+  const handleStrainChange = (strain: Strain | null) => {
+    if (strain) {
       setFormData({
         ...formData,
-        strain_id: strainId,
-        name: generatePlantName(selectedStrain)
+        strain_id: strain.id,
+        name: generatePlantName(strain)
+      });
+    } else {
+      setFormData({
+        ...formData,
+        strain_id: null,
+        name: ''
       });
     }
   };
 
-  const handleSubmit = async () => {
-    if (!formData.name.trim() || !formData.strain_id) return;
+  const handleCreateStrain = async (name: string): Promise<Strain | null> => {
+    try {
+      const newStrain = await createStrainMutation.mutateAsync({
+        name,
+        abbreviation: name.substring(0, 2).toUpperCase(),
+        type: 'hybrid',
+        is_autoflower: false,
+        flowering_time_min: 56,
+        flowering_time_max: 70,
+        description: '',
+        breeder: '',
+        thc_content: 20,
+        cbd_content: 1,
+        phase_durations: {
+          'germination': 7,
+          'seedling': 14,
+          'vegetation': 42,
+          'pre_flower': 10,
+          'flowering': 63,
+          'flushing': 14,
+          'drying': 10,
+          'curing': 28
+        }
+      });
+      
+      setNewStrainName('');
+      return newStrain;
+    } catch (error) {
+      console.error('Failed to create strain:', error);
+      return null;
+    }
+  };
 
-    const selectedStrain = strains.find(s => s.id === formData.strain_id);
+  const handleSubmit = async () => {
+    let selectedStrain: Strain | undefined;
+    
+    // If we have a strain_id, use existing strain
+    if (formData.strain_id) {
+      selectedStrain = strains.find(s => s.id === formData.strain_id);
+    }
+    // If we have a newStrainName but no strain_id, create new strain
+    else if (newStrainName.trim()) {
+      selectedStrain = await handleCreateStrain(newStrainName.trim()) || undefined;
+      if (selectedStrain) {
+        // Update formData with new strain
+        setFormData(prev => ({
+          ...prev,
+          strain_id: selectedStrain!.id,
+          name: generatePlantName(selectedStrain!)
+        }));
+      }
+    }
+    
     if (!selectedStrain) return;
 
     setLoading(true);
@@ -77,10 +138,10 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({
         : { vegetation: '18/6', flowering: '12/12' };
 
       await onSuccess({
-        name: formData.name,
+        name: selectedStrain ? generatePlantName(selectedStrain) : '',
         strain: selectedStrain.name,
         breeder: selectedStrain.breeder,
-        growbox_id: formData.growbox_id,
+        grow_area_id: formData.grow_area_id,
         medium: formData.medium,
         pot_size_liters: 20, // Default pot size
         light_schedule: lightSchedule,
@@ -96,9 +157,10 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({
       setFormData({
         name: '',
         strain_id: null,
-        growbox_id: growboxId || (growboxes[0]?.id || 0),
+        grow_area_id: growAreaId || (growAreas[0]?.id || 0),
         medium: 'soil'
       });
+      setNewStrainName('');
     } catch (error) {
       console.error('Failed to create plant:', error);
     } finally {
@@ -115,49 +177,91 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({
           <Grid container spacing={3}>
             {/* Strain Selection - FIRST and most important */}
             <Grid item xs={12}>
-              <FormControl fullWidth required>
-                <InputLabel>Select Strain</InputLabel>
-                <Select
-                  value={formData.strain_id || ''}
-                  onChange={(e) => handleStrainChange(Number(e.target.value))}
-                  label="Select Strain"
-                >
-                  {strains.map((strain) => (
-                    <MenuItem key={strain.id} value={strain.id}>
-                      {strain.name} {strain.is_autoflower ? '(Auto)' : '(Photo)'} - {strain.type}
-                      {strain.breeder && ` by ${strain.breeder}`}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-
-            {/* Plant Name - Auto-filled but editable */}
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Plant Name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-                placeholder="Will be auto-filled when strain is selected"
-                disabled={!formData.strain_id}
+              <Autocomplete
+                options={strains}
+                getOptionLabel={(strain) => 
+                  typeof strain === 'string' ? strain : `${strain.name} ${strain.is_autoflower ? '(Auto)' : '(Photo)'} - ${strain.type}${strain.breeder ? ` by ${strain.breeder}` : ''}`
+                }
+                value={strains.find(s => s.id === formData.strain_id) || newStrainName || null}
+                onChange={(_, strain) => {
+                  if (typeof strain === 'string') {
+                    // User typed a new strain name
+                    setNewStrainName(strain);
+                    // Clear existing strain selection
+                    setFormData(prev => ({ ...prev, strain_id: null, name: '' }));
+                  } else {
+                    handleStrainChange(strain);
+                    setNewStrainName('');
+                  }
+                }}
+                freeSolo
+                onInputChange={(_, value) => setNewStrainName(value || '')}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Select or Create Strain"
+                    required
+                    placeholder="Type to search or create new strain..."
+                  />
+                )}
+                renderOption={(props, strain, { inputValue }) => {
+                  // Handle string options (from freeSolo)
+                  if (typeof strain === 'string') {
+                    return null; // Don't render string options in dropdown
+                  }
+                  
+                  return (
+                    <div key={strain.id}>
+                      <ListItem {...props}>
+                        <ListItemText
+                          primary={`${strain.name} ${strain.is_autoflower ? '(Auto)' : '(Photo)'}`}
+                          secondary={`${strain.type}${strain.breeder ? ` by ${strain.breeder}` : ''}`}
+                        />
+                      </ListItem>
+                    </div>
+                  );
+                }}
+                noOptionsText={
+                  newStrainName && newStrainName.trim() ? (
+                    <Box sx={{ p: 1 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Will create new strain "{newStrainName}" when plant is saved
+                      </Typography>
+                    </Box>
+                  ) : (
+                    "No strains found"
+                  )
+                }
               />
             </Grid>
 
-            {/* Growbox Selection */}
-            {growboxes.length > 1 && (
+            {/* Plant Name - Auto-generated display */}
+            {(formData.strain_id || newStrainName.trim()) && (
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Plant Name (Auto-generated)"
+                  value={formData.name || (newStrainName ? `${newStrainName.substring(0, 2).toUpperCase()}#1` : '')}
+                  disabled
+                  variant="filled"
+                  helperText="Name is automatically generated from strain abbreviation and plant number"
+                />
+              </Grid>
+            )}
+
+            {/* Grow Area Selection */}
+            {growAreas.length > 1 && (
               <Grid item xs={12}>
                 <FormControl fullWidth required>
-                  <InputLabel>Growbox</InputLabel>
+                  <InputLabel>Grow Area</InputLabel>
                   <Select
-                    value={formData.growbox_id}
-                    onChange={(e) => setFormData({ ...formData, growbox_id: Number(e.target.value) })}
-                    label="Growbox"
+                    value={formData.grow_area_id}
+                    onChange={(e) => setFormData({ ...formData, grow_area_id: Number(e.target.value) })}
+                    label="Grow Area"
                   >
-                    {growboxes.map((growbox) => (
-                      <MenuItem key={growbox.id} value={growbox.id}>
-                        {growbox.name} ({growbox.type})
+                    {growAreas.map((growArea) => (
+                      <MenuItem key={growArea.id} value={growArea.id}>
+                        {growArea.name} ({growArea.type})
                       </MenuItem>
                     ))}
                   </Select>
@@ -182,17 +286,6 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({
               </FormControl>
             </Grid>
 
-            {/* Info about what gets set automatically */}
-            {formData.strain_id && (
-              <Grid item xs={12}>
-                <Box sx={{ p: 2, bgcolor: 'info.light', borderRadius: 1 }}>
-                  <Typography variant="caption" color="info.dark">
-                    ℹ️ Light schedule, pot size, and training methods will be set automatically based on the strain type. 
-                    You can add training methods and observations later through the plant timeline.
-                  </Typography>
-                </Box>
-              </Grid>
-            )}
           </Grid>
         </Box>
       </DialogContent>
@@ -201,7 +294,7 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({
         <Button
           onClick={handleSubmit}
           variant="contained"
-          disabled={loading || !formData.name.trim() || !formData.strain_id}
+          disabled={loading || (!formData.strain_id && !newStrainName.trim())}
         >
           {loading ? 'Creating...' : 'Create Plant'}
         </Button>

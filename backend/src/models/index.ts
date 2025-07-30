@@ -1,4 +1,4 @@
-export { Growbox } from './Growbox';
+export { GrowArea } from './GrowArea';
 export { Plant, PlantPhase } from './Plant';
 export { WateringLog } from './WateringLog';
 export { FeedingLog } from './FeedingLog';

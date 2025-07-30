@@ -1,7 +1,7 @@
 import * as mqtt from 'mqtt';
 import { CONFIG } from '../config/settings';
 import { AppDataSource } from '../database';
-import { Growbox, Plant } from '../models';
+import { GrowArea, Plant } from '../models';
 
 export class MQTTService {
   private client: mqtt.MqttClient | null = null;
@@ -49,12 +49,12 @@ export class MQTTService {
     if (!this.isConnected || !this.client) return;
 
     try {
-      const growboxes = await AppDataSource.getRepository(Growbox).find({ relations: ['plants'] });
+      const growAreas = await AppDataSource.getRepository(GrowArea).find({ relations: ['plants'] });
       
-      for (const growbox of growboxes) {
-        await this.publishGrowboxDiscovery(growbox);
+      for (const growArea of growAreas) {
+        await this.publishGrowAreaDiscovery(growArea);
         
-        for (const plant of growbox.plants || []) {
+        for (const plant of growArea.plants || []) {
           await this.publishPlantDiscovery(plant);
         }
       }
@@ -63,15 +63,15 @@ export class MQTTService {
     }
   }
 
-  private async publishGrowboxDiscovery(growbox: Growbox) {
+  private async publishGrowAreaDiscovery(growArea: GrowArea) {
     if (!this.client) return;
 
     const baseConfig = {
       device: {
-        identifiers: [`growbox_${growbox.id}`],
-        name: growbox.name,
+        identifiers: [`grow_area_${growArea.id}`],
+        name: growArea.name,
         manufacturer: 'GrowFlow',
-        model: 'Growbox',
+        model: 'Grow Area',
         sw_version: '1.0.0'
       },
       availability: {
@@ -83,25 +83,25 @@ export class MQTTService {
 
     const sensors = [
       {
-        name: `${growbox.name} Temperature`,
-        unique_id: `growbox_${growbox.id}_temperature`,
-        state_topic: `${CONFIG.MQTT.TOPIC_PREFIX}/growbox/${growbox.id}/temperature`,
+        name: `${growArea.name} Temperature`,
+        unique_id: `grow_area_${growArea.id}_temperature`,
+        state_topic: `${CONFIG.MQTT.TOPIC_PREFIX}/grow_area/${growArea.id}/temperature`,
         unit_of_measurement: '°C',
         device_class: 'temperature',
         ...baseConfig
       },
       {
-        name: `${growbox.name} Humidity`,
-        unique_id: `growbox_${growbox.id}_humidity`,
-        state_topic: `${CONFIG.MQTT.TOPIC_PREFIX}/growbox/${growbox.id}/humidity`,
+        name: `${growArea.name} Humidity`,
+        unique_id: `grow_area_${growArea.id}_humidity`,
+        state_topic: `${CONFIG.MQTT.TOPIC_PREFIX}/grow_area/${growArea.id}/humidity`,
         unit_of_measurement: '%',
         device_class: 'humidity',
         ...baseConfig
       },
       {
-        name: `${growbox.name} VPD`,
-        unique_id: `growbox_${growbox.id}_vpd`,
-        state_topic: `${CONFIG.MQTT.TOPIC_PREFIX}/growbox/${growbox.id}/vpd`,
+        name: `${growArea.name} VPD`,
+        unique_id: `grow_area_${growArea.id}_vpd`,
+        state_topic: `${CONFIG.MQTT.TOPIC_PREFIX}/grow_area/${growArea.id}/vpd`,
         unit_of_measurement: 'kPa',
         ...baseConfig
       }
@@ -148,10 +148,10 @@ export class MQTTService {
     }
   }
 
-  publishGrowboxData(growboxId: number, data: { temperature?: number; humidity?: number; vpd?: number }) {
+  publishGrowAreaData(growAreaId: number, data: { temperature?: number; humidity?: number; vpd?: number }) {
     if (!this.isConnected || !this.client) return;
 
-    const baseTopic = `${CONFIG.MQTT.TOPIC_PREFIX}/growbox/${growboxId}`;
+    const baseTopic = `${CONFIG.MQTT.TOPIC_PREFIX}/grow_area/${growAreaId}`;
     
     if (data.temperature !== undefined) {
       this.client.publish(`${baseTopic}/temperature`, data.temperature.toString());

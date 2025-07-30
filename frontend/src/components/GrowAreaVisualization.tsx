@@ -1,14 +1,14 @@
 import React from 'react';
 import { Box, Paper, Typography, Chip, Grid } from '@mui/material';
-import { Growbox, Plant } from '../types/models';
+import { GrowArea, Plant } from '../types/models';
 
-interface GrowboxVisualizationProps {
-  growbox: Growbox;
+interface GrowAreaVisualizationProps {
+  growArea: GrowArea;
   plants: Plant[];
 }
 
-const GrowboxVisualization: React.FC<GrowboxVisualizationProps> = ({ growbox, plants }) => {
-  const { dimensions } = growbox;
+const GrowAreaVisualization: React.FC<GrowAreaVisualizationProps> = ({ growArea, plants }) => {
+  const { dimensions } = growArea;
   const activePlants = plants.filter(p => p.is_active);
   
   // Calculate plant positions in a grid layout
@@ -59,7 +59,7 @@ const GrowboxVisualization: React.FC<GrowboxVisualizationProps> = ({ growbox, pl
   return (
     <Paper sx={{ p: 3, mb: 3 }}>
       <Typography variant="h6" gutterBottom>
-        {growbox.name} Visualization
+        {growArea.name} Visualization
       </Typography>
       
       <Grid container spacing={3}>
@@ -83,7 +83,7 @@ const GrowboxVisualization: React.FC<GrowboxVisualizationProps> = ({ growbox, pl
               `,
             }}
           >
-            {/* Growbox Floor Grid */}
+            {/* Grow Area Floor Grid */}
             <svg
               width="100%"
               height="100%"
@@ -195,7 +195,7 @@ const GrowboxVisualization: React.FC<GrowboxVisualizationProps> = ({ growbox, pl
             <Typography variant="subtitle2" color="textSecondary">
               Type
             </Typography>
-            <Chip label={growbox.type} size="small" />
+            <Chip label={growArea.type} size="small" />
           </Box>
 
           <Box sx={{ mb: 2 }}>
@@ -236,4 +236,4 @@ const GrowboxVisualization: React.FC<GrowboxVisualizationProps> = ({ growbox, pl
   );
 };
 
-export default GrowboxVisualization;
+export default GrowAreaVisualization;

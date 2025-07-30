@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { Growbox } from './Growbox';
+import { GrowArea } from './GrowArea';
 
 @Entity()
 export class EnvironmentLog {
@@ -7,7 +7,7 @@ export class EnvironmentLog {
   id: number;
 
   @Column()
-  growbox_id: number;
+  grow_area_id: number;
 
   @CreateDateColumn()
   timestamp: Date;
@@ -30,7 +30,7 @@ export class EnvironmentLog {
   @Column({ nullable: true, type: 'text' })
   notes?: string;
 
-  @ManyToOne(() => Growbox, growbox => growbox.environment_logs)
-  @JoinColumn({ name: 'growbox_id' })
-  growbox: Growbox;
+  @ManyToOne(() => GrowArea, growArea => growArea.environment_logs)
+  @JoinColumn({ name: 'grow_area_id' })
+  grow_area: GrowArea;
 }

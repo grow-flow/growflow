@@ -14,15 +14,15 @@ import {
   Box
 } from '@mui/material';
 import { apiService } from '../services/api';
-import { Growbox } from '../types/models';
+import { GrowArea } from '../types/models';
 
-interface CreateGrowboxDialogProps {
+interface CreateGrowAreaDialogProps {
   open: boolean;
   onClose: () => void;
-  onSuccess: (growboxData: Partial<Growbox>) => Promise<void>;
+  onSuccess: (growAreaData: Partial<GrowArea>) => Promise<void>;
 }
 
-const CreateGrowboxDialog: React.FC<CreateGrowboxDialogProps> = ({
+const CreateGrowAreaDialog: React.FC<CreateGrowAreaDialogProps> = ({
   open,
   onClose,
   onSuccess
@@ -78,7 +78,7 @@ const CreateGrowboxDialog: React.FC<CreateGrowboxDialogProps> = ({
         target_vpd_by_phase: { germination: 0.6, seedling: 0.8, vegetation: 1.0, flowering: 1.2 }
       });
     } catch (error) {
-      console.error('Failed to create growbox:', error);
+      console.error('Failed to create grow area:', error);
     } finally {
       setLoading(false);
     }
@@ -86,7 +86,7 @@ const CreateGrowboxDialog: React.FC<CreateGrowboxDialogProps> = ({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>Create New Growbox</DialogTitle>
+      <DialogTitle>Create New Grow Area</DialogTitle>
       <DialogContent>
         <Box sx={{ pt: 1 }}>
           <Grid container spacing={3}>
@@ -225,4 +225,4 @@ const CreateGrowboxDialog: React.FC<CreateGrowboxDialogProps> = ({
   );
 };
 
-export default CreateGrowboxDialog;
+export default CreateGrowAreaDialog;
