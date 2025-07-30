@@ -1,6 +1,6 @@
 import { Plant, PlantPhase } from '../types/models';
+import { Strain } from '../types/strain';
 import { addDays, differenceInDays } from 'date-fns';
-import { DEFAULT_STRAIN_SCHEDULES } from '../types/timeline';
 
 export interface PhaseInfo {
   phase: PlantPhase;
@@ -96,16 +96,36 @@ export const validatePhaseDate = (date: Date | null, phase: PlantPhase, plant: P
   return { isValid: true };
 };
 
-export const getStrainSchedule = (strain: string) => {
-  const lowerStrain = strain.toLowerCase();
-  if (lowerStrain.includes('auto')) return DEFAULT_STRAIN_SCHEDULES.autoflowering;
-  if (lowerStrain.includes('indica')) return DEFAULT_STRAIN_SCHEDULES.indica;
-  if (lowerStrain.includes('sativa')) return DEFAULT_STRAIN_SCHEDULES.sativa;
-  return DEFAULT_STRAIN_SCHEDULES.hybrid;
+export const getStrainSchedule = (strain: Strain | null) => {
+  if (!strain) {
+    // Fallback to default hybrid schedule if no strain data
+    return {
+      [PlantPhase.GERMINATION]: 7,
+      [PlantPhase.SEEDLING]: 14,
+      [PlantPhase.VEGETATION]: 42,
+      [PlantPhase.PRE_FLOWER]: 10,
+      [PlantPhase.FLOWERING]: 63,
+      [PlantPhase.FLUSHING]: 14,
+      [PlantPhase.DRYING]: 10,
+      [PlantPhase.CURING]: 28
+    };
+  }
+  
+  // Convert string keys back to enum keys for timeline calculation
+  return {
+    [PlantPhase.GERMINATION]: strain.phase_durations['germination'] || 7,
+    [PlantPhase.SEEDLING]: strain.phase_durations['seedling'] || 14,
+    [PlantPhase.VEGETATION]: strain.phase_durations['vegetation'] || 42,
+    [PlantPhase.PRE_FLOWER]: strain.phase_durations['pre_flower'] || 10,
+    [PlantPhase.FLOWERING]: strain.phase_durations['flowering'] || 63,
+    [PlantPhase.FLUSHING]: strain.phase_durations['flushing'] || 14,
+    [PlantPhase.DRYING]: strain.phase_durations['drying'] || 10,
+    [PlantPhase.CURING]: strain.phase_durations['curing'] || 28
+  };
 };
 
-export const generateTimeline = (plant: Plant): PhaseInfo[] => {
-  const schedule = getStrainSchedule(plant.strain);
+export const generateTimeline = (plant: Plant, strain?: Strain | null): PhaseInfo[] => {
+  const schedule = getStrainSchedule(strain || null);
   const currentPhase = getCurrentPhase(plant);
   const now = new Date();
   
@@ -115,14 +135,14 @@ export const generateTimeline = (plant: Plant): PhaseInfo[] => {
   
   return PHASE_ORDER.map((phase, index) => {
     const actualDate = getPhaseDate(plant, phase);
-    const duration = schedule.phaseDurations[phase];
+    const duration = schedule[phase];
     const isCurrent = currentPhase === phase;
     const isCompleted = index < PHASE_ORDER.indexOf(currentPhase);
     
     // Calculate estimated date for this phase
     if (index > 0) {
       const prevPhase = PHASE_ORDER[index - 1];
-      const prevDuration = schedule.phaseDurations[prevPhase];
+      const prevDuration = schedule[prevPhase];
       estimatedDate = addDays(estimatedDate, prevDuration);
     }
     

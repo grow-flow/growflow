@@ -31,7 +31,7 @@ import {
   Edit as EditIcon,
   Timeline as TimelineIcon
 } from '@mui/icons-material';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { format, differenceInDays } from 'date-fns';
 import { usePlants, useCreatePlant } from '../hooks/usePlants';
 import { Plant, PlantPhase } from '../types/models';
@@ -39,18 +39,30 @@ import CreatePlantDialog from '../components/CreatePlantDialog';
 import PhaseManagementDialog from '../components/PhaseManagementDialog';
 
 const PlantsOverview: React.FC = () => {
+  const [searchParams] = useSearchParams();
   const [filterOpen, setFilterOpen] = useState(false);
   const [createPlantDialogOpen, setCreatePlantDialogOpen] = useState(false);
   const [phaseDialogOpen, setPhaseDialogOpen] = useState(false);
   const [selectedPlant, setSelectedPlant] = useState<Plant | null>(null);
   
-  const [filters, setFilters] = useState({
-    search: '',
-    phase: '',
-    growbox: '',
-    strain: '',
-    isActive: 'all'
+  // Initialize filters from URL params and auto-open filter panel if strain is set
+  const [filters, setFilters] = useState(() => {
+    const initialFilters = {
+      search: searchParams.get('search') || '',
+      phase: searchParams.get('phase') || '',
+      growbox: searchParams.get('growbox') || '',
+      strain: searchParams.get('strain') || '',
+      isActive: searchParams.get('isActive') || 'all'
+    };
+    return initialFilters;
   });
+  
+  // Auto-open filter panel if coming from strain page
+  React.useEffect(() => {
+    if (searchParams.get('strain')) {
+      setFilterOpen(true);
+    }
+  }, [searchParams]);
 
   const { 
     data: plants = [], 

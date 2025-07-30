@@ -25,24 +25,32 @@ import {
   FormControlLabel,
   Switch,
   CircularProgress,
-  Alert
+  Alert,
+  Collapse,
+  Divider
 } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  LocalFlorist as PlantIcon
+  LocalFlorist as PlantIcon,
+  ExpandMore as ExpandMoreIcon,
+  Settings as SettingsIcon
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import { useStrains, useCreateStrain, useUpdateStrain, useDeleteStrain } from '../hooks/useStrains';
 import { Strain, CreateStrainData, DEFAULT_PHASE_DURATIONS } from '../types/strain';
+import { PlantPhase } from '../types/models';
 
 const StrainsOverview: React.FC = () => {
+  const navigate = useNavigate();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedStrain, setSelectedStrain] = useState<Strain | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   
-  const [formData, setFormData] = useState<CreateStrainData>({
+  const [formData, setFormData] = useState<CreateStrainData & { phase_durations?: { [key: string]: number } }>({
     name: '',
     type: 'hybrid',
     is_autoflower: false,
@@ -51,7 +59,17 @@ const StrainsOverview: React.FC = () => {
     description: '',
     breeder: '',
     thc_content: 20,
-    cbd_content: 1
+    cbd_content: 1,
+    phase_durations: {
+      'germination': 7,
+      'seedling': 14,
+      'vegetation': 42,
+      'pre_flower': 10,
+      'flowering': 63,
+      'flushing': 14,
+      'drying': 10,
+      'curing': 28
+    }
   });
 
   const { data: strains = [], isLoading, error, refetch } = useStrains();
@@ -61,10 +79,9 @@ const StrainsOverview: React.FC = () => {
 
   const handleCreate = async () => {
     try {
-      const phaseDurations = DEFAULT_PHASE_DURATIONS[formData.type];
       await createStrainMutation.mutateAsync({
         ...formData,
-        phase_durations: phaseDurations
+        phase_durations: formData.phase_durations
       });
       setCreateDialogOpen(false);
       resetForm();
@@ -84,7 +101,17 @@ const StrainsOverview: React.FC = () => {
       description: strain.description || '',
       breeder: strain.breeder || '',
       thc_content: strain.thc_content || 20,
-      cbd_content: strain.cbd_content || 1
+      cbd_content: strain.cbd_content || 1,
+      phase_durations: strain.phase_durations || {
+        'germination': 7,
+        'seedling': 14,
+        'vegetation': 42,
+        'pre_flower': 10,
+        'flowering': 63,
+        'flushing': 14,
+        'drying': 10,
+        'curing': 28
+      }
     });
     setEditDialogOpen(true);
   };
@@ -127,8 +154,19 @@ const StrainsOverview: React.FC = () => {
       description: '',
       breeder: '',
       thc_content: 20,
-      cbd_content: 1
+      cbd_content: 1,
+      phase_durations: {
+        'germination': 7,
+        'seedling': 14,
+        'vegetation': 42,
+        'pre_flower': 10,
+        'flowering': 63,
+        'flushing': 14,
+        'drying': 10,
+        'curing': 28
+      }
     });
+    setAdvancedOpen(false);
   };
 
   const getTypeColor = (type: string) => {
@@ -195,7 +233,12 @@ const StrainsOverview: React.FC = () => {
             </TableHead>
             <TableBody>
               {strains.map((strain) => (
-                <TableRow key={strain.id} hover>
+                <TableRow 
+                  key={strain.id} 
+                  hover 
+                  sx={{ cursor: 'pointer' }}
+                  onClick={() => navigate(`/plants?strain=${encodeURIComponent(strain.name)}`)}
+                >
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <PlantIcon color="primary" />
@@ -242,14 +285,18 @@ const StrainsOverview: React.FC = () => {
                   <TableCell>
                     <IconButton
                       size="small"
-                      onClick={() => handleEdit(strain)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEdit(strain);
+                      }}
                       title="Edit strain"
                     >
                       <EditIcon />
                     </IconButton>
                     <IconButton
                       size="small"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setSelectedStrain(strain);
                         setDeleteDialogOpen(true);
                       }}
@@ -373,6 +420,53 @@ const StrainsOverview: React.FC = () => {
                 label="Autoflowering"
               />
             </Grid>
+            
+            {/* Advanced Phase Duration Settings */}
+            <Grid item xs={12}>
+              <Button
+                size="small"
+                startIcon={<SettingsIcon />}
+                endIcon={<ExpandMoreIcon sx={{ transform: advancedOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />}
+                onClick={() => setAdvancedOpen(!advancedOpen)}
+                variant="outlined"
+                fullWidth
+              >
+                Advanced Phase Durations
+              </Button>
+            </Grid>
+            
+            <Grid item xs={12}>
+              <Collapse in={advancedOpen}>
+                <Box sx={{ mt: 2 }}>
+                  <Divider sx={{ mb: 2 }}>
+                    <Typography variant="caption" color="text.secondary">
+                      Phase Duration Settings (days)
+                    </Typography>
+                  </Divider>
+                  <Grid container spacing={2}>
+                    {formData.phase_durations && Object.entries(formData.phase_durations).map(([phase, duration]) => (
+                      <Grid item xs={6} md={3} key={phase}>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label={phase.charAt(0).toUpperCase() + phase.slice(1).replace('_', ' ')}
+                          type="number"
+                          value={duration}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            phase_durations: {
+                              ...formData.phase_durations!,
+                              [phase]: parseInt(e.target.value) || 0
+                            }
+                          })}
+                          inputProps={{ min: 1, max: 365 }}
+                        />
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Box>
+              </Collapse>
+            </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
@@ -484,6 +578,53 @@ const StrainsOverview: React.FC = () => {
                 }
                 label="Autoflowering"
               />
+            </Grid>
+            
+            {/* Advanced Phase Duration Settings */}
+            <Grid item xs={12}>
+              <Button
+                size="small"
+                startIcon={<SettingsIcon />}
+                endIcon={<ExpandMoreIcon sx={{ transform: advancedOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />}
+                onClick={() => setAdvancedOpen(!advancedOpen)}
+                variant="outlined"
+                fullWidth
+              >
+                Advanced Phase Durations
+              </Button>
+            </Grid>
+            
+            <Grid item xs={12}>
+              <Collapse in={advancedOpen}>
+                <Box sx={{ mt: 2 }}>
+                  <Divider sx={{ mb: 2 }}>
+                    <Typography variant="caption" color="text.secondary">
+                      Phase Duration Settings (days)
+                    </Typography>
+                  </Divider>
+                  <Grid container spacing={2}>
+                    {formData.phase_durations && Object.entries(formData.phase_durations).map(([phase, duration]) => (
+                      <Grid item xs={6} md={3} key={phase}>
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label={phase.charAt(0).toUpperCase() + phase.slice(1).replace('_', ' ')}
+                          type="number"
+                          value={duration}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            phase_durations: {
+                              ...formData.phase_durations!,
+                              [phase]: parseInt(e.target.value) || 0
+                            }
+                          })}
+                          inputProps={{ min: 1, max: 365 }}
+                        />
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Box>
+              </Collapse>
             </Grid>
           </Grid>
         </DialogContent>

@@ -14,16 +14,9 @@ export interface Strain {
   created_at: Date;
   updated_at: Date;
   
-  // Phase schedule
+  // Phase schedule  
   phase_durations: {
-    [PlantPhase.GERMINATION]: number;
-    [PlantPhase.SEEDLING]: number;
-    [PlantPhase.VEGETATION]: number;
-    [PlantPhase.PRE_FLOWER]: number;
-    [PlantPhase.FLOWERING]: number;
-    [PlantPhase.FLUSHING]: number;
-    [PlantPhase.DRYING]: number;
-    [PlantPhase.CURING]: number;
+    [key: string]: number;
   };
 }
 

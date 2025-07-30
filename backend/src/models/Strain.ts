@@ -41,14 +41,7 @@ export class Strain {
 
   @Column({ type: 'json' })
   phase_durations: {
-    germination: number;
-    seedling: number;
-    vegetation: number;
-    pre_flower: number;
-    flowering: number;
-    flushing: number;
-    drying: number;
-    curing: number;
+    [key: string]: number;
   };
 
   @CreateDateColumn()

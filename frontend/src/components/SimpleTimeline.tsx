@@ -22,6 +22,7 @@ import {
 import { format } from 'date-fns';
 import { Plant, PlantPhase } from '../types/models';
 import { useUpdatePlant, usePlant } from '../hooks/usePlants';
+import { useStrains } from '../hooks/useStrains';
 import { generateTimeline, getCurrentPhase, getUpdateFieldForPhase, getNextPhase, isPhaseReadyForNext, PHASE_ORDER, validatePhaseDate } from '../utils/timelineUtils';
 
 interface SimpleTimelineProps {
@@ -36,8 +37,12 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({ plant: initialPlant }) 
   // Use the latest plant data from React Query to ensure updates are reflected
   const { data: freshPlant } = usePlant(initialPlant.id);
   const plant = freshPlant || initialPlant;
+  
+  // Get strain data for accurate timeline calculations
+  const { data: strains = [] } = useStrains();
+  const strain = strains.find(s => s.name === plant.strain);
 
-  const timeline = generateTimeline(plant);
+  const timeline = generateTimeline(plant, strain);
   const currentPhase = getCurrentPhase(plant);
   const currentPhaseInfo = timeline.find(p => p.isCurrent);
 
