@@ -5,35 +5,24 @@ import {
   Card,
   CardContent,
   Chip,
-  IconButton,
   LinearProgress,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Button,
-  Stack,
-  Menu,
-  MenuItem,
-  Divider
+  Stack
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import {
-  Edit as EditIcon,
   CheckCircle as CompleteIcon,
   PlayArrow as CurrentIcon,
   Schedule as PendingIcon,
-  MoreVert as MoreIcon,
-  Clear as ClearIcon,
   FastForward as NextIcon,
   PlayArrow as StartIcon
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { Plant, PlantPhase } from '../types/models';
-import { useUpdatePlant } from '../hooks/usePlants';
-import { generateTimeline, getCurrentPhase, getUpdateFieldForPhase, getNextPhase, isPhaseReadyForNext, PHASE_ORDER } from '../utils/timelineUtils';
+import { useUpdatePlant, usePlant } from '../hooks/usePlants';
+import { generateTimeline, getCurrentPhase, getUpdateFieldForPhase, getNextPhase, isPhaseReadyForNext, PHASE_ORDER, validatePhaseDate } from '../utils/timelineUtils';
 
 interface SimpleTimelineProps {
   plant: Plant;
@@ -41,73 +30,47 @@ interface SimpleTimelineProps {
 
 
 
-const SimpleTimeline: React.FC<SimpleTimelineProps> = ({ plant }) => {
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [selectedPhase, setSelectedPhase] = useState<PlantPhase | null>(null);
-  const [editDate, setEditDate] = useState<Date | null>(null);
-  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
-  const [menuPhase, setMenuPhase] = useState<PlantPhase | null>(null);
+const SimpleTimeline: React.FC<SimpleTimelineProps> = ({ plant: initialPlant }) => {
   const updatePlantMutation = useUpdatePlant();
+  
+  // Use the latest plant data from React Query to ensure updates are reflected
+  const { data: freshPlant } = usePlant(initialPlant.id);
+  const plant = freshPlant || initialPlant;
 
   const timeline = generateTimeline(plant);
   const currentPhase = getCurrentPhase(plant);
   const currentPhaseInfo = timeline.find(p => p.isCurrent);
 
-  const handleEditDate = (phase: PlantPhase, currentDate: Date | null) => {
-    setSelectedPhase(phase);
-    setEditDate(currentDate || new Date());
-    setEditDialogOpen(true);
-  };
-
-
-  const handleSaveDate = async () => {
-    if (!selectedPhase) return;
-
-    try {
-      const updates: Partial<Plant> = {};
-      const fieldToUpdate = getUpdateFieldForPhase(selectedPhase);
-      
-      // Set the date (null clears it, undefined removes the field)
-      if (editDate === null) {
-        (updates as any)[fieldToUpdate] = null;
-      } else {
-        (updates as any)[fieldToUpdate] = editDate;
-      }
-      
-      // Update current phase based on what phases have dates
-      const updatedPlant = { ...plant, ...updates };
-      updates.current_phase = getCurrentPhase(updatedPlant as Plant);
-
-      await updatePlantMutation.mutateAsync({
-        id: plant.id,
-        data: updates
-      });
-
-      setEditDialogOpen(false);
-      setSelectedPhase(null);
-      setEditDate(null);
-    } catch (error) {
-      console.error('Failed to update date:', error);
+  const handleDateChange = async (phase: PlantPhase, date: Date | null) => {
+    // Validate the date
+    const validation = validatePhaseDate(date, phase, plant);
+    if (!validation.isValid) {
+      console.warn('Invalid date:', validation.error);
+      return;
     }
-  };
 
-  const handleClearDate = async (phase: PlantPhase) => {
     try {
       const updates: Partial<Plant> = {};
       const fieldToUpdate = getUpdateFieldForPhase(phase);
       
-      (updates as any)[fieldToUpdate] = null;
-      updates.current_phase = getCurrentPhase({ ...plant, ...updates } as Plant);
+      (updates as any)[fieldToUpdate] = date;
+      
+      // Create a temporary plant object with all current data plus the new update
+      const tempPlant = { 
+        ...plant,
+        [fieldToUpdate]: date
+      } as Plant;
+      
+      // Calculate the new current phase based on all phase dates
+      const newCurrentPhase = getCurrentPhase(tempPlant);
+      updates.current_phase = newCurrentPhase;
 
       await updatePlantMutation.mutateAsync({
         id: plant.id,
         data: updates
       });
-
-      setMenuAnchor(null);
-      setMenuPhase(null);
     } catch (error) {
-      console.error('Failed to clear date:', error);
+      console.error('Failed to update date:', error);
     }
   };
 
@@ -115,31 +78,8 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({ plant }) => {
     const nextPhase = getNextPhase(phaseToAdvance);
     
     if (nextPhase) {
-      const now = new Date();
-      const updates: Partial<Plant> = {};
-      const fieldToUpdate = getUpdateFieldForPhase(nextPhase);
-      
-      (updates as any)[fieldToUpdate] = now;
-      updates.current_phase = nextPhase;
-
-      await updatePlantMutation.mutateAsync({
-        id: plant.id,
-        data: updates
-      });
-
-      setMenuAnchor(null);
-      setMenuPhase(null);
+      await handleDateChange(nextPhase, new Date());
     }
-  };
-
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, phase: PlantPhase) => {
-    setMenuAnchor(event.currentTarget);
-    setMenuPhase(phase);
-  };
-
-  const handleMenuClose = () => {
-    setMenuAnchor(null);
-    setMenuPhase(null);
   };
 
   const progressPercent = currentPhaseInfo?.actualDate ? 
@@ -222,17 +162,7 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({ plant }) => {
                       <Typography variant="subtitle1" sx={{ fontWeight: phase.isCurrent ? 600 : 400 }}>
                         {phase.label}
                       </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        {phase.actualDate ? (
-                          <Typography variant="body2" color="textSecondary">
-                            Started: {format(phase.actualDate, 'dd/MM/yy')}
-                          </Typography>
-                        ) : (
-                          <Typography variant="body2" color="textSecondary">
-                            Not started
-                          </Typography>
-                        )}
-                        
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
                         <Chip 
                           label={`${phase.duration} days`} 
                           size="small" 
@@ -258,97 +188,41 @@ const SimpleTimeline: React.FC<SimpleTimelineProps> = ({ plant }) => {
                     </Box>
                   </Box>
                   
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <IconButton 
-                      size="small"
-                      onClick={() => handleEditDate(phase.phase, phase.actualDate)}
-                      title="Edit start date"
-                    >
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton 
-                      size="small"
-                      onClick={(e) => handleMenuOpen(e, phase.phase)}
-                      title="More options"
-                    >
-                      <MoreIcon />
-                    </IconButton>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 200 }}>
+                    <DatePicker
+                      label={phase.label}
+                      value={phase.actualDate}
+                      onChange={(date) => handleDateChange(phase.phase, date)}
+                      maxDate={new Date()}
+                      format="dd/MM/yy"
+                      slotProps={{ 
+                        textField: { 
+                          size: 'small',
+                          variant: 'outlined',
+                          sx: { minWidth: 140 }
+                        },
+                        actionBar: { actions: ['clear', 'today'] }
+                      }}
+                    />
+                    
+                    {!phase.actualDate && isPhaseReadyForNext(phase) && (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<NextIcon />}
+                        onClick={() => handleDateChange(phase.phase, new Date())}
+                        disabled={updatePlantMutation.isPending}
+                        sx={{ ml: 1 }}
+                      >
+                        Start
+                      </Button>
+                    )}
                   </Box>
                 </Box>
               </CardContent>
             </Card>
           ))}
         </Stack>
-
-        {/* Edit Date Dialog */}
-        <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)}>
-          <DialogTitle>
-            Set Start Date: {selectedPhase ? timeline.find(p => p.phase === selectedPhase)?.label : ''}
-          </DialogTitle>
-          <DialogContent sx={{ pt: 2 }}>
-            <DatePicker
-              label="Start Date"
-              value={editDate}
-              onChange={(date) => setEditDate(date)}
-              slotProps={{ 
-                textField: { fullWidth: true },
-                actionBar: { actions: ['clear', 'today'] }
-              }}
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
-            <Button 
-              onClick={() => {
-                setEditDate(null);
-                handleSaveDate();
-              }}
-              color="error"
-              disabled={updatePlantMutation.isPending}
-            >
-              Clear Date
-            </Button>
-            <Button 
-              onClick={handleSaveDate} 
-              variant="contained"
-              disabled={updatePlantMutation.isPending}
-            >
-              Save
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* Phase Actions Menu */}
-        <Menu
-          open={Boolean(menuAnchor)}
-          anchorEl={menuAnchor}
-          onClose={handleMenuClose}
-          transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-          anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-        >
-          {menuPhase && (
-            <>
-              {menuPhase === currentPhase && (
-                <>
-                  <MenuItem 
-                    onClick={() => handleStartNextPhase(menuPhase)}
-                  >
-                    <NextIcon sx={{ mr: 1 }} />
-                    Start Next Phase
-                  </MenuItem>
-                  <Divider />
-                </>
-              )}
-              <MenuItem 
-                onClick={() => handleClearDate(menuPhase)}
-                sx={{ color: 'error.main' }}
-              >
-                <ClearIcon sx={{ mr: 1 }} />
-                Clear Date
-              </MenuItem>
-            </>
-          )}
-        </Menu>
       </Box>
     </LocalizationProvider>
   );

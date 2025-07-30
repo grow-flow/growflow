@@ -60,12 +60,40 @@ export const getPhaseDate = (plant: Plant, phase: PlantPhase): Date | null => {
 };
 
 export const getCurrentPhase = (plant: Plant): PlantPhase => {
+  const now = new Date();
+  
+  // Find the latest phase that has started (actual date is set and <= today)
   for (let i = PHASE_ORDER.length - 1; i >= 0; i--) {
-    if (getPhaseDate(plant, PHASE_ORDER[i])) {
+    const phaseDate = getPhaseDate(plant, PHASE_ORDER[i]);
+    if (phaseDate && phaseDate <= now) {
       return PHASE_ORDER[i];
     }
   }
   return PlantPhase.GERMINATION;
+};
+
+export const validatePhaseDate = (date: Date | null, phase: PlantPhase, plant: Plant): { isValid: boolean; error?: string } => {
+  if (!date) return { isValid: true }; // null dates are allowed (clearing dates)
+  
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  
+  // No future dates allowed
+  if (dateOnly > today) {
+    return { isValid: false, error: 'Future dates are not allowed' };
+  }
+  
+  // Check phase order - later phases can't be before earlier phases
+  const phaseIndex = PHASE_ORDER.indexOf(phase);
+  for (let i = 0; i < phaseIndex; i++) {
+    const earlierPhaseDate = getPhaseDate(plant, PHASE_ORDER[i]);
+    if (earlierPhaseDate && dateOnly < new Date(earlierPhaseDate.getFullYear(), earlierPhaseDate.getMonth(), earlierPhaseDate.getDate())) {
+      return { isValid: false, error: `Date cannot be before ${PHASE_LABELS[PHASE_ORDER[i]]} phase` };
+    }
+  }
+  
+  return { isValid: true };
 };
 
 export const getStrainSchedule = (strain: string) => {
