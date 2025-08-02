@@ -1,0 +1,10 @@
+build_from:
+  amd64: "node:18-alpine"
+  aarch64: "node:18-alpine"
+  armv7: "node:18-alpine"
+labels:
+  io.hass.version: "1.0.0"
+  io.hass.type: "addon"
+  io.hass.arch: "amd64|aarch64|armv7"
+args:
+  TEMPIO_VERSION: "2021.09.0"

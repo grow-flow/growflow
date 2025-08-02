@@ -1,0 +1,25 @@
+configuration:
+  mqtt_broker:
+    name: MQTT Broker
+    description: MQTT broker hostname or IP address
+  mqtt_port:
+    name: MQTT Port
+    description: MQTT broker port number
+  mqtt_username:
+    name: MQTT Username
+    description: MQTT authentication username (optional)
+  mqtt_password:
+    name: MQTT Password
+    description: MQTT authentication password (optional)
+  ha_url:
+    name: Home Assistant URL
+    description: URL for Home Assistant API access
+  ha_token:
+    name: Home Assistant Token
+    description: Long-lived access token for Home Assistant API
+  log_level:
+    name: Log Level
+    description: Controls the level of log output
+  backup_enabled:
+    name: Enable Backups
+    description: Enable automatic database backups

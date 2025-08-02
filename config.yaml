@@ -2,7 +2,7 @@ name: GrowFlow Cannabis Tracker
 version: "1.0.0"
 slug: growflow
 description: Cannabis Plant Tracker with automation and Home Assistant integration
-url: https://github.com/yourusername/growflow
+url: https://github.com/moritzheine/growflow
 arch:
   - armhf
   - armv7

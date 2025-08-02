@@ -7,7 +7,7 @@ const Navbar: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   
-  const showBackButton = location.pathname !== '/' && location.pathname !== '/plants' && location.pathname !== '/strains' && location.pathname !== '/settings';
+  const showBackButton = location.pathname !== '/plants' && location.pathname !== '/strains';
 
   return (
     <AppBar position="sticky">
@@ -29,14 +29,6 @@ const Navbar: React.FC = () => {
           <Button
             color="inherit"
             component={Link}
-            to="/"
-            sx={{ opacity: location.pathname === '/' ? 1 : 0.7 }}
-          >
-            Dashboard
-          </Button>
-          <Button
-            color="inherit"
-            component={Link}
             to="/plants"
             sx={{ opacity: location.pathname === '/plants' ? 1 : 0.7 }}
           >
@@ -49,14 +41,6 @@ const Navbar: React.FC = () => {
             sx={{ opacity: location.pathname === '/strains' ? 1 : 0.7 }}
           >
             Strains
-          </Button>
-          <Button
-            color="inherit"
-            component={Link}
-            to="/settings"
-            sx={{ opacity: location.pathname === '/settings' ? 1 : 0.7 }}
-          >
-            Settings
           </Button>
         </Box>
       </Toolbar>

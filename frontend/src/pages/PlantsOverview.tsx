@@ -54,7 +54,7 @@ const PlantsOverview: React.FC = () => {
     const initialFilters = {
       search: searchParams.get('search') || '',
       phase: searchParams.get('phase') || '',
-      growbox: searchParams.get('growbox') || '',
+      growArea: searchParams.get('growArea') || '',
       strain: searchParams.get('strain') || '',
       isActive: searchParams.get('isActive') || 'all'
     };
@@ -314,7 +314,7 @@ const PlantsOverview: React.FC = () => {
             <Grid item xs={12} md={3}>
               <Button
                 variant="outlined"
-                onClick={() => setFilters({ search: '', phase: '', growbox: '', strain: '', isActive: 'all' })}
+                onClick={() => setFilters({ search: '', phase: '', growArea: '', strain: '', isActive: 'all' })}
               >
                 Clear Filters
               </Button>

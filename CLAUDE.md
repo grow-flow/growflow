@@ -21,6 +21,9 @@ npm run lint
 npm run backend:lint -- --fix
 npm run frontend:lint -- --fix
 
+# Type checking (backend only - frontend uses react-scripts)
+cd backend && npm run build  # TypeScript compilation serves as type check
+
 # Backend specific commands
 cd backend && npm run dev     # Start backend dev server (nodemon)
 cd backend && npm run build   # Compile TypeScript
@@ -49,8 +52,8 @@ cd frontend && npm test       # Run React tests
 
 ### Frontend (React + Material-UI + React Query)
 - **State Management**: React Query (@tanstack/react-query) for server state
-- **Routing**: React Router with pages: Dashboard, Plants, Strains, Growbox Detail, Plant Detail, Settings
-- **Components**: Material-UI components with custom growbox and plant management dialogs
+- **Routing**: React Router with pages: Dashboard, Plants, Strains, Grow Area Detail, Plant Detail, Settings
+- **Components**: Material-UI components with custom grow area and plant management dialogs
 - **API Layer**: Axios-based service in `frontend/src/services/api.ts`
 - **Types**: Shared TypeScript interfaces between frontend/backend
 
@@ -82,3 +85,9 @@ cd frontend && npm test       # Run React tests
 - **Models**: `backend/src/models/` - TypeORM entity definitions
 - **Configuration**: `backend/src/config/settings.ts` - environment-based config
 - **Types**: Shared interfaces between frontend/backend in respective `types/` directories
+
+### Testing & Quality
+- **Linting**: ESLint with TypeScript support for both backend and frontend
+- **Backend**: Jest testing framework, run with `npm test` in backend directory
+- **Frontend**: React Testing Library with Jest (via react-scripts)
+- **Type Safety**: TypeScript strict mode enabled, use `npm run build` for type checking
