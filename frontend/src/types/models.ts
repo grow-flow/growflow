@@ -1,3 +1,30 @@
+export interface PhaseTemplate {
+  name: string;
+  duration_min: number;
+  duration_max: number;
+  description?: string;
+  automation_settings?: {
+    light_schedule?: string;
+    vpd_target?: number;
+  };
+}
+
+export interface PlantPhaseInstance {
+  id: string;
+  name: string;
+  start_date?: string;
+  duration_min: number;
+  duration_max: number;
+  description?: string;
+  is_active: boolean;
+  is_completed: boolean;
+  notes?: string;
+  automation_settings?: {
+    light_schedule?: string;
+    vpd_target?: number;
+  };
+}
+
 export interface GrowArea {
   id: number;
   name: string;
@@ -32,15 +59,50 @@ export interface GrowArea {
   plants?: Plant[];
 }
 
-export enum PlantPhase {
-  GERMINATION = 'germination',
-  SEEDLING = 'seedling',
-  VEGETATION = 'vegetation',
-  PRE_FLOWER = 'pre_flower',
-  FLOWERING = 'flowering',
-  FLUSHING = 'flushing',
-  DRYING = 'drying',
-  CURING = 'curing'
+// Legacy enum removed - now using dynamic phase names
+
+export interface PlantEvent {
+  id: string;
+  timestamp: string;
+  type: 'watering' | 'feeding' | 'observation' | 'training' | 'harvest' | 'transplant' | 'custom';
+  title: string;
+  description?: string;
+  data?: {
+    // Watering data
+    amount_ml?: number;
+    ph_level?: number;
+    ec_ppm?: number;
+    water_temperature?: number;
+    runoff_ph?: number;
+    runoff_ec?: number;
+    
+    // Feeding data
+    nutrients?: Array<{
+      name: string;
+      amount_ml: number;
+      npk_ratio?: string;
+    }>;
+    
+    // Observation data
+    observation_type?: 'health' | 'training' | 'deficiency' | 'pest' | 'general';
+    severity?: 'low' | 'medium' | 'high';
+    resolved?: boolean;
+    
+    // Training data
+    training_method?: string;
+    
+    // Harvest data
+    wet_weight?: number;
+    dry_weight?: number;
+    
+    // Photos for any event type
+    photos?: string[];
+    
+    // Custom data for extensibility
+    custom_fields?: { [key: string]: any };
+  };
+  notes?: string;
+  phase_id?: string; // Link to which phase this event occurred in
 }
 
 export interface Plant {
@@ -50,15 +112,9 @@ export interface Plant {
   strain: string;
   breeder?: string;
   phenotype?: string;
-  germination_date: Date;
-  seedling_start_date?: Date;
-  vegetation_start_date?: Date;
-  pre_flower_start_date?: Date;
-  flowering_start_date?: Date;
-  flushing_start_date?: Date;
-  drying_start_date?: Date;
-  curing_start_date?: Date;
-  current_phase: PlantPhase;
+  phases: PlantPhaseInstance[];
+  current_phase_id?: string;
+  events: PlantEvent[];
   light_schedule: {
     vegetation: string;
     flowering: string;
@@ -69,6 +125,24 @@ export interface Plant {
   notes?: string;
   is_active: boolean;
   is_mother_plant: boolean;
+  created_at: Date;
+  updated_at: Date;
+  // Current phase computed from phases array
+}
+
+export interface Strain {
+  id: number;
+  name: string;
+  abbreviation?: string;
+  type: string;
+  is_autoflower: boolean;
+  flowering_time_min: number;
+  flowering_time_max: number;
+  description?: string;
+  breeder?: string;
+  thc_content?: number;
+  cbd_content?: number;
+  phase_templates: PhaseTemplate[];
   created_at: Date;
   updated_at: Date;
 }

@@ -37,7 +37,7 @@ import {
 import { Link, useSearchParams } from 'react-router-dom';
 import { format, differenceInDays } from 'date-fns';
 import { usePlants, useCreatePlant, useDeletePlant, useUpdatePlant } from '../hooks/usePlants';
-import { Plant, PlantPhase } from '../types/models';
+import { Plant } from '../types/models';
 import CreatePlantDialog from '../components/CreatePlantDialog';
 
 const PlantsOverview: React.FC = () => {
@@ -85,7 +85,7 @@ const PlantsOverview: React.FC = () => {
         !plant.strain.toLowerCase().includes(filters.search.toLowerCase())) {
       return false;
     }
-    if (filters.phase && plant.current_phase !== filters.phase) return false;
+    if (filters.phase && plant.phases.find(p => p.is_active)?.name !== filters.phase) return false;
     if (filters.strain && plant.strain !== filters.strain) return false;
     if (filters.isActive === 'active' && !plant.is_active) return false;
     if (filters.isActive === 'inactive' && plant.is_active) return false;
@@ -93,7 +93,7 @@ const PlantsOverview: React.FC = () => {
   });
 
   // Get unique values for filter dropdowns
-  const uniquePhases = Array.from(new Set(plants.map(p => p.current_phase)));
+  const uniquePhases = Array.from(new Set(plants.map(p => p.phases.find(ph => ph.is_active)?.name).filter(Boolean)));
   const uniqueStrains = Array.from(new Set(plants.map(p => p.strain)));
 
   const handlePlantCreated = async (plantData: Partial<Plant>) => {
@@ -156,31 +156,17 @@ const PlantsOverview: React.FC = () => {
 
 
   const getDaysInPhase = (plant: Plant) => {
-    const now = new Date();
-    let startDate: Date;
-
-    switch (plant.current_phase) {
-      case 'germination':
-      case 'seedling':
-        startDate = new Date(plant.germination_date);
-        break;
-      case 'vegetation':
-      case 'pre_flower':
-        startDate = plant.vegetation_start_date ? new Date(plant.vegetation_start_date) : new Date(plant.germination_date);
-        break;
-      case 'flowering':
-      case 'flushing':
-        startDate = plant.flowering_start_date ? new Date(plant.flowering_start_date) : new Date(plant.germination_date);
-        break;
-      default:
-        startDate = new Date(plant.germination_date);
-    }
-
-    return differenceInDays(now, startDate);
+    const currentPhase = plant.phases.find(p => p.is_active);
+    if (!currentPhase?.start_date) return 0;
+    
+    return differenceInDays(new Date(), new Date(currentPhase.start_date));
   };
 
   const getTotalDays = (plant: Plant) => {
-    return differenceInDays(new Date(), new Date(plant.germination_date));
+    const firstPhase = plant.phases.find(p => p.start_date);
+    if (!firstPhase?.start_date) return 0;
+    
+    return differenceInDays(new Date(), new Date(firstPhase.start_date));
   };
 
   const getPhaseColor = (phase: string) => {
@@ -365,7 +351,7 @@ const PlantsOverview: React.FC = () => {
                 <TableCell>Days in Phase</TableCell>
                 <TableCell>Total Days</TableCell>
                 <TableCell>Medium</TableCell>
-                <TableCell>Germination Date</TableCell>
+                <TableCell>Start Date</TableCell>
                 <TableCell>Status</TableCell>
               </TableRow>
             </TableHead>
@@ -396,9 +382,9 @@ const PlantsOverview: React.FC = () => {
                   <TableCell>{plant.strain}</TableCell>
                   <TableCell>
                     <Chip
-                      label={plant.current_phase}
+                      label={plant.phases.find(p => p.is_active)?.name || 'Unknown'}
                       size="small"
-                      color={getPhaseColor(plant.current_phase) as any}
+                      color={getPhaseColor(plant.phases.find(p => p.is_active)?.name || '') as any}
                     />
                   </TableCell>
                   <TableCell>{getDaysInPhase(plant)}</TableCell>
@@ -407,7 +393,7 @@ const PlantsOverview: React.FC = () => {
                     <Chip label={plant.medium} size="small" variant="outlined" />
                   </TableCell>
                   <TableCell>
-                    {format(new Date(plant.germination_date), 'MMM dd, yyyy')}
+                    {plant.phases.find(p => p.start_date) ? format(new Date(plant.phases.find(p => p.start_date)!.start_date!), 'MMM dd, yyyy') : 'N/A'}
                   </TableCell>
                   <TableCell>
                     <Chip

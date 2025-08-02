@@ -21,9 +21,8 @@ import {
   Opacity, 
   Restaurant 
 } from '@mui/icons-material';
-import { usePlant, useLogWatering, useLogFeeding } from '../hooks/usePlants';
-import { PlantPhase, WateringLog, FeedingLog, ObservationLog } from '../types/models';
-import SimpleTimeline from '../components/SimpleTimeline';
+import { usePlant } from '../hooks/usePlants';
+import DynamicPlantTimeline from '../components/DynamicPlantTimeline';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -44,74 +43,42 @@ const PlantDetail: React.FC = () => {
   const { data: plant, isLoading, error } = usePlant(plantId);
   
   const [tabValue, setTabValue] = useState(0);
-  const [careHistory] = useState<{
-    watering: WateringLog[];
-    feeding: FeedingLog[];
-    observations: ObservationLog[];
-  }>({ watering: [], feeding: [], observations: [] });
   const [quickActionDialog, setQuickActionDialog] = useState<'water' | 'feed' | null>(null);
-  
-  const logWateringMutation = useLogWatering();
-  const logFeedingMutation = useLogFeeding();
 
   const handleQuickAction = async (action: 'water' | 'feed') => {
     if (!plant) return;
     
     try {
-      if (action === 'water') {
-        await logWateringMutation.mutateAsync({
-          plant_id: plant.id,
-          amount_ml: 500,
-          ph_level: 6.2,
-          notes: 'Quick watering'
-        });
-      } else {
-        await logFeedingMutation.mutateAsync({
-          plant_id: plant.id,
-          nutrients: [{ name: 'Base Nutrients', amount_ml: 10 }],
-          ph_level: 6.0,
-          notes: 'Quick feeding'
-        });
-      }
-      
+      // TODO: Implement event creation with new event system
+      console.log(`${action} logged`);
       setQuickActionDialog(null);
     } catch (error) {
       console.error(`Failed to log ${action}:`, error);
     }
   };
 
-  const getDaysInCurrentPhase = () => {
-    if (!plant) return 0;
-    const phaseStartDate = getPhaseStartDate();
-    if (!phaseStartDate) return 0;
-    
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - phaseStartDate.getTime());
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  const getCurrentPhase = () => {
+    if (!plant) return null;
+    return plant.phases.find(phase => phase.is_active);
   };
 
-  const getPhaseStartDate = (): Date | null => {
-    if (!plant) return null;
+  const getDaysInCurrentPhase = () => {
+    const currentPhase = getCurrentPhase();
+    if (!currentPhase?.start_date) return 0;
     
-    switch (plant.current_phase) {
-      case PlantPhase.GERMINATION:
-      case PlantPhase.SEEDLING:
-        return new Date(plant.germination_date);
-      case PlantPhase.VEGETATION:
-      case PlantPhase.PRE_FLOWER:
-        return plant.vegetation_start_date ? new Date(plant.vegetation_start_date) : null;
-      case PlantPhase.FLOWERING:
-      case PlantPhase.FLUSHING:
-        return plant.flowering_start_date ? new Date(plant.flowering_start_date) : null;
-      default:
-        return null;
-    }
+    const now = new Date();
+    const start = new Date(currentPhase.start_date);
+    const diffTime = Math.abs(now.getTime() - start.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
   const getTotalDays = () => {
     if (!plant) return 0;
+    const firstPhase = plant.phases.find(p => p.start_date);
+    if (!firstPhase?.start_date) return 0;
+    
     const now = new Date();
-    const start = new Date(plant.germination_date);
+    const start = new Date(firstPhase.start_date);
     const diffTime = Math.abs(now.getTime() - start.getTime());
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
@@ -129,12 +96,12 @@ const PlantDetail: React.FC = () => {
             <Typography variant="h4" gutterBottom>{plant.name}</Typography>
             <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
               <Chip label={plant.strain} color="primary" />
-              <Chip label={plant.current_phase} color="secondary" />
+              <Chip label={getCurrentPhase()?.name || 'Unknown'} color="secondary" />
               <Chip label={plant.medium} variant="outlined" />
               {plant.is_mother_plant && <Chip label="Mother Plant" color="success" />}
             </Box>
             <Typography color="textSecondary">
-              Day {getDaysInCurrentPhase()} in {plant.current_phase} • Total: {getTotalDays()} days
+              Day {getDaysInCurrentPhase()} in {getCurrentPhase()?.name || 'Unknown'} • Total: {getTotalDays()} days
             </Typography>
           </Grid>
           <Grid item xs={12} md={4}>
@@ -164,7 +131,7 @@ const PlantDetail: React.FC = () => {
         {/* Timeline */}
         <Grid item xs={12} md={4}>
           <Paper sx={{ p: 3, height: 'fit-content' }}>
-            <SimpleTimeline plant={plant} />
+            <DynamicPlantTimeline plant={plant} />
           </Paper>
         </Grid>
 
@@ -172,76 +139,25 @@ const PlantDetail: React.FC = () => {
         <Grid item xs={12} md={8}>
           <Paper>
             <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)}>
-              <Tab label={`Watering (${careHistory.watering.length})`} />
-              <Tab label={`Feeding (${careHistory.feeding.length})`} />
-              <Tab label={`Observations (${careHistory.observations.length})`} />
+              <Tab label={`Events (${plant.events?.length || 0})`} />
             </Tabs>
             
             <TabPanel value={tabValue} index={0}>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {careHistory.watering.map((log) => (
-                  <Card key={log.id} variant="outlined">
+                {plant.events?.map((event) => (
+                  <Card key={event.id} variant="outlined">
                     <CardContent>
                       <Typography variant="subtitle2">
-                        {new Date(log.timestamp).toLocaleDateString()} - {log.amount_ml}ml
+                        {new Date(event.timestamp).toLocaleDateString()} - {event.title}
                       </Typography>
-                      {log.ph_level && <Typography variant="body2">pH: {log.ph_level}</Typography>}
-                      {log.ec_ppm && <Typography variant="body2">EC: {log.ec_ppm} ppm</Typography>}
-                      {log.notes && <Typography variant="body2" color="textSecondary">{log.notes}</Typography>}
+                      <Chip label={event.type} size="small" sx={{ mb: 1 }} />
+                      {event.description && <Typography variant="body2">{event.description}</Typography>}
+                      {event.notes && <Typography variant="body2" color="textSecondary">{event.notes}</Typography>}
                     </CardContent>
                   </Card>
-                ))}
-                {careHistory.watering.length === 0 && (
-                  <Typography color="textSecondary">No watering logs yet</Typography>
-                )}
-              </Box>
-            </TabPanel>
-            
-            <TabPanel value={tabValue} index={1}>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {careHistory.feeding.map((log) => (
-                  <Card key={log.id} variant="outlined">
-                    <CardContent>
-                      <Typography variant="subtitle2">
-                        {new Date(log.timestamp).toLocaleDateString()}
-                      </Typography>
-                      {log.nutrients.map((nutrient, index) => (
-                        <Typography key={index} variant="body2">
-                          {nutrient.name}: {nutrient.amount_ml}ml
-                        </Typography>
-                      ))}
-                      {log.ph_level && <Typography variant="body2">pH: {log.ph_level}</Typography>}
-                      {log.notes && <Typography variant="body2" color="textSecondary">{log.notes}</Typography>}
-                    </CardContent>
-                  </Card>
-                ))}
-                {careHistory.feeding.length === 0 && (
-                  <Typography color="textSecondary">No feeding logs yet</Typography>
-                )}
-              </Box>
-            </TabPanel>
-            
-            <TabPanel value={tabValue} index={2}>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {careHistory.observations.map((log) => (
-                  <Card key={log.id} variant="outlined">
-                    <CardContent>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                        <Typography variant="subtitle2">
-                          {new Date(log.timestamp).toLocaleDateString()}
-                        </Typography>
-                        <Chip 
-                          label={log.observation_type} 
-                          size="small"
-                          color={log.severity === 'high' ? 'error' : log.severity === 'medium' ? 'warning' : 'default'}
-                        />
-                      </Box>
-                      <Typography variant="body2">{log.description}</Typography>
-                    </CardContent>
-                  </Card>
-                ))}
-                {careHistory.observations.length === 0 && (
-                  <Typography color="textSecondary">No observations yet</Typography>
+                )) || []}
+                {(!plant.events || plant.events.length === 0) && (
+                  <Typography color="textSecondary">No events logged yet</Typography>
                 )}
               </Box>
             </TabPanel>

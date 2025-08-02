@@ -21,7 +21,7 @@ import { Add as AddIcon } from '@mui/icons-material';
 import { useGrowAreas } from '../hooks/useGrowAreas';
 import { useStrains, useCreateStrain } from '../hooks/useStrains';
 import { usePlants } from '../hooks/usePlants';
-import { Plant, PlantPhase } from '../types/models';
+import { Plant } from '../types/models';
 import { Strain } from '../types/strain';
 
 interface CreatePlantDialogProps {
@@ -88,16 +88,7 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({
         breeder: '',
         thc_content: 20,
         cbd_content: 1,
-        phase_durations: {
-          'germination': 7,
-          'seedling': 14,
-          'vegetation': 42,
-          'pre_flower': 10,
-          'flowering': 63,
-          'flushing': 14,
-          'drying': 10,
-          'curing': 28
-        }
+        phase_templates: []
       });
       
       setNewStrainName('');
@@ -148,8 +139,8 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({
         training_methods: [], // Empty initially - added via events
         notes: '',
         is_mother_plant: false,
-        germination_date: new Date(),
-        current_phase: PlantPhase.GERMINATION,
+        phases: [], // Will be auto-generated from strain
+        events: [],
         is_active: true
       });
       

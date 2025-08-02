@@ -1,4 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { PhaseTemplate } from './Phase';
 
 export enum StrainType {
   INDICA = 'indica',
@@ -44,11 +45,9 @@ export class Strain {
 
   @Column({ 
     type: 'json',
-    default: () => "'{}'"
+    default: () => "'[]'"
   })
-  phase_durations: {
-    [key: string]: number;
-  };
+  phase_templates: PhaseTemplate[];
 
   @CreateDateColumn()
   created_at: Date;

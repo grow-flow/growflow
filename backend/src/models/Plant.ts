@@ -1,19 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { GrowArea } from './GrowArea';
-import { WateringLog } from './WateringLog';
-import { FeedingLog } from './FeedingLog';
-import { ObservationLog } from './ObservationLog';
+import { PlantPhaseInstance } from './Phase';
+import { PlantEvent } from './Event';
 
-export enum PlantPhase {
-  GERMINATION = 'germination',
-  SEEDLING = 'seedling',
-  VEGETATION = 'vegetation',
-  PRE_FLOWER = 'pre_flower',
-  FLOWERING = 'flowering',
-  FLUSHING = 'flushing',
-  DRYING = 'drying',
-  CURING = 'curing'
-}
+// Legacy enum removed - now using dynamic phase system
 
 @Entity()
 export class Plant {
@@ -35,32 +25,11 @@ export class Plant {
   @Column({ nullable: true })
   phenotype?: string;
 
-  @Column()
-  germination_date: Date;
+  @Column({ type: 'simple-json' })
+  phases: PlantPhaseInstance[];
 
   @Column({ nullable: true })
-  seedling_start_date?: Date;
-
-  @Column({ nullable: true })
-  vegetation_start_date?: Date;
-
-  @Column({ nullable: true })
-  pre_flower_start_date?: Date;
-
-  @Column({ nullable: true })
-  flowering_start_date?: Date;
-
-  @Column({ nullable: true })
-  flushing_start_date?: Date;
-
-  @Column({ nullable: true })
-  drying_start_date?: Date;
-
-  @Column({ nullable: true })
-  curing_start_date?: Date;
-
-  @Column({ type: 'varchar', default: PlantPhase.GERMINATION })
-  current_phase: PlantPhase;
+  current_phase_id?: string;
 
   @Column({ type: 'simple-json' })
   light_schedule: {
@@ -92,16 +61,10 @@ export class Plant {
   @UpdateDateColumn()
   updated_at: Date;
 
+  @Column({ type: 'simple-json', default: '[]' })
+  events: PlantEvent[];
+
   @ManyToOne(() => GrowArea, growArea => growArea.plants)
   @JoinColumn({ name: 'grow_area_id' })
   grow_area: GrowArea;
-
-  @OneToMany(() => WateringLog, log => log.plant, { cascade: true })
-  watering_logs: WateringLog[];
-
-  @OneToMany(() => FeedingLog, log => log.plant, { cascade: true })
-  feeding_logs: FeedingLog[];
-
-  @OneToMany(() => ObservationLog, log => log.plant, { cascade: true })
-  observation_logs: ObservationLog[];
 }

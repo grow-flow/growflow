@@ -39,8 +39,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useStrains, useCreateStrain, useUpdateStrain, useDeleteStrain } from '../hooks/useStrains';
-import { Strain, CreateStrainData, DEFAULT_PHASE_DURATIONS } from '../types/strain';
-import { PlantPhase } from '../types/models';
+import { Strain, CreateStrainData, DEFAULT_PHASE_TEMPLATES } from '../types/strain';
 
 const StrainsOverview: React.FC = () => {
   const navigate = useNavigate();
@@ -50,7 +49,7 @@ const StrainsOverview: React.FC = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   
-  const [formData, setFormData] = useState<CreateStrainData & { phase_durations?: { [key: string]: number } }>({
+  const [formData, setFormData] = useState<CreateStrainData>({
     name: '',
     abbreviation: '',
     type: 'hybrid',
@@ -61,16 +60,7 @@ const StrainsOverview: React.FC = () => {
     breeder: '',
     thc_content: 20,
     cbd_content: 1,
-    phase_durations: {
-      'germination': 7,
-      'seedling': 14,
-      'vegetation': 42,
-      'pre_flower': 10,
-      'flowering': 63,
-      'flushing': 14,
-      'drying': 10,
-      'curing': 28
-    }
+    phase_templates: DEFAULT_PHASE_TEMPLATES.photoperiod
   });
 
   const { data: strains = [], isLoading, error, refetch } = useStrains();
@@ -82,7 +72,7 @@ const StrainsOverview: React.FC = () => {
     try {
       await createStrainMutation.mutateAsync({
         ...formData,
-        phase_durations: formData.phase_durations
+        phase_templates: formData.phase_templates
       });
       setCreateDialogOpen(false);
       resetForm();
@@ -104,16 +94,7 @@ const StrainsOverview: React.FC = () => {
       breeder: strain.breeder || '',
       thc_content: strain.thc_content || 20,
       cbd_content: strain.cbd_content || 1,
-      phase_durations: strain.phase_durations || {
-        'germination': 7,
-        'seedling': 14,
-        'vegetation': 42,
-        'pre_flower': 10,
-        'flowering': 63,
-        'flushing': 14,
-        'drying': 10,
-        'curing': 28
-      }
+      phase_templates: strain.phase_templates || DEFAULT_PHASE_TEMPLATES.photoperiod
     });
     setEditDialogOpen(true);
   };
@@ -158,16 +139,7 @@ const StrainsOverview: React.FC = () => {
       breeder: '',
       thc_content: 20,
       cbd_content: 1,
-      phase_durations: {
-        'germination': 7,
-        'seedling': 14,
-        'vegetation': 42,
-        'pre_flower': 10,
-        'flowering': 63,
-        'flushing': 14,
-        'drying': 10,
-        'curing': 28
-      }
+      phase_templates: DEFAULT_PHASE_TEMPLATES.photoperiod
     });
     setAdvancedOpen(false);
   };
@@ -465,32 +437,10 @@ const StrainsOverview: React.FC = () => {
             <Grid item xs={12}>
               <Collapse in={advancedOpen}>
                 <Box sx={{ mt: 2 }}>
-                  <Divider sx={{ mb: 2 }}>
-                    <Typography variant="caption" color="text.secondary">
-                      Phase Duration Settings (days)
-                    </Typography>
-                  </Divider>
-                  <Grid container spacing={2}>
-                    {formData.phase_durations && Object.entries(formData.phase_durations).map(([phase, duration]) => (
-                      <Grid item xs={6} md={3} key={phase}>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          label={phase.charAt(0).toUpperCase() + phase.slice(1).replace('_', ' ')}
-                          type="number"
-                          value={duration}
-                          onChange={(e) => setFormData({
-                            ...formData,
-                            phase_durations: {
-                              ...formData.phase_durations!,
-                              [phase]: parseInt(e.target.value) || 0
-                            }
-                          })}
-                          inputProps={{ min: 1, max: 365 }}
-                        />
-                      </Grid>
-                    ))}
-                  </Grid>
+                  {/* Phase templates will be edited in a future update */}
+                  <Typography variant="caption" color="text.secondary">
+                    Phase templates are set to defaults for now. Advanced phase editing coming soon.
+                  </Typography>
                 </Box>
               </Collapse>
             </Grid>
@@ -635,32 +585,10 @@ const StrainsOverview: React.FC = () => {
             <Grid item xs={12}>
               <Collapse in={advancedOpen}>
                 <Box sx={{ mt: 2 }}>
-                  <Divider sx={{ mb: 2 }}>
-                    <Typography variant="caption" color="text.secondary">
-                      Phase Duration Settings (days)
-                    </Typography>
-                  </Divider>
-                  <Grid container spacing={2}>
-                    {formData.phase_durations && Object.entries(formData.phase_durations).map(([phase, duration]) => (
-                      <Grid item xs={6} md={3} key={phase}>
-                        <TextField
-                          fullWidth
-                          size="small"
-                          label={phase.charAt(0).toUpperCase() + phase.slice(1).replace('_', ' ')}
-                          type="number"
-                          value={duration}
-                          onChange={(e) => setFormData({
-                            ...formData,
-                            phase_durations: {
-                              ...formData.phase_durations!,
-                              [phase]: parseInt(e.target.value) || 0
-                            }
-                          })}
-                          inputProps={{ min: 1, max: 365 }}
-                        />
-                      </Grid>
-                    ))}
-                  </Grid>
+                  {/* Phase templates will be edited in a future update */}
+                  <Typography variant="caption" color="text.secondary">
+                    Phase templates are set to defaults for now. Advanced phase editing coming soon.
+                  </Typography>
                 </Box>
               </Collapse>
             </Grid>

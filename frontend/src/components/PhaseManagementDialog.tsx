@@ -7,7 +7,7 @@ import {
   Button
 } from '@mui/material';
 import { Plant } from '../types/models';
-import SimpleTimeline from './SimpleTimeline';
+import DynamicPlantTimeline from './DynamicPlantTimeline';
 
 interface PhaseManagementDialogProps {
   open: boolean;
@@ -26,7 +26,7 @@ const PhaseManagementDialog: React.FC<PhaseManagementDialogProps> = ({
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
       <DialogTitle>Timeline: {plant.name}</DialogTitle>
       <DialogContent>
-        <SimpleTimeline plant={plant} />
+        <DynamicPlantTimeline plant={plant} />
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Close</Button>

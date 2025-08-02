@@ -1,9 +1,10 @@
 import * as cron from 'node-cron';
 import { CONFIG } from '../config/settings';
 import { AppDataSource } from '../database';
-import { GrowArea, Plant, EnvironmentLog, PlantPhase } from '../models';
+import { GrowArea, Plant, EnvironmentLog } from '../models';
 import { haService } from './homeAssistantService';
 import { mqttService } from './mqttService';
+import { getCurrentPhase } from '../utils/phaseUtils';
 
 export class AutomationService {
   private tasks: cron.ScheduledTask[] = [];
@@ -109,18 +110,21 @@ export class AutomationService {
     }
 
     // Use the most restrictive (lowest) VPD target if multiple plants in different phases
-    const phases = activePlants.map(p => p.current_phase);
+    const phases = activePlants.map(p => {
+      const currentPhase = getCurrentPhase(p.phases);
+      return currentPhase?.name || 'vegetation';
+    });
     const vpdTargets = phases.map(phase => {
-      switch (phase) {
-        case PlantPhase.GERMINATION:
+      switch (phase.toLowerCase()) {
+        case 'germination':
           return growArea.target_vpd_by_phase.germination;
-        case PlantPhase.SEEDLING:
+        case 'seedling':
           return growArea.target_vpd_by_phase.seedling;
-        case PlantPhase.VEGETATION:
-        case PlantPhase.PRE_FLOWER:
+        case 'vegetation':
+        case 'pre-flower':
           return growArea.target_vpd_by_phase.vegetation;
-        case PlantPhase.FLOWERING:
-        case PlantPhase.FLUSHING:
+        case 'flowering':
+        case 'flushing':
           return growArea.target_vpd_by_phase.flowering;
         default:
           return growArea.target_vpd_by_phase.vegetation;
@@ -188,7 +192,10 @@ export class AutomationService {
   }
 
   private getCurrentLightSchedule(plant: Plant): string {
-    if (plant.current_phase === PlantPhase.FLOWERING || plant.current_phase === PlantPhase.FLUSHING) {
+    const currentPhase = getCurrentPhase(plant.phases);
+    const phaseName = currentPhase?.name.toLowerCase() || 'vegetation';
+    
+    if (phaseName === 'flowering' || phaseName === 'flushing') {
       return plant.light_schedule.flowering;
     }
     return plant.light_schedule.vegetation;

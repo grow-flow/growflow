@@ -12,6 +12,7 @@
     "lint:fix": "eslint src/**/*.ts --fix"
   },
   "dependencies": {
+    "@types/uuid": "^10.0.0",
     "axios": "^1.6.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
@@ -23,6 +24,7 @@
     "node-cron": "^3.0.3",
     "sqlite3": "^5.1.6",
     "typeorm": "^0.3.17",
+    "uuid": "^11.1.0",
     "ws": "^8.14.2"
   },
   "devDependencies": {

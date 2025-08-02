@@ -8,7 +8,6 @@ import { initializeDatabase } from './database';
 import { errorHandler } from './middleware/errorHandler';
 import { growAreaRoutes } from './controllers/growAreaController';
 import { plantRoutes } from './controllers/plantController';
-import { careRoutes } from './controllers/careController';
 import { strainRoutes } from './controllers/strainController';
 import { mqttService } from './services/mqttService';
 import { automationService } from './services/automationService';
@@ -42,7 +41,7 @@ app.use((req, res, next) => {
 
 app.use('/api/grow-areas', growAreaRoutes);
 app.use('/api/plants', plantRoutes);
-app.use('/api/care', careRoutes);
+// Care events are now handled via plant routes: POST /api/plants/:id/events
 app.use('/api/strains', strainRoutes);
 
 app.get('/api/health', (req, res) => {

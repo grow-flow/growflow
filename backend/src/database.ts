@@ -1,6 +1,6 @@
 import { DataSource } from 'typeorm';
 import { CONFIG } from './config/settings';
-import { GrowArea, Plant, WateringLog, FeedingLog, ObservationLog, EnvironmentLog, Strain } from './models';
+import { GrowArea, Plant, EnvironmentLog, Strain } from './models';
 
 export const AppDataSource = new DataSource({
   type: 'sqlite',
@@ -10,9 +10,6 @@ export const AppDataSource = new DataSource({
   entities: [
     GrowArea,
     Plant,
-    WateringLog,
-    FeedingLog,
-    ObservationLog,
     EnvironmentLog,
     Strain
   ],

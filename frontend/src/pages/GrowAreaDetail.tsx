@@ -31,8 +31,7 @@ import { useGrowArea } from '../hooks/useGrowAreas';
 import { useCreatePlant } from '../hooks/usePlants';
 import { GrowArea, Plant } from '../types/models';
 import CreatePlantDialog from '../components/CreatePlantDialog';
-import GrowAreaVisualization from '../components/GrowAreaVisualization';
-import PlantDataColumns from '../components/PlantDataColumns';
+import SimplePlantList from '../components/SimplePlantList';
 
 const GrowAreaDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -119,7 +118,8 @@ const GrowAreaDetail: React.FC = () => {
       </Box>
 
       {/* Growbox Visualization */}
-      <GrowAreaVisualization growArea={growArea} plants={plants} />
+      {/* Simplified plant display */}
+      <SimplePlantList plants={plants} />
 
       <Grid container spacing={3}>
         {/* Environment Panel */}
@@ -261,7 +261,7 @@ const GrowAreaDetail: React.FC = () => {
                           </Button>
                         </TableCell>
                         <TableCell>{plant.strain}</TableCell>
-                        <TableCell>{plant.current_phase}</TableCell>
+                        <TableCell>{plant.phases.find(p => p.is_active)?.name || 'Unknown'}</TableCell>
                         <TableCell>12 days</TableCell>
                         <TableCell>2 days ago</TableCell>
                         <TableCell>
@@ -296,7 +296,7 @@ const GrowAreaDetail: React.FC = () => {
       </Grid>
 
       {/* Plant Data Columns */}
-      <PlantDataColumns plants={plants} />
+      {/* Plant data now shown in SimplePlantList above */}
 
       <CreatePlantDialog
         open={createPlantDialogOpen}

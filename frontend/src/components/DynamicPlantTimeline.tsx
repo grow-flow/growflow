@@ -28,41 +28,46 @@ import {
   Clear as ClearIcon,
   PlayArrow as StartIcon
 } from '@mui/icons-material';
-import { PlantPhase, Plant } from '../types/models';
+import { Plant } from '../types/models';
 import { useUpdatePlant } from '../hooks/usePlants';
-import { generateTimeline, getCurrentPhase, getUpdateFieldForPhase, getNextPhase, isPhaseReadyForNext } from '../utils/timelineUtils';
-import { format } from 'date-fns';
+import { 
+  generateDynamicTimeline, 
+  isPhaseReadyForNext, 
+  calculateTotalProgress, 
+  getDaysUntilHarvest, 
+  getDaysUntilNextPhase,
+  formatPhaseDate,
+  getPhaseEvents,
+  getEventIcon,
+  getEventColor,
+  getDaysSinceLastEvent
+} from '../utils/dynamicTimelineUtils';
 
-interface PlantTimelineProps {
+interface DynamicPlantTimelineProps {
   plant: Plant;
 }
 
-const PlantTimeline: React.FC<PlantTimelineProps> = ({ plant }) => {
-  const [selectedPhase, setSelectedPhase] = useState<PlantPhase | null>(null);
+const DynamicPlantTimeline: React.FC<DynamicPlantTimelineProps> = ({ plant }) => {
+  const [selectedPhase, setSelectedPhase] = useState<string | null>(null);
   const [dateDialogOpen, setDateDialogOpen] = useState(false);
   const [newDate, setNewDate] = useState<Date | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
-  const [menuPhase, setMenuPhase] = useState<PlantPhase | null>(null);
+  const [menuPhase, setMenuPhase] = useState<string | null>(null);
   const updatePlantMutation = useUpdatePlant();
   
-  const timeline = generateTimeline(plant);
-  const currentPhase = getCurrentPhase(plant);
+  const timeline = generateDynamicTimeline(plant);
   const currentPhaseInfo = timeline.find(p => p.isCurrent);
   
-  const totalProgress = timeline.filter(p => p.isCompleted).length / timeline.length * 100;
-  const phaseProgress = currentPhaseInfo?.actualDate ? 
-    Math.min((currentPhaseInfo.daysElapsed / currentPhaseInfo.duration) * 100, 100) : 0;
+  const totalProgress = calculateTotalProgress(timeline);
+  const daysUntilHarvest = getDaysUntilHarvest(timeline);
+  const daysUntilNext = getDaysUntilNextPhase(timeline);
     
-  const getCurrentStepIndex = () => {
-    return timeline.findIndex(p => p.isCurrent);
+  const handlePhaseClick = (phaseId: string) => {
+    setSelectedPhase(selectedPhase === phaseId ? null : phaseId);
   };
 
-  const handlePhaseClick = (phase: PlantPhase) => {
-    setSelectedPhase(selectedPhase === phase ? null : phase);
-  };
-
-  const handleDateEdit = (phase: PlantPhase, currentDate: Date | null) => {
-    setSelectedPhase(phase);
+  const handleDateEdit = (phaseId: string, currentDate: Date | null) => {
+    setSelectedPhase(phaseId);
     setNewDate(currentDate || new Date());
     setDateDialogOpen(true);
   };
@@ -71,24 +76,18 @@ const PlantTimeline: React.FC<PlantTimelineProps> = ({ plant }) => {
     if (!selectedPhase) return;
 
     try {
-      const updates: Partial<Plant> = {};
-      const fieldToUpdate = getUpdateFieldForPhase(selectedPhase);
+      const startDate = newDate ? newDate.toISOString() : null;
       
-      // Set the date (null clears it, undefined removes the field)
-      if (newDate === null) {
-        (updates as any)[fieldToUpdate] = null;
-      } else {
-        (updates as any)[fieldToUpdate] = newDate;
-      }
-      
-      // Update current phase based on what phases have dates
-      const updatedPlant = { ...plant, ...updates };
-      updates.current_phase = getCurrentPhase(updatedPlant as Plant);
-
-      await updatePlantMutation.mutateAsync({
-        id: plant.id,
-        data: updates
+      const response = await fetch(`/api/plants/${plant.id}/phase/${selectedPhase}/start-date`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ startDate })
       });
+
+      if (!response.ok) throw new Error('Failed to update phase date');
+
+      // Trigger refetch
+      await updatePlantMutation.mutateAsync({ id: plant.id, data: {} });
 
       setDateDialogOpen(false);
       setSelectedPhase(null);
@@ -98,18 +97,18 @@ const PlantTimeline: React.FC<PlantTimelineProps> = ({ plant }) => {
     }
   };
   
-  const handleClearDate = async (phase: PlantPhase) => {
+  const handleClearDate = async (phaseId: string) => {
     try {
-      const updates: Partial<Plant> = {};
-      const fieldToUpdate = getUpdateFieldForPhase(phase);
-      
-      (updates as any)[fieldToUpdate] = null;
-      updates.current_phase = getCurrentPhase({ ...plant, ...updates } as Plant);
-
-      await updatePlantMutation.mutateAsync({
-        id: plant.id,
-        data: updates
+      const response = await fetch(`/api/plants/${plant.id}/phase/${phaseId}/start-date`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ startDate: null })
       });
+
+      if (!response.ok) throw new Error('Failed to clear phase date');
+
+      // Trigger refetch
+      await updatePlantMutation.mutateAsync({ id: plant.id, data: {} });
       
       setMenuAnchor(null);
       setMenuPhase(null);
@@ -118,27 +117,25 @@ const PlantTimeline: React.FC<PlantTimelineProps> = ({ plant }) => {
     }
   };
   
-  const handleStartNextPhase = async (phaseToAdvance: PlantPhase) => {
-    const nextPhase = getNextPhase(phaseToAdvance);
-    
-    if (nextPhase) {
-      const now = new Date();
-      const updates: Partial<Plant> = {};
-      const fieldToUpdate = getUpdateFieldForPhase(nextPhase);
-      
-      (updates as any)[fieldToUpdate] = now;
-      updates.current_phase = nextPhase;
-
-      await updatePlantMutation.mutateAsync({
-        id: plant.id,
-        data: updates
+  const handleStartNextPhase = async () => {
+    try {
+      const response = await fetch(`/api/plants/${plant.id}/advance-phase`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' }
       });
+
+      if (!response.ok) throw new Error('Failed to advance phase');
+
+      // Trigger refetch
+      await updatePlantMutation.mutateAsync({ id: plant.id, data: {} });
+    } catch (error) {
+      console.error('Failed to advance phase:', error);
     }
   };
   
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, phase: PlantPhase) => {
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, phaseId: string) => {
     setMenuAnchor(event.currentTarget);
-    setMenuPhase(phase);
+    setMenuPhase(phaseId);
   };
 
   const handleMenuClose = () => {
@@ -146,7 +143,10 @@ const PlantTimeline: React.FC<PlantTimelineProps> = ({ plant }) => {
     setMenuPhase(null);
   };
 
-  const activeStepIndex = selectedPhase ? timeline.findIndex(p => p.phase === selectedPhase) : getCurrentStepIndex();
+  const activeStepIndex = selectedPhase 
+    ? timeline.findIndex(p => p.phase.id === selectedPhase) 
+    : timeline.findIndex(p => p.isCurrent);
+
   const getPhaseIcon = (phaseInfo: any) => {
     if (phaseInfo.isOverdue) return <WarningIcon fontSize="small" color="warning" />;
     if (phaseInfo.isCompleted) return <CheckIcon fontSize="small" color="success" />;
@@ -162,15 +162,25 @@ const PlantTimeline: React.FC<PlantTimelineProps> = ({ plant }) => {
             <Typography variant="caption" color="textSecondary">
               {Math.round(totalProgress)}% Complete
             </Typography>
-            {currentPhaseInfo && isPhaseReadyForNext(currentPhaseInfo) && getNextPhase(currentPhaseInfo.phase) && (
+            {currentPhaseInfo && isPhaseReadyForNext(currentPhaseInfo) && (
               <Button
                 size="small"
                 variant="contained"
                 startIcon={<StartIcon />}
-                onClick={() => handleStartNextPhase(currentPhaseInfo.phase)}
+                onClick={handleStartNextPhase}
               >
                 Start Next Phase
               </Button>
+            )}
+            {daysUntilHarvest && (
+              <Typography variant="caption" color="textSecondary">
+                ~{daysUntilHarvest} days to harvest
+              </Typography>
+            )}
+            {daysUntilNext !== null && daysUntilNext > 0 && (
+              <Typography variant="caption" color="textSecondary">
+                {daysUntilNext} days until next phase
+              </Typography>
             )}
           </Box>
         </Box>
@@ -183,11 +193,11 @@ const PlantTimeline: React.FC<PlantTimelineProps> = ({ plant }) => {
         
         <Stepper activeStep={activeStepIndex} orientation="vertical">
           {timeline.map((phaseInfo, index) => {
-            const isSelected = selectedPhase === phaseInfo.phase;
+            const isSelected = selectedPhase === phaseInfo.phase.id;
             
             return (
               <Step 
-                key={phaseInfo.phase} 
+                key={phaseInfo.phase.id} 
                 completed={phaseInfo.isCompleted}
                 active={phaseInfo.isCurrent}
               >
@@ -204,7 +214,7 @@ const PlantTimeline: React.FC<PlantTimelineProps> = ({ plant }) => {
                       transform: phaseInfo.isCurrent ? 'scale(1.1)' : undefined
                     }
                   }}
-                  onClick={() => handlePhaseClick(phaseInfo.phase)}
+                  onClick={() => handlePhaseClick(phaseInfo.phase.id)}
                 >
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <Typography 
@@ -214,7 +224,7 @@ const PlantTimeline: React.FC<PlantTimelineProps> = ({ plant }) => {
                         fontWeight: phaseInfo.isCurrent ? 600 : 400
                       }}
                     >
-                      {phaseInfo.label}
+                      {phaseInfo.phase.name}
                     </Typography>
                     
                     {phaseInfo.isCurrent && (
@@ -236,7 +246,7 @@ const PlantTimeline: React.FC<PlantTimelineProps> = ({ plant }) => {
                     
                     {!phaseInfo.actualDate && !phaseInfo.isCurrent && (
                       <Chip
-                        label={`Est. ${phaseInfo.duration} days`}
+                        label={`Est. ${phaseInfo.phase.duration_min}-${phaseInfo.phase.duration_max} days`}
                         size="small"
                         variant="outlined"
                         color="default"
@@ -255,7 +265,7 @@ const PlantTimeline: React.FC<PlantTimelineProps> = ({ plant }) => {
                           {phaseInfo.actualDate ? 'Started' : 'Not started'}
                         </Typography>
                         <Typography variant="body2">
-                          {phaseInfo.actualDate ? format(phaseInfo.actualDate, 'dd/MM/yy') : 'Not started'}
+                          {formatPhaseDate(phaseInfo.actualDate)}
                         </Typography>
                       </Box>
                       
@@ -264,21 +274,30 @@ const PlantTimeline: React.FC<PlantTimelineProps> = ({ plant }) => {
                           Estimated
                         </Typography>
                         <Typography variant="body2">
-                          {phaseInfo.estimatedDate ? format(phaseInfo.estimatedDate, 'dd/MM/yy') : 'N/A'}
+                          {formatPhaseDate(phaseInfo.estimatedDate)}
+                        </Typography>
+                      </Box>
+                      
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="caption" color="textSecondary" display="block">
+                          Duration Range
+                        </Typography>
+                        <Typography variant="body2">
+                          {phaseInfo.phase.duration_min}-{phaseInfo.phase.duration_max} days
                         </Typography>
                       </Box>
                       
                       <Box sx={{ display: 'flex', gap: 1 }}>
                         <IconButton 
                           size="small" 
-                          onClick={() => handleDateEdit(phaseInfo.phase, phaseInfo.actualDate)}
+                          onClick={() => handleDateEdit(phaseInfo.phase.id, phaseInfo.actualDate)}
                           title="Edit date"
                         >
                           <EditIcon fontSize="small" />
                         </IconButton>
                         <IconButton 
                           size="small" 
-                          onClick={(e) => handleMenuOpen(e, phaseInfo.phase)}
+                          onClick={(e) => handleMenuOpen(e, phaseInfo.phase.id)}
                           title="More options"
                         >
                           <MoreIcon fontSize="small" />
@@ -286,11 +305,89 @@ const PlantTimeline: React.FC<PlantTimelineProps> = ({ plant }) => {
                       </Box>
                     </Box>
                     
+                    {phaseInfo.phase.description && (
+                      <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
+                        {phaseInfo.phase.description}
+                      </Typography>
+                    )}
+                    
+                    {/* Phase Events */}
+                    {(() => {
+                      const phaseEvents = getPhaseEvents(phaseInfo.phase, plant.events);
+                      const lastWatering = getDaysSinceLastEvent(phaseEvents, 'watering');
+                      const lastFeeding = getDaysSinceLastEvent(phaseEvents, 'feeding');
+                      
+                      return (
+                        <Box sx={{ mt: 1 }}>
+                          {phaseEvents.length > 0 && (
+                            <Box sx={{ mb: 1 }}>
+                              <Typography variant="caption" color="textSecondary" display="block">
+                                Events in this phase ({phaseEvents.length})
+                              </Typography>
+                              <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mt: 0.5 }}>
+                                {phaseEvents.slice(0, 5).map(event => (
+                                  <Chip
+                                    key={event.id}
+                                    label={`${getEventIcon(event.type)} ${event.title}`}
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{ 
+                                      fontSize: '0.7rem',
+                                      height: 20,
+                                      borderColor: getEventColor(event.type),
+                                      color: getEventColor(event.type)
+                                    }}
+                                  />
+                                ))}
+                                {phaseEvents.length > 5 && (
+                                  <Chip
+                                    label={`+${phaseEvents.length - 5} more`}
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{ fontSize: '0.7rem', height: 20 }}
+                                  />
+                                )}
+                              </Box>
+                            </Box>
+                          )}
+                          
+                          {/* Care reminders for current phase */}
+                          {phaseInfo.isCurrent && (
+                            <Box sx={{ display: 'flex', gap: 2, mb: 1 }}>
+                              {lastWatering !== null && (
+                                <Typography variant="caption" color={lastWatering > 3 ? 'warning.main' : 'textSecondary'}>
+                                  💧 {lastWatering === 0 ? 'Today' : `${lastWatering}d ago`}
+                                </Typography>
+                              )}
+                              {lastFeeding !== null && (
+                                <Typography variant="caption" color={lastFeeding > 7 ? 'warning.main' : 'textSecondary'}>
+                                  🌱 {lastFeeding === 0 ? 'Today' : `${lastFeeding}d ago`}
+                                </Typography>
+                              )}
+                            </Box>
+                          )}
+                        </Box>
+                      );
+                    })()}
+                    
                     {phaseInfo.isOverdue && (
                       <Box sx={{ p: 1, bgcolor: 'warning.light', borderRadius: 1 }}>
                         <Typography variant="caption" color="warning.dark">
                           This phase is running longer than expected
                         </Typography>
+                      </Box>
+                    )}
+                    
+                    {phaseInfo.isCurrent && phaseInfo.progressPercentage > 0 && (
+                      <Box sx={{ mt: 1 }}>
+                        <Typography variant="caption" color="textSecondary">
+                          Phase Progress: {Math.round(phaseInfo.progressPercentage)}%
+                        </Typography>
+                        <LinearProgress 
+                          variant="determinate" 
+                          value={phaseInfo.progressPercentage} 
+                          sx={{ mt: 0.5, height: 4, borderRadius: 2 }}
+                        />
                       </Box>
                     )}
                   </Box>
@@ -303,7 +400,7 @@ const PlantTimeline: React.FC<PlantTimelineProps> = ({ plant }) => {
         {/* Date Edit Dialog */}
         <Dialog open={dateDialogOpen} onClose={() => setDateDialogOpen(false)} maxWidth="sm" fullWidth>
           <DialogTitle>
-            Edit {selectedPhase ? timeline.find(p => p.phase === selectedPhase)?.label : ''} Start Date
+            Edit {selectedPhase ? timeline.find(p => p.phase.id === selectedPhase)?.phase.name : ''} Start Date
           </DialogTitle>
           <DialogContent sx={{ pt: 2 }}>
             <DatePicker
@@ -361,5 +458,4 @@ const PlantTimeline: React.FC<PlantTimelineProps> = ({ plant }) => {
   );
 };
 
-
-export default PlantTimeline;
+export default DynamicPlantTimeline;
