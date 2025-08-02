@@ -23,6 +23,7 @@ import {
 } from '@mui/icons-material';
 import { usePlant } from '../hooks/usePlants';
 import DynamicPlantTimeline from '../components/DynamicPlantTimeline';
+import PlantTimelineChart from '../components/PlantTimelineChart';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -127,10 +128,16 @@ const PlantDetail: React.FC = () => {
         </Grid>
       </Paper>
 
+      {/* New Full-Width Timeline */}
+      <PlantTimelineChart />
+
       <Grid container spacing={3}>
-        {/* Timeline */}
+        {/* Original Timeline */}
         <Grid item xs={12} md={4}>
           <Paper sx={{ p: 3, height: 'fit-content' }}>
+            <Typography variant="h6" gutterBottom>
+              Original Timeline
+            </Typography>
             <DynamicPlantTimeline plant={plant} />
           </Paper>
         </Grid>
