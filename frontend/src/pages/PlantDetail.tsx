@@ -136,11 +136,7 @@ const PlantDetail: React.FC = () => {
         </Grid>
       </Paper>
 
-      {/* New Full-Width Timeline */}
-      {/* <PlantTimelineChart /> */}
-
       <Grid container spacing={3}>
-        {/* Original Timeline */}
         <Grid item xs={12} md={4}>
           <Paper sx={{ p: 3, height: "fit-content" }}>
             <DynamicPlantTimeline plant={plant} />

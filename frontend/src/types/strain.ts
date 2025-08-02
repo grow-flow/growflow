@@ -4,7 +4,7 @@ export interface Strain {
   id: number;
   name: string;
   abbreviation?: string; // max 4 chars for short labels like "WW", "GG", "AK"
-  type: 'indica' | 'sativa' | 'hybrid' | 'autoflowering';
+  type: 'indica' | 'sativa' | 'hybrid' | 'autoflowering' | 'photoperiod';
   is_autoflower: boolean;
   flowering_time_min: number; // days
   flowering_time_max: number; // days
@@ -22,7 +22,7 @@ export interface Strain {
 export interface CreateStrainData {
   name: string;
   abbreviation?: string;
-  type: 'indica' | 'sativa' | 'hybrid' | 'autoflowering';
+  type: 'indica' | 'sativa' | 'hybrid' | 'autoflowering' | 'photoperiod';
   is_autoflower: boolean;
   flowering_time_min: number;
   flowering_time_max: number;

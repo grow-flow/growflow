@@ -5,7 +5,8 @@ export enum StrainType {
   INDICA = 'indica',
   SATIVA = 'sativa', 
   HYBRID = 'hybrid',
-  AUTOFLOWERING = 'autoflowering'
+  AUTOFLOWERING = 'autoflowering',
+  PHOTOPERIOD = 'photoperiod'
 }
 
 @Entity('strains')
@@ -19,7 +20,7 @@ export class Strain {
   @Column({ length: 4, nullable: true })
   abbreviation?: string;
 
-  @Column({ default: 'hybrid' })
+  @Column({ default: 'photoperiod' })
   type: string;
 
   @Column({ default: false })

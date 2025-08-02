@@ -17,7 +17,6 @@ import {
   ListItem,
   ListItemText
 } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
 import { useGrowAreas } from '../hooks/useGrowAreas';
 import { useStrains, useCreateStrain } from '../hooks/useStrains';
 import { usePlants } from '../hooks/usePlants';
@@ -45,17 +44,27 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({
   const [formData, setFormData] = useState({
     name: '',
     strain_id: null as number | null,
-    grow_area_id: growAreaId || (growAreas[0]?.id || 0),
+    grow_area_id: growAreaId || 0,
     medium: 'soil' as 'soil' | 'hydro' | 'coco' | 'dwc'
   });
 
   const [loading, setLoading] = useState(false);
   const [newStrainName, setNewStrainName] = useState('');
 
+  // Update grow_area_id when growAreas load
+  React.useEffect(() => {
+    if (!formData.grow_area_id && growAreas.length > 0) {
+      setFormData(prev => ({
+        ...prev,
+        grow_area_id: growAreaId || growAreas[0].id
+      }));
+    }
+  }, [growAreas, growAreaId, formData.grow_area_id]);
+
   // Auto-generate plant name based on selected strain abbreviation and count
   const generatePlantName = (strain: Strain): string => {
     const existingCount = plants.filter(p => p.strain === strain.name).length;
-    const shortName = strain.abbreviation || strain.name.substring(0, 2).toUpperCase();
+    const shortName = strain.abbreviation || strain.name.split(' ').map(word => word.charAt(0)).join('').toUpperCase();
     return `${shortName}#${existingCount + 1}`;
   };
 
@@ -79,8 +88,8 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({
     try {
       const newStrain = await createStrainMutation.mutateAsync({
         name,
-        abbreviation: name.substring(0, 2).toUpperCase(),
-        type: 'hybrid',
+        abbreviation: name.split(' ').map(word => word.charAt(0)).join('').toUpperCase(),
+        type: 'photoperiod',
         is_autoflower: false,
         flowering_time_min: 56,
         flowering_time_max: 70,
@@ -128,7 +137,7 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({
         ? { vegetation: '18/6', flowering: '18/6' }
         : { vegetation: '18/6', flowering: '12/12' };
 
-      await onSuccess({
+      const plantData = {
         name: selectedStrain ? generatePlantName(selectedStrain) : '',
         strain: selectedStrain.name,
         breeder: selectedStrain.breeder,
@@ -142,14 +151,17 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({
         phases: [], // Will be auto-generated from strain
         events: [],
         is_active: true
-      });
+      };
+
+      console.log('Creating plant with data:', JSON.stringify(plantData, null, 2));
+      await onSuccess(plantData);
       
       // Reset form
       setFormData({
         name: '',
         strain_id: null,
         grow_area_id: growAreaId || (growAreas[0]?.id || 0),
-        medium: 'soil'
+        medium: 'soil' as 'soil' | 'hydro' | 'coco' | 'dwc'
       });
       setNewStrainName('');
     } catch (error) {
@@ -195,7 +207,7 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({
                     placeholder="Type to search or create new strain..."
                   />
                 )}
-                renderOption={(props, strain, { inputValue }) => {
+                renderOption={(props, strain) => {
                   // Handle string options (from freeSolo)
                   if (typeof strain === 'string') {
                     return null; // Don't render string options in dropdown
@@ -232,7 +244,7 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({
                 <TextField
                   fullWidth
                   label="Plant Name (Auto-generated)"
-                  value={formData.name || (newStrainName ? `${newStrainName.substring(0, 2).toUpperCase()}#1` : '')}
+                  value={formData.name || (newStrainName ? `${newStrainName.split(' ').map(word => word.charAt(0)).join('').toUpperCase()}#1` : '')}
                   disabled
                   variant="filled"
                   helperText="Name is automatically generated from strain abbreviation and plant number"
@@ -266,7 +278,7 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({
                 <InputLabel>Growing Medium</InputLabel>
                 <Select
                   value={formData.medium}
-                  onChange={(e) => setFormData({ ...formData, medium: e.target.value as any })}
+                  onChange={(e) => setFormData({ ...formData, medium: e.target.value as 'soil' | 'hydro' | 'coco' | 'dwc' })}
                   label="Growing Medium"
                 >
                   <MenuItem value="soil">Soil</MenuItem>

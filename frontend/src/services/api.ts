@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { GrowArea, Plant, WateringLog, FeedingLog, ObservationLog } from '../types/models';
+import { GrowArea, Plant, WateringLog, FeedingLog, ObservationLog, PlantPhaseInstance } from '../types/models';
 import { Strain, CreateStrainData, UpdateStrainData } from '../types/strain';
 
 const API_BASE = '/api';
@@ -111,19 +111,46 @@ export const apiService = {
     await api.delete(`/strains/${id}`);
   },
 
-  // Phase management endpoints
-  updatePhaseStartDate: async (plantId: number, phaseId: string, startDate: string | null): Promise<Plant> => {
-    const response = await api.put(`/plants/${plantId}/phase/${phaseId}/start-date`, { startDate });
+  // Unified phase management endpoint
+  updatePlantPhases: async (plantId: number, phases: PlantPhaseInstance[]): Promise<Plant> => {
+    const response = await api.put(`/plants/${plantId}/phases`, { phases });
     return response.data;
+  },
+
+  // Helper methods that manipulate phases array and call unified endpoint
+  updatePhaseStartDate: async (plantId: number, phaseId: string, startDate: string | null): Promise<Plant> => {
+    // Get current plant data
+    const plant = await apiService.getPlant(plantId);
+    // Update the specific phase date
+    const updatedPhases = plant.phases.map(phase => 
+      phase.id === phaseId 
+        ? { ...phase, start_date: startDate || undefined }
+        : phase
+    );
+    return apiService.updatePlantPhases(plantId, updatedPhases);
   },
 
   startNextPhase: async (plantId: number): Promise<Plant> => {
-    const response = await api.put(`/plants/${plantId}/start-next-phase`);
-    return response.data;
-  },
-
-  updatePlantPhases: async (plantId: number, phases: any[]): Promise<Plant> => {
-    const response = await api.put(`/plants/${plantId}/phases`, { phases });
-    return response.data;
+    // Get current plant data
+    const plant = await apiService.getPlant(plantId);
+    // Find current phase (last phase with start_date)
+    let currentPhaseIndex = -1;
+    for (let i = 0; i < plant.phases.length; i++) {
+      if (plant.phases[i].start_date) {
+        currentPhaseIndex = i;
+      }
+    }
+    
+    if (currentPhaseIndex === -1 || currentPhaseIndex >= plant.phases.length - 1) {
+      throw new Error('Cannot start next phase');
+    }
+    
+    // Start the next phase by setting its start_date
+    const updatedPhases = plant.phases.map((phase, index) => 
+      index === currentPhaseIndex + 1
+        ? { ...phase, start_date: new Date().toISOString() }
+        : phase
+    );
+    return apiService.updatePlantPhases(plantId, updatedPhases);
   },
 };

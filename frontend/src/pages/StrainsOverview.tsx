@@ -52,7 +52,7 @@ const StrainsOverview: React.FC = () => {
   const [formData, setFormData] = useState<CreateStrainData>({
     name: '',
     abbreviation: '',
-    type: 'hybrid',
+    type: 'photoperiod',
     is_autoflower: false,
     flowering_time_min: 56,
     flowering_time_max: 70,
@@ -131,7 +131,7 @@ const StrainsOverview: React.FC = () => {
     setFormData({
       name: '',
       abbreviation: '',
-      type: 'hybrid',
+      type: 'photoperiod',
       is_autoflower: false,
       flowering_time_min: 56,
       flowering_time_max: 70,
@@ -146,10 +146,11 @@ const StrainsOverview: React.FC = () => {
 
   const getTypeColor = (type: string) => {
     switch (type) {
+      case 'photoperiod': return 'primary';
+      case 'autoflowering': return 'warning';
       case 'indica': return 'primary';
       case 'sativa': return 'secondary';
       case 'hybrid': return 'success';
-      case 'autoflowering': return 'warning';
       default: return 'default';
     }
   };
@@ -347,9 +348,7 @@ const StrainsOverview: React.FC = () => {
                   })}
                   label="Type"
                 >
-                  <MenuItem value="indica">Indica</MenuItem>
-                  <MenuItem value="sativa">Sativa</MenuItem>
-                  <MenuItem value="hybrid">Hybrid</MenuItem>
+                  <MenuItem value="photoperiod">Photoperiod</MenuItem>
                   <MenuItem value="autoflowering">Autoflowering</MenuItem>
                 </Select>
               </FormControl>
@@ -495,9 +494,7 @@ const StrainsOverview: React.FC = () => {
                   })}
                   label="Type"
                 >
-                  <MenuItem value="indica">Indica</MenuItem>
-                  <MenuItem value="sativa">Sativa</MenuItem>
-                  <MenuItem value="hybrid">Hybrid</MenuItem>
+                  <MenuItem value="photoperiod">Photoperiod</MenuItem>
                   <MenuItem value="autoflowering">Autoflowering</MenuItem>
                 </Select>
               </FormControl>

@@ -16,7 +16,13 @@ interface SimplePlantListProps {
 
 const SimplePlantList: React.FC<SimplePlantListProps> = ({ plants }) => {
   const getCurrentPhaseName = (plant: Plant): string => {
-    const currentPhase = plant.phases.find(phase => phase.is_active);
+    let lastStartedIndex = -1;
+    for (let i = 0; i < plant.phases.length; i++) {
+      if (plant.phases[i].start_date) {
+        lastStartedIndex = i;
+      }
+    }
+    const currentPhase = lastStartedIndex >= 0 ? plant.phases[lastStartedIndex] : null;
     return currentPhase?.name || 'Unknown';
   };
 
@@ -26,7 +32,13 @@ const SimplePlantList: React.FC<SimplePlantListProps> = ({ plants }) => {
   };
 
   const getDaysInCurrentPhase = (plant: Plant): number => {
-    const currentPhase = plant.phases.find(phase => phase.is_active);
+    let lastStartedIndex = -1;
+    for (let i = 0; i < plant.phases.length; i++) {
+      if (plant.phases[i].start_date) {
+        lastStartedIndex = i;
+      }
+    }
+    const currentPhase = lastStartedIndex >= 0 ? plant.phases[lastStartedIndex] : null;
     if (!currentPhase?.start_date) return 0;
     
     const now = new Date();

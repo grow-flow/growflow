@@ -18,6 +18,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { v4 as uuidv4 } from 'uuid';
 import {
   Box,
   Typography,
@@ -35,6 +36,7 @@ import {
   Card,
   CardContent,
   IconButton,
+  TextField,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -46,6 +48,8 @@ import {
   DragIndicator as DragIndicatorIcon,
   Close as CloseIcon,
   MoreVert as MoreVertIcon,
+  Delete as DeleteIcon,
+  Add as AddIcon,
 } from "@mui/icons-material";
 import { Plant, PlantPhaseInstance } from "../types/models";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -67,6 +71,13 @@ const DynamicPlantTimeline: React.FC<DynamicPlantTimelineProps> = ({
   const [lastCurrentPhaseId, setLastCurrentPhaseId] = useState<string | null>(null);
   const [configModalOpen, setConfigModalOpen] = useState(false);
   const [editablePhases, setEditablePhases] = useState<PlantPhaseInstance[]>([]);
+  const [newPhaseDialog, setNewPhaseDialog] = useState(false);
+  const [newPhaseData, setNewPhaseData] = useState({
+    name: '',
+    duration_min: 7,
+    duration_max: 14,
+    description: ''
+  });
   const queryClient = useQueryClient();
 
   const updatePhaseDateMutation = useMutation({
@@ -162,6 +173,54 @@ const DynamicPlantTimeline: React.FC<DynamicPlantTimelineProps> = ({
     updatePhasesMutation.mutate(editablePhases);
   };
 
+  const handleAddPhase = () => {
+    if (!newPhaseData.name.trim()) {
+      alert('Phase name is required');
+      return;
+    }
+    
+    if (newPhaseData.duration_min <= 0 || newPhaseData.duration_max <= 0) {
+      alert('Duration must be positive numbers');
+      return;
+    }
+    
+    if (newPhaseData.duration_min > newPhaseData.duration_max) {
+      alert('Minimum duration cannot be greater than maximum duration');
+      return;
+    }
+
+    const newPhase: PlantPhaseInstance = {
+      id: uuidv4(),
+      name: newPhaseData.name.trim(),
+      duration_min: newPhaseData.duration_min,
+      duration_max: newPhaseData.duration_max,
+      description: newPhaseData.description.trim() || undefined,
+      is_active: false,
+      is_completed: false
+    };
+    
+    setEditablePhases([...editablePhases, newPhase]);
+    setNewPhaseDialog(false);
+    setNewPhaseData({ name: '', duration_min: 7, duration_max: 14, description: '' });
+  };
+
+  const handleDeletePhase = (phaseId: string) => {
+    const phase = editablePhases.find(p => p.id === phaseId);
+    if (phase?.start_date) {
+      alert('Cannot delete a phase that has already started');
+      return;
+    }
+    
+    if (editablePhases.length <= 1) {
+      alert('Must have at least one phase');
+      return;
+    }
+    
+    if (window.confirm(`Are you sure you want to delete the "${phase?.name}" phase?`)) {
+      setEditablePhases(editablePhases.filter(p => p.id !== phaseId));
+    }
+  };
+
   // Sortable Phase Card Component
   const SortablePhaseCard: React.FC<{ phase: PlantPhaseInstance; index: number }> = ({ phase, index }) => {
     const {
@@ -238,6 +297,16 @@ const DynamicPlantTimeline: React.FC<DynamicPlantTimelineProps> = ({
                 </Typography>
               )}
             </Box>
+            
+            <IconButton
+              size="small"
+              color="error"
+              onClick={() => handleDeletePhase(phase.id)}
+              disabled={!!phase.start_date}
+              sx={{ opacity: phase.start_date ? 0.3 : 1 }}
+            >
+              <DeleteIcon />
+            </IconButton>
           </Box>
         </CardContent>
       </Card>
@@ -245,31 +314,20 @@ const DynamicPlantTimeline: React.FC<DynamicPlantTimelineProps> = ({
   };
 
   const handleDateChange = async (phaseId: string, newDate: Date | null) => {
-    if (!newDate) {
-      // Handle clearing date
-      try {
-        await updatePhaseDateMutation.mutateAsync({
-          phaseId,
-          startDate: null,
-        });
-      } catch (error) {
-        console.error("Failed to clear date:", error);
-      }
-      return;
-    }
-
     const phaseIndex = plantTimeline.getPhaseIndex(phaseId);
-    const validation = plantTimeline.validatePhaseDate(phaseIndex, newDate);
-
-    if (!validation.isValid) {
-      console.error("Invalid date:", validation.error);
-      return;
+    
+    if (newDate) {
+      const validation = plantTimeline.validatePhaseDate(phaseIndex, newDate);
+      if (!validation.isValid) {
+        console.error("Invalid date:", validation.error);
+        return;
+      }
     }
 
     try {
       await updatePhaseDateMutation.mutateAsync({
         phaseId,
-        startDate: newDate.toISOString(),
+        startDate: newDate?.toISOString() || null,
       });
     } catch (error) {
       console.error("Failed to update date:", error);
@@ -435,9 +493,13 @@ const DynamicPlantTimeline: React.FC<DynamicPlantTimelineProps> = ({
                           minDate={plantTimeline.getMinDateForPhase(
                             plantTimeline.getPhaseIndex(phaseInfo.phase.id)
                           )}
-                          maxDate={plantTimeline.getMaxDateForPhase(
-                            plantTimeline.getPhaseIndex(phaseInfo.phase.id)
-                          )}
+                          maxDate={(() => {
+                            const phaseMaxDate = plantTimeline.getMaxDateForPhase(
+                              plantTimeline.getPhaseIndex(phaseInfo.phase.id)
+                            );
+                            const today = new Date();
+                            return phaseMaxDate && phaseMaxDate < today ? phaseMaxDate : today;
+                          })()}
                           slotProps={{
                             textField: {
                               size: "medium",
@@ -630,7 +692,7 @@ const DynamicPlantTimeline: React.FC<DynamicPlantTimelineProps> = ({
           
           <DialogContent sx={{ pb: 0 }}>
             <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-              Drag and drop to reorder phases. Started phases cannot be moved above the current phase.
+              Drag and drop to reorder phases. Click the delete button to remove phases that haven't started yet. Add new phases with the button below.
             </Typography>
             
             <DndContext
@@ -651,6 +713,16 @@ const DynamicPlantTimeline: React.FC<DynamicPlantTimelineProps> = ({
                 ))}
               </SortableContext>
             </DndContext>
+            
+            <Box sx={{ mt: 2, textAlign: 'center' }}>
+              <Button
+                variant="outlined"
+                startIcon={<AddIcon />}
+                onClick={() => setNewPhaseDialog(true)}
+              >
+                Add Phase
+              </Button>
+            </Box>
           </DialogContent>
           
           <DialogActions sx={{ px: 3, py: 2 }}>
@@ -668,6 +740,59 @@ const DynamicPlantTimeline: React.FC<DynamicPlantTimelineProps> = ({
             >
               {updatePhasesMutation.isPending ? 'Saving...' : 'Save Changes'}
             </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Add New Phase Dialog */}
+        <Dialog
+          open={newPhaseDialog}
+          onClose={() => setNewPhaseDialog(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>Add New Phase</DialogTitle>
+          <DialogContent sx={{ pt: 2 }}>
+            <TextField
+              autoFocus
+              margin="normal"
+              label="Phase Name"
+              fullWidth
+              variant="outlined"
+              value={newPhaseData.name}
+              onChange={(e) => setNewPhaseData({ ...newPhaseData, name: e.target.value })}
+              sx={{ mb: 2 }}
+            />
+            
+            <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+              <TextField
+                label="Min Duration (days)"
+                type="number"
+                value={newPhaseData.duration_min}
+                onChange={(e) => setNewPhaseData({ ...newPhaseData, duration_min: parseInt(e.target.value) || 0 })}
+                inputProps={{ min: 1 }}
+              />
+              <TextField
+                label="Max Duration (days)"
+                type="number"
+                value={newPhaseData.duration_max}
+                onChange={(e) => setNewPhaseData({ ...newPhaseData, duration_max: parseInt(e.target.value) || 0 })}
+                inputProps={{ min: 1 }}
+              />
+            </Box>
+            
+            <TextField
+              label="Description (optional)"
+              fullWidth
+              multiline
+              rows={3}
+              variant="outlined"
+              value={newPhaseData.description}
+              onChange={(e) => setNewPhaseData({ ...newPhaseData, description: e.target.value })}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setNewPhaseDialog(false)}>Cancel</Button>
+            <Button onClick={handleAddPhase} variant="contained">Add Phase</Button>
           </DialogActions>
         </Dialog>
       </Box>

@@ -85,7 +85,16 @@ const PlantsOverview: React.FC = () => {
         !plant.strain.toLowerCase().includes(filters.search.toLowerCase())) {
       return false;
     }
-    if (filters.phase && plant.phases.find(p => p.is_active)?.name !== filters.phase) return false;
+    if (filters.phase) {
+      let lastStartedIndex = -1;
+      for (let i = 0; i < plant.phases.length; i++) {
+        if (plant.phases[i].start_date) {
+          lastStartedIndex = i;
+        }
+      }
+      const currentPhase = lastStartedIndex >= 0 ? plant.phases[lastStartedIndex] : null;
+      if (currentPhase?.name !== filters.phase) return false;
+    }
     if (filters.strain && plant.strain !== filters.strain) return false;
     if (filters.isActive === 'active' && !plant.is_active) return false;
     if (filters.isActive === 'inactive' && plant.is_active) return false;
@@ -93,7 +102,15 @@ const PlantsOverview: React.FC = () => {
   });
 
   // Get unique values for filter dropdowns
-  const uniquePhases = Array.from(new Set(plants.map(p => p.phases.find(ph => ph.is_active)?.name).filter(Boolean)));
+  const uniquePhases = Array.from(new Set(plants.map(p => {
+    let lastStartedIndex = -1;
+    for (let i = 0; i < p.phases.length; i++) {
+      if (p.phases[i].start_date) {
+        lastStartedIndex = i;
+      }
+    }
+    return lastStartedIndex >= 0 ? p.phases[lastStartedIndex].name : null;
+  }).filter((name): name is string => Boolean(name))));
   const uniqueStrains = Array.from(new Set(plants.map(p => p.strain)));
 
   const handlePlantCreated = async (plantData: Partial<Plant>) => {
@@ -156,7 +173,13 @@ const PlantsOverview: React.FC = () => {
 
 
   const getDaysInPhase = (plant: Plant) => {
-    const currentPhase = plant.phases.find(p => p.is_active);
+    let lastStartedIndex = -1;
+    for (let i = 0; i < plant.phases.length; i++) {
+      if (plant.phases[i].start_date) {
+        lastStartedIndex = i;
+      }
+    }
+    const currentPhase = lastStartedIndex >= 0 ? plant.phases[lastStartedIndex] : null;
     if (!currentPhase?.start_date) return 0;
     
     return differenceInDays(new Date(), new Date(currentPhase.start_date));
@@ -382,9 +405,25 @@ const PlantsOverview: React.FC = () => {
                   <TableCell>{plant.strain}</TableCell>
                   <TableCell>
                     <Chip
-                      label={plant.phases.find(p => p.is_active)?.name || 'Unknown'}
+                      label={(() => {
+                        let lastStartedIndex = -1;
+                        for (let i = 0; i < plant.phases.length; i++) {
+                          if (plant.phases[i].start_date) {
+                            lastStartedIndex = i;
+                          }
+                        }
+                        return lastStartedIndex >= 0 ? plant.phases[lastStartedIndex].name : 'Unknown';
+                      })()}
                       size="small"
-                      color={getPhaseColor(plant.phases.find(p => p.is_active)?.name || '') as any}
+                      color={getPhaseColor((() => {
+                        let lastStartedIndex = -1;
+                        for (let i = 0; i < plant.phases.length; i++) {
+                          if (plant.phases[i].start_date) {
+                            lastStartedIndex = i;
+                          }
+                        }
+                        return lastStartedIndex >= 0 ? plant.phases[lastStartedIndex].name : '';
+                      })()) as any}
                     />
                   </TableCell>
                   <TableCell>{getDaysInPhase(plant)}</TableCell>
