@@ -121,4 +121,9 @@ export const apiService = {
     const response = await api.put(`/plants/${plantId}/start-next-phase`);
     return response.data;
   },
+
+  updatePlantPhases: async (plantId: number, phases: any[]): Promise<Plant> => {
+    const response = await api.put(`/plants/${plantId}/phases`, { phases });
+    return response.data;
+  },
 };

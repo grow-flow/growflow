@@ -1,5 +1,24 @@
 import React, { useState, useMemo, useEffect } from "react";
 import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import {
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import {
   Box,
   Typography,
   Stepper,
@@ -9,6 +28,13 @@ import {
   Chip,
   Button,
   LinearProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Card,
+  CardContent,
+  IconButton,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -17,8 +43,11 @@ import {
   CheckCircle as CheckIcon,
   Warning as WarningIcon,
   PlayArrow as StartIcon,
+  DragIndicator as DragIndicatorIcon,
+  Close as CloseIcon,
+  MoreVert as MoreVertIcon,
 } from "@mui/icons-material";
-import { Plant } from "../types/models";
+import { Plant, PlantPhaseInstance } from "../types/models";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiService } from "../services/api";
 import {
@@ -36,6 +65,8 @@ const DynamicPlantTimeline: React.FC<DynamicPlantTimelineProps> = ({
 }) => {
   const [expandedPhase, setExpandedPhase] = useState<string | null>(null);
   const [lastCurrentPhaseId, setLastCurrentPhaseId] = useState<string | null>(null);
+  const [configModalOpen, setConfigModalOpen] = useState(false);
+  const [editablePhases, setEditablePhases] = useState<PlantPhaseInstance[]>([]);
   const queryClient = useQueryClient();
 
   const updatePhaseDateMutation = useMutation({
@@ -57,6 +88,19 @@ const DynamicPlantTimeline: React.FC<DynamicPlantTimelineProps> = ({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["plants"] });
       queryClient.invalidateQueries({ queryKey: ["plant", plant.id] });
+    },
+  });
+
+  const updatePhasesMutation = useMutation({
+    mutationFn: (phases: PlantPhaseInstance[]) => 
+      apiService.updatePlantPhases(plant.id, phases),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["plants"] });
+      queryClient.invalidateQueries({ queryKey: ["plant", plant.id] });
+      setConfigModalOpen(false);
+    },
+    onError: (error) => {
+      console.error('Failed to update phases:', error);
     },
   });
 
@@ -88,6 +132,117 @@ const DynamicPlantTimeline: React.FC<DynamicPlantTimelineProps> = ({
       setLastCurrentPhaseId(currentPhaseId);
     }
   }, [plantTimeline.currentPhase?.id, lastCurrentPhaseId]);
+
+  // Initialize editable phases when modal opens
+  useEffect(() => {
+    if (configModalOpen) {
+      setEditablePhases([...plant.phases]);
+    }
+  }, [configModalOpen, plant.phases]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = editablePhases.findIndex((phase) => phase.id === active.id);
+      const newIndex = editablePhases.findIndex((phase) => phase.id === over.id);
+
+      setEditablePhases((phases) => arrayMove(phases, oldIndex, newIndex));
+    }
+  };
+
+  const handleSavePhases = () => {
+    updatePhasesMutation.mutate(editablePhases);
+  };
+
+  // Sortable Phase Card Component
+  const SortablePhaseCard: React.FC<{ phase: PlantPhaseInstance; index: number }> = ({ phase, index }) => {
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging,
+    } = useSortable({ id: phase.id });
+
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0.5 : 1,
+    };
+
+    const isStarted = !!phase.start_date;
+    const isCurrent = plantTimeline.currentPhase?.id === phase.id;
+
+    return (
+      <Card
+        ref={setNodeRef}
+        style={style}
+        sx={{
+          mb: 1,
+          border: isCurrent ? '2px solid' : '1px solid',
+          borderColor: isCurrent ? 'primary.main' : 'divider',
+          backgroundColor: isStarted ? 'action.hover' : 'background.paper',
+        }}
+      >
+        <CardContent sx={{ py: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box
+              {...attributes}
+              {...listeners}
+              sx={{
+                cursor: 'grab',
+                display: 'flex',
+                alignItems: 'center',
+                color: 'text.secondary',
+                '&:active': { cursor: 'grabbing' },
+              }}
+            >
+              <DragIndicatorIcon />
+            </Box>
+            
+            <Box sx={{ flex: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                <Typography variant="h6" sx={{ fontWeight: isCurrent ? 600 : 400 }}>
+                  {index + 1}. {phase.name}
+                </Typography>
+                {isCurrent && (
+                  <Chip label="Current" size="small" color="primary" />
+                )}
+                {isStarted && !isCurrent && (
+                  <CheckIcon fontSize="small" color="success" />
+                )}
+              </Box>
+              
+              <Typography variant="caption" color="textSecondary" display="block">
+                Duration: {phase.duration_min}-{phase.duration_max} days
+              </Typography>
+              
+              {phase.description && (
+                <Typography variant="body2" color="textSecondary" sx={{ mt: 0.5 }}>
+                  {phase.description}
+                </Typography>
+              )}
+              
+              {isStarted && (
+                <Typography variant="caption" color="primary" sx={{ mt: 0.5, display: 'block' }}>
+                  Started: {plantTimeline.formatPhaseDate(new Date(phase.start_date!))}
+                </Typography>
+              )}
+            </Box>
+          </Box>
+        </CardContent>
+      </Card>
+    );
+  };
 
   const handleDateChange = async (phaseId: string, newDate: Date | null) => {
     if (!newDate) {
@@ -165,6 +320,13 @@ const DynamicPlantTimeline: React.FC<DynamicPlantTimelineProps> = ({
                 {daysUntilNext} days until next phase
               </Typography>
             )}
+            <IconButton
+              size="small"
+              onClick={() => setConfigModalOpen(true)}
+              sx={{ ml: 1 }}
+            >
+              <MoreVertIcon />
+            </IconButton>
           </Box>
         </Box>
 
@@ -443,6 +605,71 @@ const DynamicPlantTimeline: React.FC<DynamicPlantTimelineProps> = ({
             );
           })}
         </Stepper>
+
+        {/* Phase Configuration Modal */}
+        <Dialog
+          open={configModalOpen}
+          onClose={() => setConfigModalOpen(false)}
+          maxWidth="md"
+          fullWidth
+          PaperProps={{
+            sx: { height: '80vh' }
+          }}
+        >
+          <DialogTitle>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Typography variant="h6">Configure Growth Phases</Typography>
+              <IconButton
+                onClick={() => setConfigModalOpen(false)}
+                size="small"
+              >
+                <CloseIcon />
+              </IconButton>
+            </Box>
+          </DialogTitle>
+          
+          <DialogContent sx={{ pb: 0 }}>
+            <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
+              Drag and drop to reorder phases. Started phases cannot be moved above the current phase.
+            </Typography>
+            
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={editablePhases.map(phase => phase.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                {editablePhases.map((phase, index) => (
+                  <SortablePhaseCard
+                    key={phase.id}
+                    phase={phase}
+                    index={index}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
+          </DialogContent>
+          
+          <DialogActions sx={{ px: 3, py: 2 }}>
+            <Button
+              onClick={() => setConfigModalOpen(false)}
+              color="inherit"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSavePhases}
+              variant="contained"
+              color="primary"
+              disabled={updatePhasesMutation.isPending}
+            >
+              {updatePhasesMutation.isPending ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     </LocalizationProvider>
   );

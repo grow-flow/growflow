@@ -136,6 +136,34 @@ router.put('/:id/phase/:phaseId/start-date', async (req: Request, res: Response)
   }
 });
 
+router.put('/:id/phases', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { phases } = req.body;
+    
+    const plantRepo = AppDataSource.getRepository(Plant);
+    const plant = await plantRepo.findOne({ where: { id } });
+    
+    if (!plant) {
+      return res.status(404).json({ error: 'Plant not found' });
+    }
+    
+    // Validate phases array
+    if (!Array.isArray(phases) || phases.length === 0) {
+      return res.status(400).json({ error: 'Invalid phases data' });
+    }
+    
+    // Update plant phases with new order
+    plant.phases = phases;
+    
+    const saved = await plantRepo.save(plant);
+    res.json(saved);
+  } catch (error) {
+    console.error('Failed to update plant phases:', error);
+    res.status(500).json({ error: 'Failed to update plant phases' });
+  }
+});
+
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
