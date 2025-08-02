@@ -106,31 +106,16 @@ export class AutomationService {
     const activePlants = growArea.plants?.filter(p => p.is_active) || [];
     
     if (activePlants.length === 0) {
-      return growArea.target_vpd_by_phase.vegetation;
+      return growArea.default_target_vpd;
     }
 
-    // Use the most restrictive (lowest) VPD target if multiple plants in different phases
-    const phases = activePlants.map(p => {
-      const currentPhase = getCurrentPhase(p.phases);
-      return currentPhase?.name || 'vegetation';
-    });
-    const vpdTargets = phases.map(phase => {
-      switch (phase.toLowerCase()) {
-        case 'germination':
-          return growArea.target_vpd_by_phase.germination;
-        case 'seedling':
-          return growArea.target_vpd_by_phase.seedling;
-        case 'vegetation':
-        case 'pre-flower':
-          return growArea.target_vpd_by_phase.vegetation;
-        case 'flowering':
-        case 'flushing':
-          return growArea.target_vpd_by_phase.flowering;
-        default:
-          return growArea.target_vpd_by_phase.vegetation;
-      }
+    // Get VPD targets from current phases of active plants
+    const vpdTargets = activePlants.map(plant => {
+      const currentPhase = getCurrentPhase(plant.phases);
+      return currentPhase?.automation_settings?.vpd_target || growArea.default_target_vpd;
     });
 
+    // Use the most restrictive (lowest) VPD target if multiple plants in different phases
     return Math.min(...vpdTargets);
   }
 

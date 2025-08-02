@@ -23,7 +23,7 @@ router.get('/:id', async (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
     const plant = await AppDataSource.getRepository(Plant).findOne({
       where: { id },
-      relations: ['grow_area', 'watering_logs', 'feeding_logs', 'observation_logs']
+      relations: ['grow_area']
     });
     
     if (!plant) {
@@ -57,8 +57,7 @@ router.post('/', async (req: Request, res: Response) => {
     
     const plant = plantRepo.create({
       ...req.body,
-      phases,
-      current_phase_id: phases[0]?.id
+      phases
     });
     
     console.log('Plant entity created:', JSON.stringify(plant, null, 2));
@@ -93,15 +92,14 @@ router.put('/:id/advance-phase', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Plant not found' });
     }
     
-    if (!plant.current_phase_id) {
+    const currentPhase = getCurrentPhase(plant.phases);
+    if (!currentPhase) {
       return res.status(400).json({ error: 'No current phase to advance from' });
     }
     
-    const updatedPhases = advanceToNextPhase(plant.phases, plant.current_phase_id);
-    const newCurrentPhase = getCurrentPhase(updatedPhases);
+    const updatedPhases = advanceToNextPhase(plant.phases, currentPhase.id);
     
     plant.phases = updatedPhases;
-    plant.current_phase_id = newCurrentPhase?.id;
     
     const saved = await plantRepo.save(plant);
     res.json(saved);

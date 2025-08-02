@@ -40,13 +40,8 @@ export class GrowArea {
   @Column({ type: 'boolean', default: false })
   automation_enabled: boolean;
 
-  @Column({ type: 'simple-json' })
-  target_vpd_by_phase: {
-    germination: number;
-    seedling: number;
-    vegetation: number;
-    flowering: number;
-  };
+  @Column({ type: 'float', default: 1.0 })
+  default_target_vpd: number;
 
   @CreateDateColumn()
   created_at: Date;

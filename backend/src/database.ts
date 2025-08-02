@@ -32,12 +32,7 @@ export const initializeDatabase = async () => {
         equipment: { lights: [], fans: [] },
         sensors: { temperature: '', humidity: '' },
         automation_enabled: false,
-        target_vpd_by_phase: {
-          germination: 0.6,
-          seedling: 0.8,
-          vegetation: 1.0,
-          flowering: 1.2
-        }
+        default_target_vpd: 1.0
       });
       
       await growAreaRepo.save(defaultGrowArea);
