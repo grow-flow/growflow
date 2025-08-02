@@ -110,4 +110,15 @@ export const apiService = {
   deleteStrain: async (id: number): Promise<void> => {
     await api.delete(`/strains/${id}`);
   },
+
+  // Phase management endpoints
+  updatePhaseStartDate: async (plantId: number, phaseId: string, startDate: string | null): Promise<Plant> => {
+    const response = await api.put(`/plants/${plantId}/phase/${phaseId}/start-date`, { startDate });
+    return response.data;
+  },
+
+  startNextPhase: async (plantId: number): Promise<Plant> => {
+    const response = await api.put(`/plants/${plantId}/start-next-phase`);
+    return response.data;
+  },
 };

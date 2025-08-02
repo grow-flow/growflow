@@ -113,7 +113,6 @@ export interface Plant {
   breeder?: string;
   phenotype?: string;
   phases: PlantPhaseInstance[];
-  current_phase_id?: string;
   events: PlantEvent[];
   light_schedule: {
     vegetation: string;

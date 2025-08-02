@@ -28,8 +28,6 @@ export class Plant {
   @Column({ type: 'simple-json' })
   phases: PlantPhaseInstance[];
 
-  @Column({ nullable: true })
-  current_phase_id?: string;
 
   @Column({ type: 'simple-json' })
   light_schedule: {

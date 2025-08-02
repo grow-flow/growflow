@@ -16,14 +16,22 @@ export const createPlantPhasesFromStrain = (
     duration_min: template.duration_min,
     duration_max: template.duration_max,
     description: template.description,
-    is_active: index === 0,
+    is_active: false,
     is_completed: false,
     automation_settings: template.automation_settings
   }));
 };
 
 export const getCurrentPhase = (phases: PlantPhaseInstance[]): PlantPhaseInstance | null => {
-  return phases.find(phase => phase.is_active) || null;
+  let lastStartedIndex = -1;
+  
+  for (let i = 0; i < phases.length; i++) {
+    if (phases[i].start_date) {
+      lastStartedIndex = i;
+    }
+  }
+  
+  return lastStartedIndex >= 0 ? phases[lastStartedIndex] : null;
 };
 
 export const getNextPhase = (phases: PlantPhaseInstance[], currentPhaseId: string): PlantPhaseInstance | null => {
@@ -33,19 +41,21 @@ export const getNextPhase = (phases: PlantPhaseInstance[], currentPhaseId: strin
     : null;
 };
 
-export const advanceToNextPhase = (phases: PlantPhaseInstance[], currentPhaseId: string): PlantPhaseInstance[] => {
-  const currentIndex = phases.findIndex(phase => phase.id === currentPhaseId);
+export const startNextPhase = (phases: PlantPhaseInstance[]): PlantPhaseInstance[] => {
+  const currentPhase = getCurrentPhase(phases);
+  if (!currentPhase) {
+    return phases;
+  }
+  
+  const currentIndex = phases.findIndex(phase => phase.id === currentPhase.id);
   
   if (currentIndex === -1 || currentIndex >= phases.length - 1) {
     return phases;
   }
 
   return phases.map((phase, index) => {
-    if (index === currentIndex) {
-      return { ...phase, is_active: false, is_completed: true };
-    }
     if (index === currentIndex + 1) {
-      return { ...phase, is_active: true, start_date: new Date().toISOString() };
+      return { ...phase, start_date: new Date().toISOString() };
     }
     return phase;
   });
@@ -77,10 +87,8 @@ export const getEstimatedHarvestDate = (phases: PlantPhaseInstance[]): Date | nu
   const firstPhase = phases.find(phase => phase.start_date);
   if (!firstPhase) return null;
   
-  const totalDays = phases.reduce((sum, phase) => sum + phase.duration_max, 0);
   const harvestPhaseIndex = phases.findIndex(phase => 
-    phase.name.toLowerCase().includes('flush') || 
-    phase.name.toLowerCase().includes('flower')
+    phase.name.toLowerCase() === 'flowering'
   );
   
   if (harvestPhaseIndex === -1) return null;

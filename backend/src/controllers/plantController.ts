@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { AppDataSource } from '../database';
 import { Plant, Strain } from '../models';
-import { createPlantPhasesFromStrain, getCurrentPhase, advanceToNextPhase, updatePhaseStartDate } from '../utils/phaseUtils';
+import { createPlantPhasesFromStrain, getCurrentPhase, startNextPhase, updatePhaseStartDate } from '../utils/phaseUtils';
 import { createEvent, addEventToPlant, updateEvent, deleteEvent } from '../utils/eventUtils';
 
 const router = Router();
@@ -81,7 +81,7 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
-router.put('/:id/advance-phase', async (req: Request, res: Response) => {
+router.put('/:id/start-next-phase', async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
     
@@ -94,17 +94,23 @@ router.put('/:id/advance-phase', async (req: Request, res: Response) => {
     
     const currentPhase = getCurrentPhase(plant.phases);
     if (!currentPhase) {
-      return res.status(400).json({ error: 'No current phase to advance from' });
+      return res.status(400).json({ error: 'No current phase found' });
     }
     
-    const updatedPhases = advanceToNextPhase(plant.phases, currentPhase.id);
+    // Check if next phase exists
+    const currentIndex = plant.phases.findIndex(p => p.id === currentPhase.id);
+    if (currentIndex >= plant.phases.length - 1) {
+      return res.status(400).json({ error: 'Already in final phase' });
+    }
+    
+    const updatedPhases = startNextPhase(plant.phases);
     
     plant.phases = updatedPhases;
     
     const saved = await plantRepo.save(plant);
     res.json(saved);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to advance plant phase' });
+    res.status(500).json({ error: 'Failed to start next plant phase' });
   }
 });
 
