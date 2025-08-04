@@ -33,13 +33,22 @@ cd frontend && npm run lint   # ESLint frontend code
 cd frontend && npm test       # Run React tests with react-scripts
 
 # Home Assistant Add-on Development
-docker build -t local/growflow .                    # Build add-on locally
-docker run --rm -p 8080:8080 local/growflow        # Test add-on container
-docker exec -it <container_id> bashio::log.info    # Debug with bashio commands
 
-# Add-on Structure Testing
-docker build --build-arg BUILD_ARCH=amd64 .        # Test specific architecture
-docker logs <container_id>                         # View add-on logs
+# Quick add-on testing (build + run + health check)
+npm run test:addon               # Build, run, and test add-on container
+
+# Individual Docker commands
+npm run docker:build            # Build add-on image
+npm run docker:run              # Run add-on container in background
+npm run docker:dev              # Run in development mode (interactive)
+npm run docker:health           # Check if add-on is responding
+npm run docker:logs             # View add-on logs
+npm run docker:stop             # Stop running container
+npm run docker:clean            # Remove built image
+
+# Manual Docker commands (if needed)
+docker build -t local/growflow:test .              # Build with cache optimization
+docker run --rm -p 8080:8080 local/growflow:test   # Test container manually
 ```
 
 ## Architecture Overview
@@ -89,6 +98,14 @@ docker logs <container_id>                         # View add-on logs
 - TypeScript strict mode enabled across the project
 - Backend uses nodemon for hot reloading during development
 - Frontend uses React dev server with hot module replacement
+
+### Docker Build Optimization
+
+- **Multi-stage build**: Separate stages for dependencies, build, and production
+- **Layer caching**: System deps and npm packages cached separately from source code
+- **Fast rebuilds**: Only source code changes trigger rebuild (~30 seconds vs 2+ minutes)
+- **Optimized .dockerignore**: Excludes unnecessary files for faster context transfer
+- **Development workflow**: `npm run test:addon` for complete build/test cycle
 
 ### Important File Locations
 

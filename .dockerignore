@@ -1,18 +1,73 @@
+# Node modules
 node_modules
-npm-debug.log
-Dockerfile
-.dockerignore
+backend/node_modules
+frontend/node_modules
+
+# Build outputs (now both are needed for complete builds)
+
+# Development files
 .git
 .gitignore
-README.md
-.env
-.nyc_output
-coverage
-.nyc_output
+*.md
+!README.md
+.env*
+!.env.example
+
+# IDE and editor files
 .vscode
 .idea
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
 *.log
-backend/dist
-backend/node_modules
-frontend/build
-frontend/node_modules
+npm-debug.log*
+logs
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage
+
+# nyc test coverage
+.nyc_output
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Test files (not needed in production)
+backend/src/**/*.test.ts
+backend/src/**/*.spec.ts
+frontend/src/**/*.test.tsx
+frontend/src/**/*.test.ts
+frontend/src/**/*.spec.tsx
+frontend/src/**/*.spec.ts
+
+# Documentation
+docs/
+DOCS.md
+CHANGELOG.md
+
+# Development Docker files
+docker-compose*.yml
+Dockerfile.dev
+
+# GitHub files
+.github/

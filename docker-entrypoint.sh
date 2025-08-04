@@ -2,13 +2,13 @@
 set -e
 
 # Source bashio if available
-if [ -f "/usr/lib/bashio/bashio" ]; then
+if [ -f "/usr/lib/bashio/bashio.sh" ]; then
     source /usr/lib/bashio/bashio.sh
 fi
 
 # Function to check if running in Home Assistant Supervisor
 is_hassio() {
-    [ -f "/data/options.json" ] || [ -n "${SUPERVISOR_TOKEN}" ]
+    [ -f "/data/options.json" ] || [ -n "${SUPERVISOR_TOKEN:-}" ]
 }
 
 # Function to get config value using bashio (if available) or fallback
@@ -94,6 +94,10 @@ cd /app || {
     exit 1
 }
 
-# Start the application
+# Start the application directly from compiled backend
 log_info "Starting Node.js application..."
-exec npm start
+cd /app/backend || {
+    log_error "Could not change directory to /app/backend"
+    exit 1
+}
+exec node dist/index.js

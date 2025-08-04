@@ -16,7 +16,15 @@
     "frontend:test": "cd frontend && npm test",
     "lint": "npm run backend:lint && npm run frontend:lint",
     "backend:lint": "cd backend && npm run lint",
-    "frontend:lint": "cd frontend && npm run lint"
+    "frontend:lint": "cd frontend && npm run lint",
+    "docker:build": "npm run backend:build && npm run frontend:build && docker build -t local/growflow:test .",
+    "docker:run": "docker run --rm -d --name growflow-test -p 8080:8080 -e NODE_ENV=development -e DB_PATH=/tmp/test.db local/growflow:test",
+    "docker:dev": "docker run --rm -it --name growflow-dev -p 8080:8080 -e NODE_ENV=development -e DB_PATH=/tmp/dev.db -e MQTT_BROKER=localhost -e HA_URL=http://localhost:8123 local/growflow:test",
+    "docker:logs": "docker logs growflow-test",
+    "docker:stop": "docker stop growflow-test 2>/dev/null || true",
+    "docker:health": "curl -f http://localhost:8080/api/health || echo 'Health check failed'",
+    "docker:clean": "docker rmi local/growflow:test 2>/dev/null || true",
+    "test:addon": "npm run docker:stop && npm run docker:build && npm run docker:run && sleep 5 && npm run docker:health"
   },
   "keywords": [
     "homeassistant",

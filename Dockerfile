@@ -1,53 +1,28 @@
-# Use Node.js Alpine as base for now (can be optimized later)
+# Ultra-fast development build - use pre-built files
 FROM node:18-alpine
 
-# Install bashio for Home Assistant integration
-RUN apk add --no-cache \
-    bash \
-    curl \
-    jq \
-    python3 \
-    make \
-    g++ \
-    sqlite
+# Install minimal dependencies
+RUN apk add --no-cache bash curl sqlite
 
-# Install bashio
-RUN curl -J -L -o /tmp/bashio.tar.gz \
-    "https://github.com/hassio-addons/bashio/archive/v0.16.2.tar.gz" \
-    && mkdir /tmp/bashio \
-    && tar zxvf /tmp/bashio.tar.gz --strip 1 -C /tmp/bashio \
-    && mv /tmp/bashio/lib /usr/lib/bashio \
+# Install bashio (minimal version)
+RUN curl -sL "https://github.com/hassio-addons/bashio/archive/v0.16.2.tar.gz" | tar xz -C /tmp \
+    && mv /tmp/bashio-0.16.2/lib /usr/lib/bashio \
     && ln -s /usr/lib/bashio/bashio /usr/bin/bashio \
-    && rm -rf /tmp/bashio*
+    && rm -rf /tmp/bashio-0.16.2
 
-# Set working directory
 WORKDIR /app
 
-# Copy package files for dependency installation
-COPY package*.json ./
+# Copy package files and install minimal dependencies
 COPY backend/package*.json ./backend/
-COPY frontend/package*.json ./frontend/
+RUN cd backend && npm ci --omit=dev --no-audit --no-fund
 
-# Install dependencies (including dev dependencies for build)
-RUN npm ci --no-audit --no-fund
-RUN cd backend && npm ci --no-audit --no-fund
-RUN cd frontend && npm ci --no-audit --no-fund
+# Use pre-built backend (build locally first with npm run build)
+COPY backend/dist/ ./backend/dist/
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Copy source code
-COPY . .
-
-# Build applications
-RUN cd frontend && npm run build
-RUN cd backend && npm run build
-
-# Clean up dev dependencies after build
-RUN npm ci --only=production --no-audit --no-fund
-RUN cd backend && npm ci --only=production --no-audit --no-fund
-RUN cd frontend && npm ci --only=production --no-audit --no-fund
-
-# Clean up development dependencies and cache
-RUN npm cache clean --force \
-    && rm -rf /tmp/* /var/cache/apk/* /root/.npm
+# Copy pre-built frontend (build locally first with npm run frontend:build)
+COPY frontend/build/ ./frontend/build/
 
 # Set environment variables
 ENV NODE_ENV=production
