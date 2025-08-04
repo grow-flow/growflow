@@ -5,7 +5,7 @@ import { GrowArea, Plant } from '../models';
 
 export class MQTTService {
   private client: mqtt.MqttClient | null = null;
-  private isConnected = false;
+  private connectedState = false;
 
   async connect() {
     if (this.client) return;
@@ -31,7 +31,7 @@ export class MQTTService {
 
     this.client.on('connect', () => {
       console.log('MQTT connected');
-      this.isConnected = true;
+      this.connectedState = true;
       this.setupAutoDiscovery();
     });
 
@@ -41,12 +41,12 @@ export class MQTTService {
 
     this.client.on('close', () => {
       console.log('MQTT disconnected');
-      this.isConnected = false;
+      this.connectedState = false;
     });
   }
 
   private async setupAutoDiscovery() {
-    if (!this.isConnected || !this.client) return;
+    if (!this.connectedState || !this.client) return;
 
     try {
       const growAreas = await AppDataSource.getRepository(GrowArea).find({ relations: ['plants'] });
@@ -149,7 +149,7 @@ export class MQTTService {
   }
 
   publishGrowAreaData(growAreaId: number, data: { temperature?: number; humidity?: number; vpd?: number }) {
-    if (!this.isConnected || !this.client) return;
+    if (!this.connectedState || !this.client) return;
 
     const baseTopic = `${CONFIG.MQTT.TOPIC_PREFIX}/grow_area/${growAreaId}`;
     
@@ -167,7 +167,7 @@ export class MQTTService {
   }
 
   publishPlantData(plantId: number, data: { phase?: string; daysInPhase?: number }) {
-    if (!this.isConnected || !this.client) return;
+    if (!this.connectedState || !this.client) return;
 
     const baseTopic = `${CONFIG.MQTT.TOPIC_PREFIX}/plant/${plantId}`;
     
@@ -186,7 +186,7 @@ export class MQTTService {
   }
 
   isConnected(): boolean {
-    return this.isConnected;
+    return this.connectedState;
   }
 
   disconnect() {
@@ -194,7 +194,7 @@ export class MQTTService {
       this.publishStatus('offline');
       this.client.end();
       this.client = null;
-      this.isConnected = false;
+      this.connectedState = false;
     }
   }
 }

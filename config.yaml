@@ -52,4 +52,3 @@ schema:
   log_level: list(trace|debug|info|warning|error|fatal)?
   backup_enabled: bool?
   backup_interval_hours: int(1,168)?
-image: ghcr.io/moritzheine/growflow-{arch}

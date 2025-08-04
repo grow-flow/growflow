@@ -1,20 +1,24 @@
-# Use Home Assistant base image with s6-overlay and bashio
-ARG BUILD_FROM=ghcr.io/hassio-addons/base:15.0.7
-FROM ${BUILD_FROM}
+# Use Node.js Alpine as base for now (can be optimized later)
+FROM node:18-alpine
 
-# Set shell
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+# Install bashio for Home Assistant integration
+RUN apk add --no-cache \
+    bash \
+    curl \
+    jq \
+    python3 \
+    make \
+    g++ \
+    sqlite
 
-# Install Node.js and dependencies
-RUN \
-    apk add --no-cache \
-        nodejs=18.19.1-r0 \
-        npm=9.8.1-r0 \
-        python3=3.11.8-r0 \
-        make=4.4.1-r1 \
-        g++=12.2.1_git20220924-r10 \
-        sqlite=3.41.2-r2 \
-    && npm install -g npm@latest
+# Install bashio
+RUN curl -J -L -o /tmp/bashio.tar.gz \
+    "https://github.com/hassio-addons/bashio/archive/v0.16.2.tar.gz" \
+    && mkdir /tmp/bashio \
+    && tar zxvf /tmp/bashio.tar.gz --strip 1 -C /tmp/bashio \
+    && mv /tmp/bashio/lib /usr/lib/bashio \
+    && ln -s /usr/lib/bashio/bashio /usr/bin/bashio \
+    && rm -rf /tmp/bashio*
 
 # Set working directory
 WORKDIR /app
@@ -24,10 +28,10 @@ COPY package*.json ./
 COPY backend/package*.json ./backend/
 COPY frontend/package*.json ./frontend/
 
-# Install dependencies
-RUN npm ci --only=production --no-audit --no-fund
-RUN cd backend && npm ci --only=production --no-audit --no-fund
-RUN cd frontend && npm ci --only=production --no-audit --no-fund
+# Install dependencies (including dev dependencies for build)
+RUN npm ci --no-audit --no-fund
+RUN cd backend && npm ci --no-audit --no-fund
+RUN cd frontend && npm ci --no-audit --no-fund
 
 # Copy source code
 COPY . .
@@ -35,6 +39,11 @@ COPY . .
 # Build applications
 RUN cd frontend && npm run build
 RUN cd backend && npm run build
+
+# Clean up dev dependencies after build
+RUN npm ci --only=production --no-audit --no-fund
+RUN cd backend && npm ci --only=production --no-audit --no-fund
+RUN cd frontend && npm ci --only=production --no-audit --no-fund
 
 # Clean up development dependencies and cache
 RUN npm cache clean --force \
@@ -61,12 +70,16 @@ LABEL \
     org.opencontainers.image.source="https://github.com/moritzheine/growflow" \
     org.opencontainers.image.documentation="https://github.com/moritzheine/growflow/blob/main/README.md"
 
-# Copy root filesystem
-COPY rootfs /
+# Copy startup script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:8080/api/health || exit 1
+
+# Entrypoint
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
 # Build arguments
 ARG BUILD_ARCH
