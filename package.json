@@ -1,7 +1,7 @@
 {
   "name": "growflow",
   "version": "1.0.0",
-  "description": "Cannabis Plant Tracker Home Assistant Add-on",
+  "description": "Plant Tracking Home Assistant Add-on",
   "main": "backend/dist/index.js",
   "scripts": {
     "dev": "concurrently \"npm run backend:dev\" \"npm run frontend:dev\"",
@@ -18,7 +18,12 @@
     "backend:lint": "cd backend && npm run lint",
     "frontend:lint": "cd frontend && npm run lint"
   },
-  "keywords": ["homeassistant", "cannabis", "growing", "automation"],
+  "keywords": [
+    "homeassistant",
+    "growing",
+    "automation",
+    "homegrow"
+  ],
   "author": "growflow",
   "license": "MIT",
   "devDependencies": {

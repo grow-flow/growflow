@@ -5,43 +5,49 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Development Commands
 
 ```bash
-# Start both backend and frontend in development mode
-npm run dev
+# Local Development (outside Home Assistant)
+npm run dev                   # Start both backend and frontend in development mode
+npm run build                 # Build both backend and frontend
+npm run test                  # Run tests for both backend and frontend
+npm run lint                  # Run linting for both backend and frontend
 
-# Build both backend and frontend
-npm run build
+# Fix linting issues automatically (run from respective directories)
+cd backend && npm run lint:fix
+cd frontend && npm run lint:fix
 
-# Run tests for both backend and frontend
-npm run test
-
-# Run linting for both backend and frontend
-npm run lint
-
-# Fix linting issues automatically
-npm run backend:lint -- --fix
-npm run frontend:lint -- --fix
-
-# Type checking (backend only - frontend uses react-scripts)
-cd backend && npm run build  # TypeScript compilation serves as type check
+# Type checking
+cd backend && npm run build   # TypeScript compilation serves as type check
+cd frontend && npm run build  # React TypeScript compilation
 
 # Backend specific commands
-cd backend && npm run dev     # Start backend dev server (nodemon)
-cd backend && npm run build   # Compile TypeScript
+cd backend && npm run dev     # Start backend dev server (nodemon on port 8080)
+cd backend && npm run build   # Compile TypeScript to dist/
+cd backend && npm run start   # Run compiled JS from dist/
 cd backend && npm run lint    # ESLint backend code
 cd backend && npm test        # Run Jest tests
 
-# Frontend specific commands
-cd frontend && npm start      # Start React dev server
-cd frontend && npm run build  # Build React app
-cd frontend && npm run lint   # ESLint frontend code
-cd frontend && npm test       # Run React tests
+# Frontend specific commands  
+cd frontend && npm start      # Start React dev server (port 3000, proxies to backend)
+cd frontend && npm run build  # Build React app for production
+cd frontend && npm run lint   # ESLint frontend code  
+cd frontend && npm test       # Run React tests with react-scripts
+
+# Home Assistant Add-on Development
+docker build -t local/growflow .                    # Build add-on locally
+docker run --rm -p 8080:8080 local/growflow        # Test add-on container
+docker exec -it <container_id> bashio::log.info    # Debug with bashio commands
+
+# Add-on Structure Testing
+docker build --build-arg BUILD_ARCH=amd64 .        # Test specific architecture
+docker logs <container_id>                         # View add-on logs
 ```
 
 ## Architecture Overview
 
-**GrowFlow** is a cannabis plant tracking system designed as a Home Assistant add-on with comprehensive lifecycle management and automation capabilities.
+**GrowFlow** is a plant tracking system designed as a Home Assistant add-on with comprehensive lifecycle management and automation capabilities.
 
 ### Backend (Express.js + TypeScript + SQLite)
+
 - **Database**: TypeORM with SQLite (growflow.db) - models in `backend/src/models/`
 - **Core Models**: GrowArea, Plant, Strain, Event, Phase, EnvironmentLog
 - **Plant Phases**: 9-stage lifecycle (germination → seedling → vegetation → pre_flower → flowering → flushing → harvest → drying → curing)
@@ -51,6 +57,7 @@ cd frontend && npm test       # Run React tests
 - **API**: RESTful endpoints with validation, main routes in `backend/src/routes/`
 
 ### Frontend (React + Material-UI + React Query)
+
 - **State Management**: React Query (@tanstack/react-query) for server state
 - **Routing**: React Router with pages: Dashboard, Plants, Strains, Grow Area Detail, Plant Detail, Settings
 - **Components**: Material-UI components with custom grow area and plant management dialogs
@@ -58,12 +65,14 @@ cd frontend && npm test       # Run React tests
 - **Types**: Shared TypeScript interfaces between frontend/backend
 
 ### Key Integrations
+
 - **Home Assistant**: REST API integration for sensor data and device control
 - **MQTT**: Publish/subscribe for real-time automation and sensor updates (topic: `growflow`)
 - **WebSocket**: Real-time frontend updates on port 8080
 - **Automation Services**: Cron-based VPD monitoring and light schedule management
 
 ### Data Flow
+
 1. GrowAreas contain Plants with specific equipment/sensor mappings
 2. Plants progress through 9 lifecycle phases with automatic date tracking
 3. Care activities (watering/feeding/observations) are logged per plant
@@ -72,6 +81,7 @@ cd frontend && npm test       # Run React tests
 6. WebSocket broadcasts real-time updates to connected frontend clients
 
 ### Development Notes
+
 - Settings are centralized in `backend/src/config/settings.ts` using environment variables
 - Database auto-synchronizes in development (disabled in production)
 - Frontend proxies API requests to localhost:8080 (configured in `frontend/package.json`)
@@ -81,13 +91,44 @@ cd frontend && npm test       # Run React tests
 - Frontend uses React dev server with hot module replacement
 
 ### Important File Locations
+
 - **API Layer**: `frontend/src/services/api.ts` - all backend communication
 - **Models**: `backend/src/models/` - TypeORM entity definitions
 - **Configuration**: `backend/src/config/settings.ts` - environment-based config
 - **Types**: Shared interfaces between frontend/backend in respective `types/` directories
 
 ### Testing & Quality
+
 - **Linting**: ESLint with TypeScript support for both backend and frontend
 - **Backend**: Jest testing framework, run with `npm test` in backend directory
 - **Frontend**: React Testing Library with Jest (via react-scripts)
 - **Type Safety**: TypeScript strict mode enabled, use `npm run build` for type checking
+
+## Home Assistant Add-on Specific
+
+### Add-on Structure
+- **Base Image**: Uses `ghcr.io/hassio-addons/base` with s6-overlay and bashio
+- **Service Management**: s6-overlay service in `rootfs/etc/services.d/growflow/`
+- **Configuration**: Home Assistant config schema in `config.yaml`
+- **Icon**: 128x128px PNG icon for add-on store
+- **Health Check**: HTTP endpoint at `/api/health` for container health monitoring
+
+### Configuration Integration
+- Configuration values are read via bashio: `bashio::config 'key'`
+- Supervisor token automatically available: `bashio::services 'http' 'supervisor_token'`
+- Environment variables set in s6 service: `rootfs/etc/services.d/growflow/run`
+- Database persists to `/data/` directory (mapped from Home Assistant)
+
+### Home Assistant Integration Patterns
+- **MQTT Service Discovery**: Declares `mqtt:want` service dependency
+- **Supervisor API**: Automatic access to Home Assistant REST API via supervisor
+- **Ingress Support**: Web UI accessible through Home Assistant ingress proxy
+- **Logging**: Uses bashio logging: `bashio::log.info`, `bashio::log.error`
+- **Data Persistence**: SQLite database stored in `/data/growflow.db`
+
+### Debugging Add-on Issues
+- Check add-on logs in Home Assistant: Supervisor → Add-ons → GrowFlow → Logs
+- Test configuration: `bashio::config.exists 'key'` and `bashio::config 'key'`
+- Verify service startup: Check s6-overlay service status
+- Database access: Ensure `/data` directory is properly mounted and writable
+- MQTT connectivity: Verify MQTT broker configuration and network access

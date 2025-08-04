@@ -185,6 +185,10 @@ export class MQTTService {
     this.client.publish(`${CONFIG.MQTT.TOPIC_PREFIX}/status`, status, { retain: true });
   }
 
+  isConnected(): boolean {
+    return this.isConnected;
+  }
+
   disconnect() {
     if (this.client) {
       this.publishStatus('offline');

@@ -53,6 +53,10 @@ export class AutomationService {
     console.log('Automation service stopped');
   }
 
+  getStatus(): boolean {
+    return this.isRunning;
+  }
+
   private async checkVPDAutomation() {
     try {
       const growAreas = await AppDataSource.getRepository(GrowArea).find({

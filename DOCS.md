@@ -2,7 +2,7 @@
 
 ## Overview
 
-GrowFlow is a comprehensive cannabis plant tracking system designed as a Home Assistant add-on. It provides complete lifecycle management from germination to harvest with automated climate control and detailed analytics.
+GrowFlow is a comprehensive plant tracking system designed as a Home Assistant add-on. It provides complete lifecycle management from germination to harvest with automated climate control and detailed analytics.
 
 ## Features
 

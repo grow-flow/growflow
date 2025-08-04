@@ -1,14 +1,14 @@
-name: GrowFlow Cannabis Tracker
+name: GrowFlow Plant Tracker
 version: "1.0.0"
 slug: growflow
-description: Cannabis Plant Tracker with automation and Home Assistant integration
+description: Plant tracking system with automation and Home Assistant integration
 url: https://github.com/moritzheine/growflow
+codenotary: notary@home-assistant.io
 arch:
-  - armhf
   - armv7
   - aarch64
   - amd64
-  - i386
+init: false
 startup: application
 boot: auto
 ports:
@@ -18,19 +18,27 @@ ports_description:
 webui: http://[HOST]:[PORT:8080]
 ingress: true
 ingress_port: 8080
-panel_icon: mdi:cannabis
+panel_icon: mdi:leaf
 panel_title: GrowFlow
 hassio_api: true
 hassio_role: default
 auth_api: true
 homeassistant_api: true
+host_network: false
+privileged: []
+full_access: false
+apparmor: true
 map:
-  - config:rw
   - share:rw
+  - config:ro
+services:
+  - mqtt:want
+environment:
+  LOG_FORMAT: console
 options:
   mqtt_broker: core-mosquitto
   mqtt_port: 1883
-  ha_url: http://supervisor/core
+  ha_url: http://supervisor/core  
   log_level: info
   backup_enabled: true
   backup_interval_hours: 24
@@ -41,6 +49,7 @@ schema:
   mqtt_password: password?
   ha_url: url
   ha_token: password?
-  log_level: list(debug|info|warning|error)?
+  log_level: list(trace|debug|info|warning|error|fatal)?
   backup_enabled: bool?
   backup_interval_hours: int(1,168)?
+image: ghcr.io/moritzheine/growflow-{arch}

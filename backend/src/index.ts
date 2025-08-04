@@ -44,8 +44,46 @@ app.use('/api/plants', plantRoutes);
 // Care events are now handled via plant routes: POST /api/plants/:id/events
 app.use('/api/strains', strainRoutes);
 
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get('/api/health', async (req, res) => {
+  try {
+    const health = {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      services: {
+        database: 'unknown',
+        mqtt: 'unknown',
+        automation: 'unknown'
+      }
+    };
+
+    // Check database connection
+    try {
+      const { AppDataSource } = await import('./database');
+      health.services.database = AppDataSource.isInitialized ? 'ok' : 'disconnected';
+    } catch (error) {
+      health.services.database = 'error';
+    }
+
+    // Check MQTT connection
+    health.services.mqtt = mqttService.isConnected() ? 'ok' : 'disconnected';
+    
+    // Check automation service
+    health.services.automation = automationService.getStatus() ? 'ok' : 'stopped';
+
+    const allServicesOk = Object.values(health.services).every(status => status === 'ok');
+    if (!allServicesOk) {
+      health.status = 'degraded';
+      res.status(503);
+    }
+
+    res.json(health);
+  } catch (error) {
+    res.status(500).json({ 
+      status: 'error', 
+      timestamp: new Date().toISOString(),
+      error: 'Health check failed'
+    });
+  }
 });
 
 app.use(errorHandler);
