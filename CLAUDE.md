@@ -38,7 +38,8 @@ cd frontend && npm test       # Run React tests with react-scripts
 npm run test:addon               # Build, run, and test add-on container
 
 # Individual Docker commands
-npm run docker:build            # Build add-on image
+npm run docker:build            # Build local dev image (fast: ~6 seconds with pre-built files)
+npm run docker:build:ha         # Build Home Assistant image (full: ~2-3 minutes, builds from source)
 npm run docker:run              # Run add-on container in background
 npm run docker:dev              # Run in development mode (interactive)
 npm run docker:health           # Check if add-on is responding
@@ -101,9 +102,20 @@ docker run --rm -p 8080:8080 local/growflow:test   # Test container manually
 
 ### Docker Build Optimization
 
-- **Multi-stage build**: Separate stages for dependencies, build, and production
+**Two build strategies for different use cases:**
+
+1. **Local Development** (Dockerfile.local): 
+   - Pre-compiles TypeScript and React locally
+   - Copies built files to container (~6 seconds)
+   - Command: `npm run docker:build`
+
+2. **Home Assistant Deployment** (Dockerfile):
+   - Multi-stage build compiles everything inside container  
+   - Builds from source (required for HA add-on store)
+   - Command: `npm run docker:build:ha` (~2-3 minutes)
+
+**Shared optimizations:**
 - **Layer caching**: System deps and npm packages cached separately from source code
-- **Fast rebuilds**: Only source code changes trigger rebuild (~30 seconds vs 2+ minutes)
 - **Optimized .dockerignore**: Excludes unnecessary files for faster context transfer
 - **Development workflow**: `npm run test:addon` for complete build/test cycle
 

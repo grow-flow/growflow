@@ -1,29 +1,4 @@
-# Multi-stage build for Home Assistant
-FROM node:18-alpine AS builder
-
-# Install build dependencies
-RUN apk add --no-cache bash curl sqlite python3 make g++
-
-WORKDIR /app
-
-# Copy and build backend
-COPY backend/package*.json ./backend/
-RUN cd backend && npm ci --no-audit --no-fund
-
-COPY backend/src ./backend/src/
-COPY backend/tsconfig.json ./backend/
-RUN cd backend && npm run build
-
-# Copy and build frontend
-COPY frontend/package*.json ./frontend/
-RUN cd frontend && npm ci --no-audit --no-fund
-
-COPY frontend/src ./frontend/src/
-COPY frontend/public ./frontend/public/
-COPY frontend/tsconfig.json ./frontend/
-RUN cd frontend && npm run build
-
-# Production stage
+# Ultra-fast local development build - use pre-built files
 FROM node:18-alpine
 
 # Install minimal dependencies
@@ -37,15 +12,15 @@ RUN curl -sL "https://github.com/hassio-addons/bashio/archive/v0.16.2.tar.gz" | 
 
 WORKDIR /app
 
-# Copy package files and install production dependencies
+# Copy package files and install minimal dependencies
 COPY backend/package*.json ./backend/
 RUN cd backend && npm ci --omit=dev --no-audit --no-fund
 
-# Copy built backend from builder stage
-COPY --from=builder /app/backend/dist ./backend/dist/
+# Use pre-built backend (build locally first with npm run build)
+COPY backend/dist/ ./backend/dist/
 
-# Copy built frontend from builder stage
-COPY --from=builder /app/frontend/build ./frontend/build/
+# Copy pre-built frontend (build locally first with npm run frontend:build)
+COPY frontend/build/ ./frontend/build/
 
 # Set environment variables
 ENV NODE_ENV=production

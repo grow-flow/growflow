@@ -3,7 +3,9 @@ node_modules
 backend/node_modules
 frontend/node_modules
 
-# Build outputs (now both are needed for complete builds)
+# Build outputs (will be built inside container)
+backend/dist
+frontend/build
 
 # Development files
 .git
