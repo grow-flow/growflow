@@ -20,6 +20,9 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "com.centurylinklabs.watchtower.monitor-only=false"
 
 volumes:
   data:

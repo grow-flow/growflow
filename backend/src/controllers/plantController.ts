@@ -59,8 +59,8 @@ router.post("/", async (req: Request, res: Response) => {
       strain = await strainRepo.findOne({ where: { name: req.body.strain } });
     }
 
-    // Create phases from strain templates or defaults
-    const phases = createPlantPhasesFromStrain(
+    // Use phases from request if provided, otherwise create from strain
+    const phases = req.body.phases || createPlantPhasesFromStrain(
       strain?.phase_templates || [],
       strain?.is_autoflower || false
     );
