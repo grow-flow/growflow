@@ -32,39 +32,38 @@ cd frontend && npm run build  # Build React app for production
 cd frontend && npm run lint   # ESLint frontend code  
 cd frontend && npm test       # Run React tests with react-scripts
 
-# Home Assistant Add-on Development
+# Docker Deployment
 
-# Quick add-on testing (build + run + health check)
-npm run test:addon               # Build, run, and test add-on container
-
-# Individual Docker commands
-npm run docker:build            # Build local dev image (fast: ~6 seconds with pre-built files)
-npm run docker:build:ha         # Build Home Assistant image (full: ~2-3 minutes, builds from source)
-npm run docker:run              # Run add-on container in background
-npm run docker:dev              # Run in development mode (interactive)
-npm run docker:health           # Check if add-on is responding
-npm run docker:logs             # View add-on logs
+# Docker commands for standalone deployment
+npm run docker:build            # Build Docker image
+npm run docker:run              # Run container with volume mounting
+npm run docker:health           # Check if application is responding
+npm run docker:logs             # View container logs
 npm run docker:stop             # Stop running container
 npm run docker:clean            # Remove built image
 
-# Manual Docker commands (if needed)
-docker build -t local/growflow:test .              # Build with cache optimization
-docker run --rm -p 8080:8080 local/growflow:test   # Test container manually
+# Docker Compose deployment (recommended for production)
+docker-compose up -d             # Start application in background
+docker-compose logs              # View logs
+docker-compose down              # Stop application
+
+# Manual Docker commands
+docker build -t growflow:latest .                        # Build image manually
+docker run -d -p 8080:8080 -v ./data:/app/data growflow  # Run with data persistence
 ```
 
 ## Architecture Overview
 
-**GrowFlow** is a plant tracking system designed as a Home Assistant add-on with comprehensive lifecycle management and automation capabilities.
+**GrowFlow** is a standalone plant tracking system designed for documenting the complete grow process from start to finish, with comprehensive lifecycle management and timeline tracking capabilities.
 
 ### Backend (Express.js + TypeScript + SQLite)
 
 - **Database**: TypeORM with SQLite (growflow.db) - models in `backend/src/models/`
-- **Core Models**: GrowArea, Plant, Strain, Event, Phase, EnvironmentLog
+- **Core Models**: GrowArea, Plant, Strain, Event, Phase
 - **Plant Phases**: 9-stage lifecycle (germination → seedling → vegetation → pre_flower → flowering → flushing → harvest → drying → curing)
-- **Automation**: VPD-based climate control, automatic light scheduling
-- **Integrations**: MQTT for Home Assistant, WebSocket for real-time updates
+- **Plant Timeline**: Complete tracking of plant lifecycle progression and care events
 - **Configuration**: Centralized in `backend/src/config/settings.ts`
-- **API**: RESTful endpoints with validation, main routes in `backend/src/routes/`
+- **API**: RESTful endpoints with validation, main routes in `backend/src/controllers/`
 
 ### Frontend (React + Material-UI + React Query)
 
@@ -74,21 +73,21 @@ docker run --rm -p 8080:8080 local/growflow:test   # Test container manually
 - **API Layer**: Axios-based service in `frontend/src/services/api.ts`
 - **Types**: Shared TypeScript interfaces between frontend/backend
 
-### Key Integrations
+### Core Features
 
-- **Home Assistant**: REST API integration for sensor data and device control
-- **MQTT**: Publish/subscribe for real-time automation and sensor updates (topic: `growflow`)
-- **WebSocket**: Real-time frontend updates on port 8080
-- **Automation Services**: Cron-based VPD monitoring and light schedule management
+- **Plant Timeline Tracking**: Complete documentation of plant lifecycle from germination to harvest
+- **Grow Area Management**: Organize plants by location and track dimensions
+- **Care Event Logging**: Record watering, feeding, training, observations, and harvests
+- **Strain Management**: Track genetics, breeding info, and phase templates
+- **Phase Progression**: Automatic and manual phase transitions with date tracking
 
 ### Data Flow
 
-1. GrowAreas contain Plants with specific equipment/sensor mappings
-2. Plants progress through 9 lifecycle phases with automatic date tracking
-3. Care activities (watering/feeding/observations) are logged per plant
-4. Environment data flows from HA sensors → MQTT → Backend → Frontend
-5. Automation services adjust climate based on plant phases and VPD targets
-6. WebSocket broadcasts real-time updates to connected frontend clients
+1. GrowAreas contain Plants with dimensional tracking and organization
+2. Plants progress through 9 lifecycle phases with date tracking
+3. Care activities (watering/feeding/observations) are logged as timeline events per plant
+4. All plant data persists in SQLite database for historical tracking
+5. Frontend displays real-time plant status and complete grow timeline
 
 ### Development Notes
 
@@ -100,24 +99,15 @@ docker run --rm -p 8080:8080 local/growflow:test   # Test container manually
 - Backend uses nodemon for hot reloading during development
 - Frontend uses React dev server with hot module replacement
 
-### Docker Build Optimization
+### Docker Deployment Strategy
 
-**Two build strategies for different use cases:**
+**Production-optimized multi-stage build:**
 
-1. **Local Development** (Dockerfile.local): 
-   - Pre-compiles TypeScript and React locally
-   - Copies built files to container (~6 seconds)
-   - Command: `npm run docker:build`
-
-2. **Home Assistant Deployment** (Dockerfile):
-   - Multi-stage build compiles everything inside container  
-   - Builds from source (required for HA add-on store)
-   - Command: `npm run docker:build:ha` (~2-3 minutes)
-
-**Shared optimizations:**
-- **Layer caching**: System deps and npm packages cached separately from source code
-- **Optimized .dockerignore**: Excludes unnecessary files for faster context transfer
-- **Development workflow**: `npm run test:addon` for complete build/test cycle
+- **Build Stage**: Compiles TypeScript backend and React frontend inside container
+- **Production Stage**: Lightweight Node.js Alpine image with only runtime dependencies
+- **Layer Caching**: System deps and npm packages cached separately from source code  
+- **Optimized .dockerignore**: Excludes unnecessary files for faster build context
+- **Health Checks**: Built-in endpoint monitoring for container orchestration
 
 ### Important File Locations
 
@@ -133,31 +123,40 @@ docker run --rm -p 8080:8080 local/growflow:test   # Test container manually
 - **Frontend**: React Testing Library with Jest (via react-scripts)
 - **Type Safety**: TypeScript strict mode enabled, use `npm run build` for type checking
 
-## Home Assistant Add-on Specific
+## Docker Compose Deployment
 
-### Add-on Structure
-- **Base Image**: Uses `ghcr.io/hassio-addons/base` with s6-overlay and bashio
-- **Service Management**: s6-overlay service in `rootfs/etc/services.d/growflow/`
-- **Configuration**: Home Assistant config schema in `config.yaml`
-- **Icon**: 128x128px PNG icon for add-on store
-- **Health Check**: HTTP endpoint at `/api/health` for container health monitoring
+### Synology NAS Setup
+- **Docker Package**: Install Docker package from Package Center
+- **File Station**: Create project directory (e.g., `/docker/growflow/`)
+- **Configuration**: Place `docker-compose.yml` in project directory
+- **Data Persistence**: Volume mounts to `./data` for database storage
+- **Network Access**: Application accessible on port 8080
 
-### Configuration Integration
-- Configuration values are read via bashio: `bashio::config 'key'`
-- Supervisor token automatically available: `bashio::services 'http' 'supervisor_token'`
-- Environment variables set in s6 service: `rootfs/etc/services.d/growflow/run`
-- Database persists to `/data/` directory (mapped from Home Assistant)
+### Environment Variables
+- **NODE_ENV**: Set to `production` for optimal performance
+- **DB_PATH**: Database file location (`/app/data/growflow.db`)
+- **LOG_LEVEL**: Control logging verbosity (`info`, `debug`, `error`)
 
-### Home Assistant Integration Patterns
-- **MQTT Service Discovery**: Declares `mqtt:want` service dependency
-- **Supervisor API**: Automatic access to Home Assistant REST API via supervisor
-- **Ingress Support**: Web UI accessible through Home Assistant ingress proxy
-- **Logging**: Uses bashio logging: `bashio::log.info`, `bashio::log.error`
-- **Data Persistence**: SQLite database stored in `/data/growflow.db`
+### Deployment Commands
+```bash
+# Start application
+docker-compose up -d
 
-### Debugging Add-on Issues
-- Check add-on logs in Home Assistant: Supervisor → Add-ons → GrowFlow → Logs
-- Test configuration: `bashio::config.exists 'key'` and `bashio::config 'key'`
-- Verify service startup: Check s6-overlay service status
-- Database access: Ensure `/data` directory is properly mounted and writable
-- MQTT connectivity: Verify MQTT broker configuration and network access
+# View logs
+docker-compose logs -f
+
+# Update to latest image
+docker-compose pull && docker-compose up -d
+
+# Stop application
+docker-compose down
+```
+
+## CI/CD Pipeline
+
+### GitHub Actions
+- **Build Workflow** (`.github/workflows/docker-publish.yml`): Automated Docker builds on push/PR
+  - Multi-architecture builds (amd64, arm64) for broad compatibility
+  - Pushes to DockerHub: `moritzheine/growflow`
+  - Build cache optimization using GitHub Actions cache
+  - Semantic versioning with tags

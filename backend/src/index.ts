@@ -10,8 +10,6 @@ import { errorHandler } from './middleware/errorHandler';
 import { growAreaRoutes } from './controllers/growAreaController';
 import { plantRoutes } from './controllers/plantController';
 import { strainRoutes } from './controllers/strainController';
-import { mqttService } from './services/mqttService';
-import { automationService } from './services/automationService';
 
 const app = express();
 
@@ -51,9 +49,7 @@ app.get('/api/health', async (req, res) => {
       status: 'ok',
       timestamp: new Date().toISOString(),
       services: {
-        database: 'unknown',
-        mqtt: 'unknown',
-        automation: 'unknown'
+        database: 'unknown'
       }
     };
 
@@ -65,14 +61,7 @@ app.get('/api/health', async (req, res) => {
       health.services.database = 'error';
     }
 
-    // Check MQTT connection
-    health.services.mqtt = mqttService.isConnected() ? 'ok' : 'disconnected';
-    
-    // Check automation service
-    health.services.automation = automationService.getStatus() ? 'ok' : 'stopped';
-
-    const allServicesOk = Object.values(health.services).every(status => status === 'ok');
-    if (!allServicesOk) {
+    if (health.services.database !== 'ok') {
       health.status = 'degraded';
       res.status(503);
     }
@@ -102,19 +91,12 @@ const start = async () => {
   try {
     await initializeDatabase();
     
-    await mqttService.connect();
-    await automationService.start();
-    
     app.listen(CONFIG.API.PORT, () => {
-      console.log(`Server running on port ${CONFIG.API.PORT}`);
-      mqttService.publishStatus('online');
+      console.log(`GrowFlow server running on port ${CONFIG.API.PORT}`);
     });
 
     process.on('SIGTERM', () => {
       console.log('Shutting down gracefully...');
-      mqttService.publishStatus('offline');
-      automationService.stop();
-      mqttService.disconnect();
       process.exit(0);
     });
   } catch (error) {

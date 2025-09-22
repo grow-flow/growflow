@@ -1,6 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
 import { Plant } from './Plant';
-import { EnvironmentLog } from './EnvironmentLog';
 
 @Entity()
 export class GrowArea {
@@ -20,29 +19,6 @@ export class GrowArea {
     height: number;
   };
 
-  @Column({ type: 'simple-json' })
-  equipment: {
-    lights: string[];
-    fans: string[];
-    humidifier?: string;
-    dehumidifier?: string;
-    heater?: string;
-  };
-
-  @Column({ type: 'simple-json' })
-  sensors: {
-    temperature: string;
-    humidity: string;
-    co2?: string;
-    light_intensity?: string;
-  };
-
-  @Column({ type: 'boolean', default: false })
-  automation_enabled: boolean;
-
-  @Column({ type: 'float', default: 1.0 })
-  default_target_vpd: number;
-
   @CreateDateColumn()
   created_at: Date;
 
@@ -51,7 +27,4 @@ export class GrowArea {
 
   @OneToMany(() => Plant, plant => plant.grow_area)
   plants: Plant[];
-
-  @OneToMany(() => EnvironmentLog, log => log.grow_area)
-  environment_logs: EnvironmentLog[];
 }

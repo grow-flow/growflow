@@ -35,25 +35,6 @@ const CreateGrowAreaDialog: React.FC<CreateGrowAreaDialogProps> = ({
       width: 120,
       height: 200
     },
-    equipment: {
-      lights: [''],
-      fans: [''],
-      humidifier: '',
-      dehumidifier: '',
-      heater: ''
-    },
-    sensors: {
-      temperature: '',
-      humidity: '',
-      co2: '',
-      light_intensity: ''
-    },
-    target_vpd_by_phase: {
-      germination: 0.6,
-      seedling: 0.8,
-      vegetation: 1.0,
-      flowering: 1.2
-    }
   });
 
   const [loading, setLoading] = useState(false);
@@ -63,19 +44,13 @@ const CreateGrowAreaDialog: React.FC<CreateGrowAreaDialogProps> = ({
 
     setLoading(true);
     try {
-      await onSuccess({
-        ...formData,
-        automation_enabled: false
-      });
+      await onSuccess(formData);
       
       // Reset form only on success
       setFormData({
         name: '',
         type: 'indoor',
-        dimensions: { length: 120, width: 120, height: 200 },
-        equipment: { lights: [''], fans: [''], humidifier: '', dehumidifier: '', heater: '' },
-        sensors: { temperature: '', humidity: '', co2: '', light_intensity: '' },
-        target_vpd_by_phase: { germination: 0.6, seedling: 0.8, vegetation: 1.0, flowering: 1.2 }
+        dimensions: { length: 120, width: 120, height: 200 }
       });
     } catch (error) {
       console.error('Failed to create grow area:', error);
@@ -153,61 +128,6 @@ const CreateGrowAreaDialog: React.FC<CreateGrowAreaDialogProps> = ({
               />
             </Grid>
 
-            <Grid item xs={12}>
-              <DialogTitle sx={{ px: 0 }}>Sensors (HA Entity IDs)</DialogTitle>
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="Temperature Sensor"
-                value={formData.sensors.temperature}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  sensors: { ...formData.sensors, temperature: e.target.value }
-                })}
-                placeholder="sensor.tent_temperature"
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="Humidity Sensor"
-                value={formData.sensors.humidity}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  sensors: { ...formData.sensors, humidity: e.target.value }
-                })}
-                placeholder="sensor.tent_humidity"
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <DialogTitle sx={{ px: 0 }}>Equipment (HA Entity IDs)</DialogTitle>
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="Light Entity"
-                value={formData.equipment.lights[0]}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  equipment: { ...formData.equipment, lights: [e.target.value] }
-                })}
-                placeholder="light.grow_tent"
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="Fan Entity"
-                value={formData.equipment.fans[0]}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  equipment: { ...formData.equipment, fans: [e.target.value] }
-                })}
-                placeholder="fan.exhaust_fan"
-              />
-            </Grid>
           </Grid>
         </Box>
       </DialogContent>

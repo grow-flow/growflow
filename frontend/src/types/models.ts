@@ -3,10 +3,6 @@ export interface PhaseTemplate {
   duration_min: number;
   duration_max: number;
   description?: string;
-  automation_settings?: {
-    light_schedule?: string;
-    vpd_target?: number;
-  };
 }
 
 export interface PlantPhaseInstance {
@@ -19,10 +15,6 @@ export interface PlantPhaseInstance {
   is_active: boolean;
   is_completed: boolean;
   notes?: string;
-  automation_settings?: {
-    light_schedule?: string;
-    vpd_target?: number;
-  };
 }
 
 export interface GrowArea {
@@ -33,26 +25,6 @@ export interface GrowArea {
     length: number;
     width: number;
     height: number;
-  };
-  equipment: {
-    lights: string[];
-    fans: string[];
-    humidifier?: string;
-    dehumidifier?: string;
-    heater?: string;
-  };
-  sensors: {
-    temperature: string;
-    humidity: string;
-    co2?: string;
-    light_intensity?: string;
-  };
-  automation_enabled: boolean;
-  target_vpd_by_phase: {
-    germination: number;
-    seedling: number;
-    vegetation: number;
-    flowering: number;
   };
   created_at: Date;
   updated_at: Date;
@@ -114,10 +86,6 @@ export interface Plant {
   phenotype?: string;
   phases: PlantPhaseInstance[];
   events: PlantEvent[];
-  light_schedule: {
-    vegetation: string;
-    flowering: string;
-  };
   medium: 'soil' | 'hydro' | 'coco' | 'dwc';
   pot_size_liters: number;
   training_methods: string[];

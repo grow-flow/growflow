@@ -22,7 +22,20 @@ const Navbar: React.FC = () => {
           </IconButton>
         )}
         <EcoIcon sx={{ mr: 2 }} />
-        <Typography variant="h6" sx={{ flexGrow: 1 }}>
+        <Typography 
+          variant="h6" 
+          sx={{ 
+            flexGrow: 1, 
+            cursor: 'pointer',
+            textDecoration: 'none',
+            color: 'inherit',
+            '&:hover': {
+              opacity: 0.8
+            }
+          }}
+          component={Link}
+          to="/"
+        >
           GrowFlow
         </Typography>
         <Box sx={{ display: 'flex', gap: 2 }}>

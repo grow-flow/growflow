@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  growflow:
+    image: moritzheine/growflow:latest
+    container_name: growflow
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - NODE_ENV=production
+      - DB_PATH=/app/data/growflow.db
+      - LOG_LEVEL=info
+      - FORCE_DB_SYNC=true  # Enable for first run to create database schema
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  data:
+    driver: local

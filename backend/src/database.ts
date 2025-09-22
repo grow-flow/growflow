@@ -1,6 +1,6 @@
 import { DataSource } from 'typeorm';
 import { CONFIG } from './config/settings';
-import { GrowArea, Plant, EnvironmentLog, Strain } from './models';
+import { GrowArea, Plant, Strain } from './models';
 
 export const AppDataSource = new DataSource({
   type: 'sqlite',
@@ -10,7 +10,6 @@ export const AppDataSource = new DataSource({
   entities: [
     GrowArea,
     Plant,
-    EnvironmentLog,
     Strain
   ],
 });
@@ -28,11 +27,7 @@ export const initializeDatabase = async () => {
       const defaultGrowArea = growAreaRepo.create({
         name: 'Main Grow Area',
         type: 'indoor',
-        dimensions: { length: 120, width: 60, height: 180 },
-        equipment: { lights: [], fans: [] },
-        sensors: { temperature: '', humidity: '' },
-        automation_enabled: false,
-        default_target_vpd: 1.0
+        dimensions: { length: 120, width: 60, height: 180 }
       });
       
       await growAreaRepo.save(defaultGrowArea);

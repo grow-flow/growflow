@@ -29,11 +29,6 @@ export class Plant {
   phases: PlantPhaseInstance[];
 
 
-  @Column({ type: 'simple-json' })
-  light_schedule: {
-    vegetation: string;
-    flowering: string;
-  };
 
   @Column({ type: 'varchar' })
   medium: 'soil' | 'hydro' | 'coco' | 'dwc';
