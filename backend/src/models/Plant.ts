@@ -25,6 +25,12 @@ export class Plant {
   @Column({ nullable: true })
   phenotype?: string;
 
+  @Column({ type: 'varchar', default: 'seed' })
+  start_method: 'seed' | 'clone';
+
+  @Column({ type: 'varchar', default: 'photoperiod' })
+  plant_type: 'autoflower' | 'photoperiod';
+
   @Column({ type: 'simple-json' })
   phases: PlantPhaseInstance[];
 

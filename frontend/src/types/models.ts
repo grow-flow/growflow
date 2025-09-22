@@ -84,6 +84,8 @@ export interface Plant {
   strain: string;
   breeder?: string;
   phenotype?: string;
+  start_method: 'seed' | 'clone';
+  plant_type: 'autoflower' | 'photoperiod';
   phases: PlantPhaseInstance[];
   events: PlantEvent[];
   medium: 'soil' | 'hydro' | 'coco' | 'dwc';

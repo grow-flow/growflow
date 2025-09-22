@@ -37,6 +37,7 @@ import {
   CardContent,
   IconButton,
   TextField,
+  Divider,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -50,6 +51,9 @@ import {
   MoreVert as MoreVertIcon,
   Delete as DeleteIcon,
   Add as AddIcon,
+  Download as DownloadIcon,
+  Upload as UploadIcon,
+  ContentCopy as CopyIcon,
 } from "@mui/icons-material";
 import { Plant, PlantPhaseInstance } from "../types/models";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -78,6 +82,7 @@ const DynamicPlantTimeline: React.FC<DynamicPlantTimelineProps> = ({
     duration_max: 14,
     description: ''
   });
+  const [phaseJsonInput, setPhaseJsonInput] = useState('');
   const queryClient = useQueryClient();
 
   const updatePhaseDateMutation = useMutation({
@@ -148,6 +153,8 @@ const DynamicPlantTimeline: React.FC<DynamicPlantTimelineProps> = ({
   useEffect(() => {
     if (configModalOpen) {
       setEditablePhases([...plant.phases]);
+      const cleanTemplates = createCleanPhaseTemplates(plant.phases);
+      setPhaseJsonInput(JSON.stringify(cleanTemplates, null, 2));
     }
   }, [configModalOpen, plant.phases]);
 
@@ -165,7 +172,10 @@ const DynamicPlantTimeline: React.FC<DynamicPlantTimelineProps> = ({
       const oldIndex = editablePhases.findIndex((phase) => phase.id === active.id);
       const newIndex = editablePhases.findIndex((phase) => phase.id === over.id);
 
-      setEditablePhases((phases) => arrayMove(phases, oldIndex, newIndex));
+      const newPhases = arrayMove(editablePhases, oldIndex, newIndex);
+      setEditablePhases(newPhases);
+      const cleanTemplates = createCleanPhaseTemplates(newPhases);
+      setPhaseJsonInput(JSON.stringify(cleanTemplates, null, 2));
     }
   };
 
@@ -199,7 +209,10 @@ const DynamicPlantTimeline: React.FC<DynamicPlantTimelineProps> = ({
       is_completed: false
     };
     
-    setEditablePhases([...editablePhases, newPhase]);
+    const newPhases = [...editablePhases, newPhase];
+    setEditablePhases(newPhases);
+    const cleanTemplates = createCleanPhaseTemplates(newPhases);
+    setPhaseJsonInput(JSON.stringify(cleanTemplates, null, 2));
     setNewPhaseDialog(false);
     setNewPhaseData({ name: '', duration_min: 7, duration_max: 14, description: '' });
   };
@@ -217,7 +230,70 @@ const DynamicPlantTimeline: React.FC<DynamicPlantTimelineProps> = ({
     }
     
     if (window.confirm(`Are you sure you want to delete the "${phase?.name}" phase?`)) {
-      setEditablePhases(editablePhases.filter(p => p.id !== phaseId));
+      const newPhases = editablePhases.filter(p => p.id !== phaseId);
+      setEditablePhases(newPhases);
+      const cleanTemplates = createCleanPhaseTemplates(newPhases);
+      setPhaseJsonInput(JSON.stringify(cleanTemplates, null, 2));
+    }
+  };
+
+  // Create clean phase templates without IDs and runtime data
+  const createCleanPhaseTemplates = (phases: PlantPhaseInstance[]) => {
+    return phases.map(phase => ({
+      name: phase.name,
+      duration_min: phase.duration_min,
+      duration_max: phase.duration_max,
+      description: phase.description
+    }));
+  };
+
+  // Convert clean templates back to phase instances with new IDs
+  const convertToPhaseInstances = (templates: any[]) => {
+    return templates.map(template => ({
+      id: uuidv4(),
+      name: template.name,
+      duration_min: template.duration_min,
+      duration_max: template.duration_max,
+      description: template.description,
+      is_active: false,
+      is_completed: false,
+      start_date: undefined
+    }));
+  };
+
+  const exportPhaseTemplates = () => {
+    const cleanTemplates = createCleanPhaseTemplates(editablePhases);
+    const json = JSON.stringify(cleanTemplates, null, 2);
+    navigator.clipboard.writeText(json);
+    setPhaseJsonInput(json);
+  };
+
+  const downloadPhaseTemplates = () => {
+    const cleanTemplates = createCleanPhaseTemplates(editablePhases);
+    const json = JSON.stringify(cleanTemplates, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${plant.name}-phases.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const importPhaseTemplates = () => {
+    try {
+      const parsed = JSON.parse(phaseJsonInput);
+      if (Array.isArray(parsed) && parsed.every(p => p.name && typeof p.duration_min === 'number' && typeof p.duration_max === 'number')) {
+        // Convert clean templates to phase instances with new IDs
+        const newPhases = convertToPhaseInstances(parsed);
+        setEditablePhases(newPhases);
+      } else {
+        alert('Ungültiges JSON Format. Erwartet wird ein Array von Phase Templates mit name, duration_min, duration_max.');
+      }
+    } catch (error) {
+      alert('Ungültiges JSON Format. Bitte überprüfen Sie die Syntax.');
     }
   };
 
@@ -722,6 +798,79 @@ const DynamicPlantTimeline: React.FC<DynamicPlantTimelineProps> = ({
               >
                 Add Phase
               </Button>
+            </Box>
+
+            {/* JSON Export/Import Section */}
+            <Divider sx={{ my: 3 }} />
+            <Box sx={{ mt: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                JSON Export/Import
+              </Typography>
+              
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Kopieren Sie die Phase-Konfiguration oder importieren Sie eine neue Konfiguration via JSON.
+              </Typography>
+
+              {/* Export Buttons */}
+              <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                <Button
+                  size="small"
+                  startIcon={<CopyIcon />}
+                  onClick={exportPhaseTemplates}
+                  variant="outlined"
+                >
+                  In Zwischenablage kopieren
+                </Button>
+                <Button
+                  size="small"
+                  startIcon={<DownloadIcon />}
+                  onClick={downloadPhaseTemplates}
+                  variant="outlined"
+                >
+                  Als JSON downloaden
+                </Button>
+              </Box>
+
+              {/* JSON Input Field */}
+              <TextField
+                fullWidth
+                multiline
+                rows={8}
+                value={phaseJsonInput}
+                onChange={(e) => setPhaseJsonInput(e.target.value)}
+                placeholder="Phase Templates JSON hier einfügen oder bearbeiten..."
+                variant="outlined"
+                label="JSON Configuration"
+                sx={{ 
+                  fontFamily: 'monospace', 
+                  fontSize: '0.875rem',
+                  mb: 2,
+                  '& .MuiInputBase-input': {
+                    fontFamily: 'Consolas, Monaco, "Courier New", monospace',
+                    fontSize: '0.875rem'
+                  }
+                }}
+              />
+
+              {/* Import Button */}
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  size="small"
+                  startIcon={<UploadIcon />}
+                  onClick={importPhaseTemplates}
+                  variant="contained"
+                  disabled={!phaseJsonInput.trim()}
+                >
+                  JSON importieren
+                </Button>
+                <Button
+                  size="small"
+                  onClick={() => setPhaseJsonInput('')}
+                  disabled={!phaseJsonInput.trim()}
+                >
+                  Leeren
+                </Button>
+              </Box>
             </Box>
           </DialogContent>
           

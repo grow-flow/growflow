@@ -21,7 +21,7 @@ import { useGrowAreas } from '../hooks/useGrowAreas';
 import { useStrains, useCreateStrain } from '../hooks/useStrains';
 import { usePlants } from '../hooks/usePlants';
 import { Plant } from '../types/models';
-import { Strain } from '../types/strain';
+import { Strain, StartMethod, composePhaseTemplates } from '../types/strain';
 
 interface CreatePlantDialogProps {
   open: boolean;
@@ -45,7 +45,8 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({
     name: '',
     strain_id: null as number | null,
     grow_area_id: growAreaId || 0,
-    medium: 'soil' as 'soil' | 'hydro' | 'coco' | 'dwc'
+    medium: 'soil' as 'soil' | 'hydro' | 'coco' | 'dwc',
+    start_method: 'seed' as StartMethod
   });
 
   const [loading, setLoading] = useState(false);
@@ -89,15 +90,13 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({
       const newStrain = await createStrainMutation.mutateAsync({
         name,
         abbreviation: name.split(' ').map(word => word.charAt(0)).join('').toUpperCase(),
-        type: 'photoperiod',
+        type: 'photoperiod', // Default, wird beim Erstellen überschrieben
         is_autoflower: false,
         flowering_time_min: 56,
-        flowering_time_max: 70,
+        flowering_time_max: 84,
         description: '',
         breeder: '',
-        thc_content: 20,
-        cbd_content: 1,
-        phase_templates: []
+        phase_templates: composePhaseTemplates('photoperiod', formData.start_method)
       });
       
       setNewStrainName('');
@@ -132,23 +131,37 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({
 
     setLoading(true);
     try {
-      // Auto-detect light schedule based on strain type
-      const lightSchedule = selectedStrain.is_autoflower 
-        ? { vegetation: '18/6', flowering: '18/6' }
-        : { vegetation: '18/6', flowering: '12/12' };
-
       const plantData = {
         name: selectedStrain ? generatePlantName(selectedStrain) : '',
         strain: selectedStrain.name,
         breeder: selectedStrain.breeder,
         grow_area_id: formData.grow_area_id,
         medium: formData.medium,
-        pot_size_liters: 20, // Default pot size
-        light_schedule: lightSchedule,
-        training_methods: [], // Empty initially - added via events
+        pot_size_liters: 20,
+        training_methods: [],
         notes: '',
         is_mother_plant: false,
-        phases: [], // Will be auto-generated from strain
+        start_method: formData.start_method,
+        plant_type: selectedStrain.type,
+        phases: (() => {
+          console.log('🔍 CreatePlant Debug:', {
+            strainType: selectedStrain.type,
+            startMethod: formData.start_method,
+            strainPhaseTemplates: selectedStrain.phase_templates
+          });
+          const composed = composePhaseTemplates(selectedStrain.type, formData.start_method, selectedStrain.phase_templates);
+          console.log('✅ Composed phases:', composed.map(p => p.name));
+          return composed;
+        })().map((template, index) => ({
+          id: `phase-${index}`,
+          name: template.name,
+          duration_min: template.duration_min,
+          duration_max: template.duration_max,
+          description: template.description,
+          is_active: index === 0,
+          is_completed: false,
+          start_date: index === 0 ? new Date().toISOString() : undefined
+        })),
         events: [],
         is_active: true
       };
@@ -161,7 +174,8 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({
         name: '',
         strain_id: null,
         grow_area_id: growAreaId || (growAreas[0]?.id || 0),
-        medium: 'soil' as 'soil' | 'hydro' | 'coco' | 'dwc'
+        medium: 'soil' as 'soil' | 'hydro' | 'coco' | 'dwc',
+        start_method: 'seed' as StartMethod
       });
       setNewStrainName('');
     } catch (error) {
@@ -271,6 +285,21 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({
                 </FormControl>
               </Grid>
             )}
+
+            {/* Start Method */}
+            <Grid item xs={12}>
+              <FormControl fullWidth required>
+                <InputLabel>Start Method</InputLabel>
+                <Select
+                  value={formData.start_method}
+                  onChange={(e) => setFormData({ ...formData, start_method: e.target.value as StartMethod })}
+                  label="Start Method"
+                >
+                  <MenuItem value="seed">Seed</MenuItem>
+                  <MenuItem value="clone">Clone</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
 
             {/* Growing Medium */}
             <Grid item xs={12}>

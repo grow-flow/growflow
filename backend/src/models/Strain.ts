@@ -2,10 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 import { PhaseTemplate } from './Phase';
 
 export enum StrainType {
-  INDICA = 'indica',
-  SATIVA = 'sativa', 
-  HYBRID = 'hybrid',
-  AUTOFLOWERING = 'autoflowering',
+  AUTOFLOWER = 'autoflower',
   PHOTOPERIOD = 'photoperiod'
 }
 
@@ -37,12 +34,6 @@ export class Strain {
 
   @Column({ nullable: true })
   breeder?: string;
-
-  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
-  thc_content?: number;
-
-  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
-  cbd_content?: number;
 
   @Column({ 
     type: 'json',
