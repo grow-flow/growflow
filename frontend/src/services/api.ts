@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Plant, WateringLog, FeedingLog, ObservationLog, PlantPhaseInstance } from '../types/models';
+import { Plant, WateringLog, FeedingLog, ObservationLog, PlantPhaseInstance, PlantEvent } from '../types/models';
 import { Strain, CreateStrainData, UpdateStrainData } from '../types/strain';
 
 const API_BASE = '/api';
@@ -128,5 +128,27 @@ export const apiService = {
         : phase
     );
     return apiService.updatePlantPhases(plantId, updatedPhases);
+  },
+
+  // Event endpoints
+  createEvent: async (plantId: number, eventData: {
+    type: PlantEvent['type'];
+    title: string;
+    data?: PlantEvent['data'];
+    notes?: string;
+    timestamp?: string;
+  }): Promise<Plant> => {
+    const response = await api.post(`/plants/${plantId}/events`, eventData);
+    return response.data;
+  },
+
+  updateEvent: async (plantId: number, eventId: string, eventData: Partial<PlantEvent>): Promise<Plant> => {
+    const response = await api.put(`/plants/${plantId}/events/${eventId}`, eventData);
+    return response.data;
+  },
+
+  deleteEvent: async (plantId: number, eventId: string): Promise<Plant> => {
+    const response = await api.delete(`/plants/${plantId}/events/${eventId}`);
+    return response.data;
   },
 };

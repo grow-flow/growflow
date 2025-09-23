@@ -171,7 +171,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
 router.post("/:id/events", async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
-    const { type, title, data, notes } = req.body;
+    const { type, title, data, notes, timestamp } = req.body;
 
     const plantRepo = AppDataSource.getRepository(Plant);
     const plant = await plantRepo.findOne({ where: { id } });
@@ -182,7 +182,7 @@ router.post("/:id/events", async (req: Request, res: Response) => {
 
     // Get current phase ID for event linking
     const currentPhase = getCurrentPhase(plant.phases);
-    const newEvent = createEvent(type, title, data, notes, currentPhase?.id);
+    const newEvent = createEvent(type, title, data, notes, currentPhase?.id, timestamp);
 
     plant.events = addEventToPlant(plant.events, newEvent);
 

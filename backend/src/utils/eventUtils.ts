@@ -6,10 +6,11 @@ export const createEvent = (
   title: string,
   data?: PlantEvent['data'],
   notes?: string,
-  phaseId?: string
+  phaseId?: string,
+  timestamp?: string
 ): PlantEvent => ({
   id: uuidv4(),
-  timestamp: new Date().toISOString(),
+  timestamp: timestamp || new Date().toISOString(),
   type,
   title,
   data,

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService } from '../services/api';
-import { Plant, WateringLog, FeedingLog, ObservationLog } from '../types/models';
+import { Plant, WateringLog, FeedingLog, ObservationLog, PlantEvent } from '../types/models';
 
 // Query Keys
 export const plantKeys = {
@@ -177,6 +177,57 @@ export const useLogObservation = () => {
           queryKey: plantKeys.careHistory(variables.plant_id) 
         });
       }
+    },
+  });
+};
+
+// Event Mutations
+export const useCreateEvent = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ plantId, eventData }: { 
+      plantId: number; 
+      eventData: { type: PlantEvent['type']; title: string; data?: PlantEvent['data']; notes?: string; timestamp?: string; }
+    }) => apiService.createEvent(plantId, eventData),
+    onSuccess: (updatedPlant) => {
+      queryClient.setQueryData(plantKeys.detail(updatedPlant.id), updatedPlant);
+      queryClient.setQueryData(plantKeys.lists(), (old: Plant[] = []) =>
+        old.map(plant => plant.id === updatedPlant.id ? updatedPlant : plant)
+      );
+    },
+  });
+};
+
+export const useUpdateEvent = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ plantId, eventId, eventData }: { 
+      plantId: number; 
+      eventId: string; 
+      eventData: Partial<PlantEvent>; 
+    }) => apiService.updateEvent(plantId, eventId, eventData),
+    onSuccess: (updatedPlant) => {
+      queryClient.setQueryData(plantKeys.detail(updatedPlant.id), updatedPlant);
+      queryClient.setQueryData(plantKeys.lists(), (old: Plant[] = []) =>
+        old.map(plant => plant.id === updatedPlant.id ? updatedPlant : plant)
+      );
+    },
+  });
+};
+
+export const useDeleteEvent = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ plantId, eventId }: { plantId: number; eventId: string }) => 
+      apiService.deleteEvent(plantId, eventId),
+    onSuccess: (updatedPlant) => {
+      queryClient.setQueryData(plantKeys.detail(updatedPlant.id), updatedPlant);
+      queryClient.setQueryData(plantKeys.lists(), (old: Plant[] = []) =>
+        old.map(plant => plant.id === updatedPlant.id ? updatedPlant : plant)
+      );
     },
   });
 };
