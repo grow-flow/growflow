@@ -7,11 +7,7 @@ export const AppDataSource = new DataSource({
   database: CONFIG.DATABASE.PATH,
   synchronize: CONFIG.DATABASE.SYNC,
   logging: CONFIG.LOG_LEVEL === 'debug',
-  entities: [
-    GrowArea,
-    Plant,
-    Strain
-  ],
+  entities: [GrowArea, Plant, Strain],
 });
 
 export const initializeDatabase = async () => {
