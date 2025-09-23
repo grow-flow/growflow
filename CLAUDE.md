@@ -26,10 +26,10 @@ cd backend && npm run start   # Run compiled JS from dist/
 cd backend && npm run lint    # ESLint backend code
 cd backend && npm test        # Run Jest tests
 
-# Frontend specific commands  
+# Frontend specific commands
 cd frontend && npm start      # Start React dev server (port 3000, proxies to backend)
 cd frontend && npm run build  # Build React app for production
-cd frontend && npm run lint   # ESLint frontend code  
+cd frontend && npm run lint   # ESLint frontend code
 cd frontend && npm test       # Run React tests with react-scripts
 
 # Docker Deployment
@@ -105,7 +105,7 @@ docker run -d -p 8080:8080 -v ./data:/app/data growflow  # Run with data persist
 
 - **Build Stage**: Compiles TypeScript backend and React frontend inside container
 - **Production Stage**: Lightweight Node.js Alpine image with only runtime dependencies
-- **Layer Caching**: System deps and npm packages cached separately from source code  
+- **Layer Caching**: System deps and npm packages cached separately from source code
 - **Optimized .dockerignore**: Excludes unnecessary files for faster build context
 - **Health Checks**: Built-in endpoint monitoring for container orchestration
 
@@ -126,6 +126,7 @@ docker run -d -p 8080:8080 -v ./data:/app/data growflow  # Run with data persist
 ## Docker Compose Deployment
 
 ### Synology NAS Setup
+
 - **Docker Package**: Install Docker package from Package Center
 - **File Station**: Create project directory (e.g., `/docker/growflow/`)
 - **Configuration**: Place `docker-compose.yml` in project directory
@@ -133,11 +134,13 @@ docker run -d -p 8080:8080 -v ./data:/app/data growflow  # Run with data persist
 - **Network Access**: Application accessible on port 8080
 
 ### Environment Variables
+
 - **NODE_ENV**: Set to `production` for optimal performance
 - **DB_PATH**: Database file location (`/app/data/growflow.db`)
 - **LOG_LEVEL**: Control logging verbosity (`info`, `debug`, `error`)
 
 ### Deployment Commands
+
 ```bash
 # Start application
 docker-compose up -d
@@ -155,8 +158,9 @@ docker-compose down
 ## CI/CD Pipeline
 
 ### GitHub Actions
+
 - **Build Workflow** (`.github/workflows/docker-publish.yml`): Automated Docker builds on push/PR
   - Multi-architecture builds (amd64, arm64) for broad compatibility
-  - Pushes to DockerHub: `moritzheine/growflow`
+  - Pushes to DockerHub: `moritz03/growflow`
   - Build cache optimization using GitHub Actions cache
   - Semantic versioning with tags

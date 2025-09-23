@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   growflow:
-    image: moritzheine/growflow:latest
+    image: moritz03/growflow:latest
     container_name: growflow
     restart: unless-stopped
     ports:
