@@ -40,14 +40,14 @@ const PlantDetail: React.FC = () => {
   const [eventData, setEventData] = useState({ 
     title: "", 
     notes: "", 
-    timestamp: new Date().toISOString().slice(0, 16)
+    timestamp: new Date().toISOString()
   });
 
   const handleCreateEvent = () => {
     setEventData({
       title: "Quick Watering",
       notes: "Quick watering logged from plant detail page",
-      timestamp: new Date().toISOString().slice(0, 16)
+      timestamp: new Date().toISOString()
     });
     setEventDialog({ open: true, event: null });
   };
@@ -56,7 +56,7 @@ const PlantDetail: React.FC = () => {
     setEventData({ 
       title: event.title, 
       notes: event.notes || "",
-      timestamp: new Date(event.timestamp).toISOString().slice(0, 16)
+      timestamp: event.timestamp
     });
     setEventDialog({ open: true, event });
   };
@@ -65,25 +65,20 @@ const PlantDetail: React.FC = () => {
     if (!plant) return;
 
     try {
-      const eventDataWithTimestamp = {
-        ...eventData,
-        timestamp: new Date(eventData.timestamp).toISOString()
-      };
-
       if (eventDialog.event) {
         await updateEvent.mutateAsync({
           plantId: plant.id,
           eventId: eventDialog.event.id,
-          eventData: eventDataWithTimestamp
+          eventData: eventData
         });
       } else {
         await createEvent.mutateAsync({
           plantId: plant.id,
           eventData: {
             type: "watering",
-            title: eventDataWithTimestamp.title,
-            notes: eventDataWithTimestamp.notes,
-            timestamp: eventDataWithTimestamp.timestamp
+            title: eventData.title,
+            notes: eventData.notes,
+            timestamp: eventData.timestamp
           }
         });
       }
