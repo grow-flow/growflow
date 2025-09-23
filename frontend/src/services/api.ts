@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { GrowArea, Plant, WateringLog, FeedingLog, ObservationLog, PlantPhaseInstance } from '../types/models';
+import { Plant, WateringLog, FeedingLog, ObservationLog, PlantPhaseInstance } from '../types/models';
 import { Strain, CreateStrainData, UpdateStrainData } from '../types/strain';
 
 const API_BASE = '/api';
@@ -10,30 +10,6 @@ const api = axios.create({
 });
 
 export const apiService = {
-  // Grow Area endpoints
-  getGrowAreas: async (): Promise<GrowArea[]> => {
-    const response = await api.get('/grow-areas');
-    return response.data;
-  },
-
-  getGrowArea: async (id: number): Promise<GrowArea> => {
-    const response = await api.get(`/grow-areas/${id}`);
-    return response.data;
-  },
-
-  createGrowArea: async (data: Partial<GrowArea>): Promise<GrowArea> => {
-    const response = await api.post('/grow-areas', data);
-    return response.data;
-  },
-
-  updateGrowArea: async (id: number, data: Partial<GrowArea>): Promise<GrowArea> => {
-    const response = await api.put(`/grow-areas/${id}`, data);
-    return response.data;
-  },
-
-  deleteGrowArea: async (id: number): Promise<void> => {
-    await api.delete(`/grow-areas/${id}`);
-  },
 
   // Plant endpoints
   getPlants: async (): Promise<Plant[]> => {

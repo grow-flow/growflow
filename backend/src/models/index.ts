@@ -1,4 +1,3 @@
-export { GrowArea } from './GrowArea';
 export { Plant } from './Plant';
 export { Strain, StrainType } from './Strain';
 export { PhaseTemplate, PlantPhaseInstance, PHOTOPERIOD_PHASES, AUTOFLOWER_PHASES } from './Phase';

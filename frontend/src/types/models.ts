@@ -17,19 +17,6 @@ export interface PlantPhaseInstance {
   notes?: string;
 }
 
-export interface GrowArea {
-  id: number;
-  name: string;
-  type: 'indoor' | 'outdoor';
-  dimensions: {
-    length: number;
-    width: number;
-    height: number;
-  };
-  created_at: Date;
-  updated_at: Date;
-  plants?: Plant[];
-}
 
 // Legacy enum removed - now using dynamic phase names
 
@@ -79,7 +66,6 @@ export interface PlantEvent {
 
 export interface Plant {
   id: number;
-  grow_area_id: number;
   name: string;
   strain: string;
   breeder?: string;

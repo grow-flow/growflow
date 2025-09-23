@@ -1,5 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { GrowArea } from './GrowArea';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { PlantPhaseInstance } from './Phase';
 import { PlantEvent } from './Event';
 
@@ -10,8 +9,6 @@ export class Plant {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
-  grow_area_id: number;
 
   @Column()
   name: string;
@@ -63,7 +60,4 @@ export class Plant {
   @Column({ type: 'simple-json', default: '[]' })
   events: PlantEvent[];
 
-  @ManyToOne(() => GrowArea, growArea => growArea.plants)
-  @JoinColumn({ name: 'grow_area_id' })
-  grow_area: GrowArea;
 }

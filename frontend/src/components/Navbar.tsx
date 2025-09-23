@@ -7,7 +7,7 @@ const Navbar: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   
-  const showBackButton = location.pathname !== '/plants' && location.pathname !== '/strains';
+  const showBackButton = location.pathname !== '/';
 
   return (
     <AppBar position="sticky">

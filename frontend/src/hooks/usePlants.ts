@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService } from '../services/api';
 import { Plant, WateringLog, FeedingLog, ObservationLog } from '../types/models';
-import { growAreaKeys } from './useGrowAreas';
 
 // Query Keys
 export const plantKeys = {
@@ -52,12 +51,6 @@ export const useCreatePlant = () => {
       // Invalidate plants list
       queryClient.invalidateQueries({ queryKey: plantKeys.lists() });
       
-      // Invalidate grow area detail to update plant count
-      if (newPlant.grow_area_id) {
-        queryClient.invalidateQueries({ 
-          queryKey: growAreaKeys.detail(newPlant.grow_area_id) 
-        });
-      }
 
       // Add to plants list cache
       queryClient.setQueryData(plantKeys.lists(), (old: Plant[] = []) => [

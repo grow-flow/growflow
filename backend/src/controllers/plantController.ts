@@ -19,7 +19,6 @@ const router = Router();
 router.get("/", async (req: Request, res: Response) => {
   try {
     const plants = await AppDataSource.getRepository(Plant).find({
-      relations: ["grow_area"],
       where: { is_active: true },
     });
     res.json(plants);
@@ -33,7 +32,6 @@ router.get("/:id", async (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
     const plant = await AppDataSource.getRepository(Plant).findOne({
       where: { id },
-      relations: ["grow_area"],
     });
 
     if (!plant) {

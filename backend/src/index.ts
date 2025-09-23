@@ -7,7 +7,6 @@ import path from 'path';
 import { CONFIG } from './config/settings';
 import { initializeDatabase } from './database';
 import { errorHandler } from './middleware/errorHandler';
-import { growAreaRoutes } from './controllers/growAreaController';
 import { plantRoutes } from './controllers/plantController';
 import { strainRoutes } from './controllers/strainController';
 
@@ -38,7 +37,6 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use('/api/grow-areas', growAreaRoutes);
 app.use('/api/plants', plantRoutes);
 // Care events are now handled via plant routes: POST /api/plants/:id/events
 app.use('/api/strains', strainRoutes);

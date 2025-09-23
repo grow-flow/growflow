@@ -1,37 +1,23 @@
 import React, { useState } from 'react';
-import { Grid, Typography, Card, CardContent, Button, Box, CircularProgress, Alert } from '@mui/material';
-import { Add as AddIcon, LocalFlorist as PlantIcon } from '@mui/icons-material';
-import { useGrowAreas, useCreateGrowArea } from '../hooks/useGrowAreas';
-import { useCreatePlant } from '../hooks/usePlants';
-import { GrowArea, Plant } from '../types/models';
-import GrowAreaCard from '../components/GrowAreaCard';
-import CreateGrowAreaDialog from '../components/CreateGrowAreaDialog';
+import { Grid, Typography, Card, CardContent, Button, Box, CircularProgress, Alert, Paper, Chip, Avatar, LinearProgress, CardActionArea } from '@mui/material';
+import { Add as AddIcon, LocalFlorist as PlantIcon, Timeline, Speed, TrendingUp, LocalFlorist } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
+import { usePlants, useCreatePlant } from '../hooks/usePlants';
+import { Plant } from '../types/models';
 import CreatePlantDialog from '../components/CreatePlantDialog';
-import QuickStats from '../components/QuickStats';
-import RecentActivities from '../components/RecentActivities';
 
 const Dashboard: React.FC = () => {
-  const [createGrowAreaDialogOpen, setCreateGrowAreaDialogOpen] = useState(false);
+  const navigate = useNavigate();
   const [createPlantDialogOpen, setCreatePlantDialogOpen] = useState(false);
   
   const { 
-    data: growAreas = [], 
+    data: allPlants = [], 
     isLoading, 
     error,
     refetch 
-  } = useGrowAreas();
+  } = usePlants();
   
-  const createGrowAreaMutation = useCreateGrowArea();
   const createPlantMutation = useCreatePlant();
-
-  const handleGrowAreaCreated = async (growAreaData: Partial<GrowArea>) => {
-    try {
-      await createGrowAreaMutation.mutateAsync(growAreaData);
-      setCreateGrowAreaDialogOpen(false);
-    } catch (error) {
-      console.error('Failed to create grow area:', error);
-    }
-  };
 
   const handlePlantCreated = async (plantData: Partial<Plant>) => {
     try {
@@ -65,80 +51,192 @@ const Dashboard: React.FC = () => {
     );
   }
 
+  // Calculate stats
+  const totalPlants = allPlants.length;
+  const activePlants = allPlants.filter(p => p.is_active).length;
+  const phaseCounts = allPlants.reduce((acc, plant) => {
+    const currentPhase = plant.phases?.find(p => p.is_active)?.name || 'Unknown';
+    acc[currentPhase] = (acc[currentPhase] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const recentPlants = allPlants
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 5);
+
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h4">Dashboard</Typography>
+        <Typography variant="h4">GrowFlow Dashboard</Typography>
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Button
-            variant="outlined"
+            variant="contained"
             startIcon={<PlantIcon />}
             onClick={() => setCreatePlantDialogOpen(true)}
-            disabled={growAreas.length === 0}
           >
             Add Plant
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setCreateGrowAreaDialogOpen(true)}
-          >
-            New Grow Area
           </Button>
         </Box>
       </Box>
 
-      <QuickStats growAreas={growAreas} />
-
-      <Grid container spacing={3}>
-        <Grid item xs={12} lg={8}>
-          <Grid container spacing={3}>
-            {growAreas.map((growArea) => (
-              <Grid item xs={12} md={6} key={growArea.id}>
-                <GrowAreaCard growArea={growArea} />
-              </Grid>
-            ))}
-            
-            {growAreas.length === 0 && (
-              <Grid item xs={12}>
-                <Card>
-                  <CardContent sx={{ textAlign: 'center', py: 6 }}>
-                    <Typography variant="h6" color="textSecondary" gutterBottom>
-                      No grow areas yet
-                    </Typography>
-                    <Typography color="textSecondary" sx={{ mb: 3 }}>
-                      Create your first grow area to start tracking your plants
-                    </Typography>
-                    <Button
-                      variant="contained"
-                      startIcon={<AddIcon />}
-                      onClick={() => setCreateGrowAreaDialogOpen(true)}
-                    >
-                      Create Grow Area
-                    </Button>
-                  </CardContent>
-                </Card>
-              </Grid>
-            )}
-          </Grid>
+      {/* Quick Stats */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid item xs={6} md={3}>
+          <Paper sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Avatar sx={{ bgcolor: 'primary.main' }}>
+              <LocalFlorist />
+            </Avatar>
+            <Box>
+              <Typography variant="h4">{activePlants}</Typography>
+              <Typography variant="body2" color="textSecondary">
+                Active Plants
+              </Typography>
+            </Box>
+          </Paper>
         </Grid>
         
-        <Grid item xs={12} lg={4}>
-          <RecentActivities />
+        <Grid item xs={6} md={3}>
+          <Paper sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Avatar sx={{ bgcolor: 'success.main' }}>
+              <Timeline />
+            </Avatar>
+            <Box>
+              <Typography variant="h4">{totalPlants}</Typography>
+              <Typography variant="body2" color="textSecondary">
+                Total Plants
+              </Typography>
+            </Box>
+          </Paper>
+        </Grid>
+        
+        <Grid item xs={6} md={3}>
+          <Paper sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Avatar sx={{ bgcolor: 'warning.main' }}>
+              <Speed />
+            </Avatar>
+            <Box>
+              <Typography variant="h4">{Object.keys(phaseCounts).length}</Typography>
+              <Typography variant="body2" color="textSecondary">
+                Active Phases
+              </Typography>
+            </Box>
+          </Paper>
+        </Grid>
+        
+        <Grid item xs={6} md={3}>
+          <Paper sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Avatar sx={{ bgcolor: 'info.main' }}>
+              <TrendingUp />
+            </Avatar>
+            <Box>
+              <Typography variant="h4">{totalPlants}</Typography>
+              <Typography variant="body2" color="textSecondary">
+                Growth Days
+              </Typography>
+            </Box>
+          </Paper>
         </Grid>
       </Grid>
 
-      <CreateGrowAreaDialog
-        open={createGrowAreaDialogOpen}
-        onClose={() => setCreateGrowAreaDialogOpen(false)}
-        onSuccess={handleGrowAreaCreated}
-      />
+      <Grid container spacing={3}>
+        {/* Plants Overview */}
+        <Grid item xs={12} lg={8}>
+          <Typography variant="h5" gutterBottom>
+            Recent Plants
+          </Typography>
+          {allPlants.length === 0 ? (
+            <Card>
+              <CardContent sx={{ textAlign: 'center', py: 6 }}>
+                <LocalFlorist sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
+                <Typography variant="h6" color="textSecondary" gutterBottom>
+                  No plants yet
+                </Typography>
+                <Typography color="textSecondary" sx={{ mb: 3 }}>
+                  Create your first plant to start tracking growth
+                </Typography>
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={() => setCreatePlantDialogOpen(true)}
+                >
+                  Add Plant
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <Grid container spacing={2}>
+              {allPlants.slice(0, 6).map((plant) => {
+                const currentPhase = plant.phases?.find(p => p.is_active);
+                const daysInPhase = currentPhase?.start_date 
+                  ? Math.floor((new Date().getTime() - new Date(currentPhase.start_date).getTime()) / (1000 * 60 * 60 * 24))
+                  : 0;
+                
+                return (
+                  <Grid item xs={12} md={6} key={plant.id}>
+                    <Card>
+                      <CardActionArea onClick={() => navigate(`/plant/${plant.id}`)}>
+                        <CardContent>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                            <Typography variant="h6">{plant.name}</Typography>
+                            <Chip 
+                              label={plant.start_method === 'seed' ? 'Seed' : 'Clone'} 
+                              size="small" 
+                              variant="outlined"
+                            />
+                          </Box>
+                          <Typography color="textSecondary" gutterBottom>
+                            {plant.strain}
+                          </Typography>
+                          <Typography variant="body2" color="primary">
+                            {currentPhase?.name || 'No active phase'} · Day {daysInPhase}
+                          </Typography>
+                        </CardContent>
+                      </CardActionArea>
+                    </Card>
+                  </Grid>
+                );
+              })}
+            </Grid>
+          )}
+        </Grid>
+        
+        {/* Phase Distribution & Stats */}
+        <Grid item xs={12} lg={4}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Phase Distribution
+            </Typography>
+            {Object.keys(phaseCounts).length > 0 ? (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {Object.entries(phaseCounts).map(([phase, count]) => (
+                  <Box key={phase}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                      <Typography variant="body2">{phase}</Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        {count}
+                      </Typography>
+                    </Box>
+                    <LinearProgress 
+                      variant="determinate" 
+                      value={(count / totalPlants) * 100}
+                      sx={{ height: 6, borderRadius: 3 }}
+                    />
+                  </Box>
+                ))}
+              </Box>
+            ) : (
+              <Typography color="textSecondary">
+                No active phases
+              </Typography>
+            )}
+          </Paper>
+        </Grid>
+      </Grid>
 
       <CreatePlantDialog
         open={createPlantDialogOpen}
         onClose={() => setCreatePlantDialogOpen(false)}
         onSuccess={handlePlantCreated}
-        growAreaId={0} // Will be selected in dialog
       />
     </Box>
   );
