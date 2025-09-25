@@ -7,6 +7,7 @@ export const useStrains = () => {
     queryKey: ['strains'],
     queryFn: () => apiService.getStrains(),
     staleTime: 5 * 60 * 1000, // 5 minutes
+    initialData: [],
   });
 };
 

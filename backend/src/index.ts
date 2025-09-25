@@ -89,7 +89,7 @@ const start = async () => {
   try {
     await initializeDatabase();
     
-    app.listen(CONFIG.API.PORT, () => {
+    app.listen(CONFIG.API.PORT, '0.0.0.0', () => {
       console.log(`GrowFlow server running on port ${CONFIG.API.PORT}`);
     });
 

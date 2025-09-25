@@ -1,7 +1,7 @@
 export const CONFIG = {
   API: {
-    PORT: process.env.PORT || 8080,
-    CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:3000'
+    PORT: parseInt(process.env.PORT || '8080', 10),
+    CORS_ORIGIN: process.env.CORS_ORIGIN || (process.env.NODE_ENV === 'development' ? '*' : 'http://localhost:3000')
   },
   
   DATABASE: {
