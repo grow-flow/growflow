@@ -51,7 +51,6 @@ import {
   MoreVert as MoreVertIcon,
   Delete as DeleteIcon,
   Add as AddIcon,
-  Download as DownloadIcon,
   Upload as UploadIcon,
   ContentCopy as CopyIcon,
 } from "@mui/icons-material";
@@ -60,8 +59,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiService } from "../services/api";
 import {
   createPlantTimeline,
-  getEventIcon,
-  getEventColor,
 } from "../utils/PlantTimeline";
 
 interface DynamicPlantTimelineProps {
@@ -153,8 +150,8 @@ const DynamicPlantTimeline: React.FC<DynamicPlantTimelineProps> = ({
   useEffect(() => {
     if (configModalOpen) {
       setEditablePhases([...plant.phases]);
-      const cleanTemplates = createCleanPhaseTemplates(plant.phases);
-      setPhaseJsonInput(JSON.stringify(cleanTemplates, null, 2));
+      const completeData = createCompletePhaseData(plant.phases);
+      setPhaseJsonInput(JSON.stringify(completeData, null, 2));
     }
   }, [configModalOpen, plant.phases]);
 
@@ -174,8 +171,8 @@ const DynamicPlantTimeline: React.FC<DynamicPlantTimelineProps> = ({
 
       const newPhases = arrayMove(editablePhases, oldIndex, newIndex);
       setEditablePhases(newPhases);
-      const cleanTemplates = createCleanPhaseTemplates(newPhases);
-      setPhaseJsonInput(JSON.stringify(cleanTemplates, null, 2));
+      const completeData = createCompletePhaseData(newPhases);
+      setPhaseJsonInput(JSON.stringify(completeData, null, 2));
     }
   };
 
@@ -211,8 +208,8 @@ const DynamicPlantTimeline: React.FC<DynamicPlantTimelineProps> = ({
     
     const newPhases = [...editablePhases, newPhase];
     setEditablePhases(newPhases);
-    const cleanTemplates = createCleanPhaseTemplates(newPhases);
-    setPhaseJsonInput(JSON.stringify(cleanTemplates, null, 2));
+    const completeData = createCompletePhaseData(newPhases);
+    setPhaseJsonInput(JSON.stringify(completeData, null, 2));
     setNewPhaseDialog(false);
     setNewPhaseData({ name: '', duration_min: 7, duration_max: 14, description: '' });
   };
@@ -232,55 +229,46 @@ const DynamicPlantTimeline: React.FC<DynamicPlantTimelineProps> = ({
     if (window.confirm(`Are you sure you want to delete the "${phase?.name}" phase?`)) {
       const newPhases = editablePhases.filter(p => p.id !== phaseId);
       setEditablePhases(newPhases);
-      const cleanTemplates = createCleanPhaseTemplates(newPhases);
-      setPhaseJsonInput(JSON.stringify(cleanTemplates, null, 2));
+      const completeData = createCompletePhaseData(newPhases);
+      setPhaseJsonInput(JSON.stringify(completeData, null, 2));
     }
   };
 
-  // Create clean phase templates without IDs and runtime data
-  const createCleanPhaseTemplates = (phases: PlantPhaseInstance[]) => {
+  // Create complete phase data including dates for stateless export
+  const createCompletePhaseData = (phases: PlantPhaseInstance[]) => {
     return phases.map(phase => ({
+      id: phase.id,
       name: phase.name,
       duration_min: phase.duration_min,
       duration_max: phase.duration_max,
-      description: phase.description
+      description: phase.description,
+      is_active: phase.is_active,
+      is_completed: phase.is_completed,
+      start_date: phase.start_date
     }));
   };
 
-  // Convert clean templates back to phase instances with new IDs
+  // Convert imported data to phase instances, preserving IDs and dates if present
   const convertToPhaseInstances = (templates: any[]) => {
     return templates.map(template => ({
-      id: uuidv4(),
+      id: template.id || uuidv4(), // Keep existing ID or generate new one
       name: template.name,
       duration_min: template.duration_min,
       duration_max: template.duration_max,
       description: template.description,
-      is_active: false,
-      is_completed: false,
-      start_date: undefined
+      is_active: template.is_active || false,
+      is_completed: template.is_completed || false,
+      start_date: template.start_date || undefined // Preserve start_date if present
     }));
   };
 
   const exportPhaseTemplates = () => {
-    const cleanTemplates = createCleanPhaseTemplates(editablePhases);
-    const json = JSON.stringify(cleanTemplates, null, 2);
+    const completeData = createCompletePhaseData(editablePhases);
+    const json = JSON.stringify(completeData, null, 2);
     navigator.clipboard.writeText(json);
     setPhaseJsonInput(json);
   };
 
-  const downloadPhaseTemplates = () => {
-    const cleanTemplates = createCleanPhaseTemplates(editablePhases);
-    const json = JSON.stringify(cleanTemplates, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${plant.name}-phases.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
 
   const importPhaseTemplates = () => {
     try {
@@ -720,14 +708,6 @@ const DynamicPlantTimeline: React.FC<DynamicPlantTimelineProps> = ({
                   variant="outlined"
                 >
                   In Zwischenablage kopieren
-                </Button>
-                <Button
-                  size="small"
-                  startIcon={<DownloadIcon />}
-                  onClick={downloadPhaseTemplates}
-                  variant="outlined"
-                >
-                  Als JSON downloaden
                 </Button>
               </Box>
 

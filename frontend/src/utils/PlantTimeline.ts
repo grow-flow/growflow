@@ -74,10 +74,10 @@ export class PlantTimeline {
           // For completed phases, calculate from start to next phase start or now
           const nextPhase = this.phases[index + 1];
           const endDate = nextPhase?.start_date ? new Date(nextPhase.start_date) : this.currentDate;
-          daysElapsed = differenceInDays(endDate, actualDate);
+          daysElapsed = differenceInDays(endDate, actualDate) + 1;
         } else if (isCurrent) {
-          // For current phase, calculate from start to now
-          daysElapsed = differenceInDays(this.currentDate, actualDate);
+          // For current phase, calculate from start to now (add 1 to start from day 1)
+          daysElapsed = differenceInDays(this.currentDate, actualDate) + 1;
         }
       }
       
@@ -129,9 +129,9 @@ export class PlantTimeline {
     const currentPhase = this.timeline.find(p => p.isCurrent);
     if (!currentPhase || !currentPhase.actualDate) return null;
     
-    // Calculate days elapsed using current time, not cached time
+    // Calculate days elapsed using current time, not cached time (start from day 1)
     const now = new Date();
-    const daysSinceStart = differenceInDays(now, currentPhase.actualDate);
+    const daysSinceStart = differenceInDays(now, currentPhase.actualDate) + 1;
     const minDuration = currentPhase.phase.duration_min;
     const daysUntilEligible = Math.max(0, minDuration - daysSinceStart);
     
@@ -156,7 +156,7 @@ export class PlantTimeline {
     if (!phase.start_date || !this.isPhaseActive(phaseIndex)) return false;
     
     const startDate = new Date(phase.start_date);
-    const daysElapsed = differenceInDays(this.currentDate, startDate);
+    const daysElapsed = differenceInDays(this.currentDate, startDate) + 1;
     return daysElapsed > phase.duration_max;
   }
 
@@ -165,7 +165,7 @@ export class PlantTimeline {
     if (!phase.start_date || !this.isPhaseActive(phaseIndex)) return false;
     
     const startDate = new Date(phase.start_date);
-    const daysElapsed = differenceInDays(this.currentDate, startDate);
+    const daysElapsed = differenceInDays(this.currentDate, startDate) + 1;
     return daysElapsed >= phase.duration_min;
   }
 

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   Typography,
   Grid,
@@ -9,6 +9,7 @@ import {
 } from "@mui/material";
 import { Opacity } from "@mui/icons-material";
 import { Plant } from "../types/models";
+import { createPlantTimeline } from "../utils/PlantTimeline";
 
 interface PlantHeaderProps {
   plant: Plant;
@@ -16,18 +17,16 @@ interface PlantHeaderProps {
 }
 
 const PlantHeader: React.FC<PlantHeaderProps> = ({ plant, onWaterClick }) => {
-  const getCurrentPhase = () => {
-    return plant.phases.find((phase) => phase.is_active);
-  };
+  const timeline = useMemo(() => 
+    createPlantTimeline(plant.phases, plant.events || []), 
+    [plant.phases, plant.events, plant.id, plant.updated_at]
+  );
 
+  const currentPhaseInfo = timeline.timeline.find(p => p.isCurrent);
+  const currentPhase = currentPhaseInfo?.phase;
+  
   const getDaysInCurrentPhase = () => {
-    const currentPhase = getCurrentPhase();
-    if (!currentPhase?.start_date) return 0;
-
-    const now = new Date();
-    const start = new Date(currentPhase.start_date);
-    const diffTime = Math.abs(now.getTime() - start.getTime());
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return currentPhaseInfo?.daysElapsed || 0;
   };
 
   const getTotalDays = () => {
@@ -50,7 +49,7 @@ const PlantHeader: React.FC<PlantHeaderProps> = ({ plant, onWaterClick }) => {
           <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
             <Chip label={plant.strain} color="primary" />
             <Chip
-              label={getCurrentPhase()?.name || "Unknown"}
+              label={currentPhase?.name || "Unknown"}
               color="secondary"
             />
             <Chip 
@@ -65,7 +64,7 @@ const PlantHeader: React.FC<PlantHeaderProps> = ({ plant, onWaterClick }) => {
           </Box>
           <Typography color="textSecondary">
             Day {getDaysInCurrentPhase()} in{" "}
-            {getCurrentPhase()?.name || "Unknown"} • Total: {getTotalDays()}{" "}
+            {currentPhase?.name || "Unknown"} • Total: {getTotalDays()}{" "}
             days
           </Typography>
         </Grid>

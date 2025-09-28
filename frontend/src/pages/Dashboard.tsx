@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Grid, Typography, Card, CardContent, Button, Box, CircularProgress, Alert, Paper, Chip, Avatar, LinearProgress, CardActionArea } from '@mui/material';
 import { Add as AddIcon, LocalFlorist as PlantIcon, Timeline, Speed, TrendingUp, LocalFlorist } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { usePlants, useCreatePlant } from '../hooks/usePlants';
 import { Plant } from '../types/models';
 import CreatePlantDialog from '../components/CreatePlantDialog';
+import { createPlantTimeline } from '../utils/PlantTimeline';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -51,14 +52,21 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  // Calculate stats
-  const totalPlants = allPlants.length;
-  const activePlants = allPlants.filter(p => p.is_active).length;
-  const phaseCounts = allPlants.reduce((acc, plant) => {
-    const currentPhase = plant.phases?.find(p => p.is_active)?.name || 'Unknown';
-    acc[currentPhase] = (acc[currentPhase] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  // Calculate stats using timeline logic
+  const plantStats = useMemo(() => {
+    const totalPlants = allPlants.length;
+    const activePlants = allPlants.filter(p => p.is_active).length;
+    const phaseCounts = allPlants.reduce((acc, plant) => {
+      const timeline = createPlantTimeline(plant.phases, plant.events || []);
+      const currentPhase = timeline.currentPhase?.name || 'Unknown';
+      acc[currentPhase] = (acc[currentPhase] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    return { totalPlants, activePlants, phaseCounts };
+  }, [allPlants]);
+
+  const { totalPlants, activePlants, phaseCounts } = plantStats;
 
   const recentPlants = allPlants
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
@@ -166,10 +174,10 @@ const Dashboard: React.FC = () => {
           ) : (
             <Grid container spacing={2}>
               {allPlants.slice(0, 6).map((plant) => {
-                const currentPhase = plant.phases?.find(p => p.is_active);
-                const daysInPhase = currentPhase?.start_date 
-                  ? Math.floor((new Date().getTime() - new Date(currentPhase.start_date).getTime()) / (1000 * 60 * 60 * 24))
-                  : 0;
+                const timeline = createPlantTimeline(plant.phases, plant.events || []);
+                const currentPhaseInfo = timeline.timeline.find(p => p.isCurrent);
+                const currentPhase = currentPhaseInfo?.phase;
+                const daysInPhase = currentPhaseInfo?.daysElapsed || 0;
                 
                 return (
                   <Grid item xs={12} md={6} key={plant.id}>
@@ -188,7 +196,7 @@ const Dashboard: React.FC = () => {
                             {plant.strain}
                           </Typography>
                           <Typography variant="body2" color="primary">
-                            {currentPhase?.name || 'No active phase'} · Day {daysInPhase}
+                            {currentPhase?.name || 'No current phase'} · Day {daysInPhase}
                           </Typography>
                         </CardContent>
                       </CardActionArea>
