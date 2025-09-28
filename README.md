@@ -148,13 +148,6 @@ The application is optimized for production deployment using Docker:
 - **Data persistence** via volume mounts
 - **Environment-based configuration**
 
-### Synology NAS Deployment
-
-1. Install Docker package from Package Center
-2. Create project directory in File Station (e.g., `/docker/growflow/`)
-3. Upload `docker-compose.yml` to project directory
-4. Start container via Docker app or SSH
-
 ## Contributing
 
 This is an active open-source project. Contributions are welcome through:
@@ -171,5 +164,3 @@ Please ensure all code follows the established TypeScript and ESLint standards.
 MIT License
 
 Copyright (c) 2025 GrowFlow
-
-[license-shield]: https://img.shields.io/github/license/moritzheine/growflow.svg
