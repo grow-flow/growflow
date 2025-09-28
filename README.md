@@ -37,7 +37,7 @@ _Detailed plant timeline with phase tracking and care events_
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/moritzheine/growflow.git
+git clone https://github.com/grow-flow/growflow.git
 cd growflow
 ```
 

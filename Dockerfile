@@ -56,8 +56,8 @@ LABEL \
     org.opencontainers.image.vendor="GrowFlow" \
     org.opencontainers.image.authors="Moritz Heine" \
     org.opencontainers.image.licenses="MIT" \
-    org.opencontainers.image.url="https://github.com/moritzheine/growflow" \
-    org.opencontainers.image.source="https://github.com/moritzheine/growflow"
+    org.opencontainers.image.url="https://github.com/grow-flow/growflow" \
+    org.opencontainers.image.source="https://github.com/grow-flow/growflow"
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
