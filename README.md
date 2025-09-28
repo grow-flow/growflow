@@ -6,6 +6,12 @@ _Comprehensive plant tracking system with complete lifecycle management and time
 
 GrowFlow is a standalone plant tracking application designed for documenting the complete grow process from germination to harvest. Built with modern web technologies, it provides detailed lifecycle tracking, care event logging, and comprehensive analytics for plant cultivation management.
 
+![Dashboard Overview](assets/dashboard_view.png)
+_Dashboard with plant overview and status monitoring_
+
+![Plant Detail View](assets/plant_detail_view.png)
+_Detailed plant timeline with phase tracking and care events_
+
 ## Features
 
 - 🌱 **Complete Plant Lifecycle**: Track plants through 9 growth phases (germination → seedling → vegetation → pre_flower → flowering → flushing → harvest → drying → curing)
@@ -15,11 +21,7 @@ GrowFlow is a standalone plant tracking application designed for documenting the
 - 📊 **Dashboard Overview**: Monitor all active plants and their current status
 - 🌐 **Modern Web UI**: Responsive Material-UI interface optimized for desktop and mobile
 
-## Screenshots
-
-<!-- Add screenshots here -->
-
-_Screenshots coming soon_
+> ⚠️ This project is under active development. Features and interfaces may change.
 
 ## Tech Stack
 
