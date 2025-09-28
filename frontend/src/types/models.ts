@@ -23,7 +23,7 @@ export interface PlantPhaseInstance {
 export interface PlantEvent {
   id: string;
   timestamp: string;
-  type: 'watering' | 'feeding' | 'observation' | 'training' | 'harvest' | 'transplant' | 'custom';
+  type: 'watering' | 'observation' | 'training' | 'harvest' | 'transplant' | 'custom';
   title: string;
   description?: string;
   data?: {

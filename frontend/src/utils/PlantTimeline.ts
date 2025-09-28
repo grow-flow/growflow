@@ -276,7 +276,6 @@ export const createPlantTimeline = (
 export const getEventIcon = (type: PlantEvent['type']): string => {
   const icons = {
     watering: '💧',
-    feeding: '🌱',
     observation: '👁️',
     training: '✂️',
     harvest: '🌾',
@@ -289,7 +288,6 @@ export const getEventIcon = (type: PlantEvent['type']): string => {
 export const getEventColor = (type: PlantEvent['type']): string => {
   const colors = {
     watering: '#2196F3',
-    feeding: '#4CAF50',
     observation: '#FF9800',
     training: '#9C27B0',
     harvest: '#795548',

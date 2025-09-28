@@ -23,7 +23,6 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { PlantEvent } from "../types/models";
 import { EVENT_TYPES, QUICK_EVENT_TEMPLATES, EventType } from "../config/eventTypes";
 import WateringForm from "./events/WateringForm";
-import FeedingForm from "./events/FeedingForm";
 import TrainingForm from "./events/TrainingForm";
 
 interface EventDialogProps {
@@ -109,8 +108,6 @@ const EventDialog: React.FC<EventDialogProps> = ({
     switch (eventData.type) {
       case 'watering':
         return <WateringForm data={eventData.data} onChange={handleDataChange} />;
-      case 'feeding':
-        return <FeedingForm data={eventData.data} onChange={handleDataChange} />;
       case 'training':
         return <TrainingForm data={eventData.data} onChange={handleDataChange} />;
       default:

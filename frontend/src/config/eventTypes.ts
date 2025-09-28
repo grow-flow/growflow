@@ -4,21 +4,16 @@ export const EVENT_TYPES = {
   watering: {
     icon: "💧",
     color: "#2196F3",
-    title: "Watering",
+    title: "Watering & Feeding",
     fields: [
       "amount_ml",
+      "nutrients",
       "ph_level",
       "ec_ppm",
       "water_temperature",
       "runoff_ph",
       "runoff_ec",
     ],
-  },
-  feeding: {
-    icon: "🌱",
-    color: "#4CAF50",
-    title: "Feeding",
-    fields: ["nutrients", "ph_level", "ec_ppm"],
   },
   observation: {
     icon: "👁️",
@@ -54,22 +49,50 @@ export const EVENT_TYPES = {
 
 export const QUICK_EVENT_TEMPLATES = {
   watering: [
-    { title: "Regular Watering", data: { amount_ml: 500 } },
-    { title: "Light Watering", data: { amount_ml: 250 } },
-    { title: "Deep Watering", data: { amount_ml: 1000 } },
-  ],
-  feeding: [
+    { 
+      title: "Plain Water", 
+      data: { amount_ml: 500 } 
+    },
+    { 
+      title: "Light Watering", 
+      data: { amount_ml: 250 } 
+    },
+    { 
+      title: "Deep Watering", 
+      data: { amount_ml: 1000 } 
+    },
+    {
+      title: "Advanced Nutrients Starter",
+      data: {
+        amount_ml: 500,
+        nutrients: [
+          { name: "Sensi Grow A", amount_ml: 10 },
+          { name: "Sensi Grow B", amount_ml: 10 },
+          { name: "K-52", amount_ml: 20 },
+          { name: "Voodoo Juice", amount_ml: 20 },
+        ],
+      },
+    },
     {
       title: "Veg Nutrients",
-      data: { nutrients: [{ name: "Veg NPK", amount_ml: 10 }] },
+      data: { 
+        amount_ml: 500,
+        nutrients: [{ name: "Veg NPK", amount_ml: 10 }] 
+      },
     },
     {
       title: "Bloom Nutrients",
-      data: { nutrients: [{ name: "Bloom NPK", amount_ml: 15 }] },
+      data: { 
+        amount_ml: 500,
+        nutrients: [{ name: "Bloom NPK", amount_ml: 15 }] 
+      },
     },
     {
       title: "Cal-Mag",
-      data: { nutrients: [{ name: "Cal-Mag", amount_ml: 5 }] },
+      data: { 
+        amount_ml: 500,
+        nutrients: [{ name: "Cal-Mag", amount_ml: 5 }] 
+      },
     },
   ],
   observation: [

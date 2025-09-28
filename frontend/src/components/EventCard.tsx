@@ -28,52 +28,48 @@ const EventCard: React.FC<EventCardProps> = ({ event, onEdit }) => {
     switch (event.type) {
       case 'watering':
         return (
-          <Grid container spacing={1} sx={{ mt: 1 }}>
-            {data.amount_ml && (
-              <Grid item xs={6} md={4}>
-                <Typography variant="caption" color="textSecondary">Amount</Typography>
-                <Typography variant="body2" fontWeight={500}>{data.amount_ml} ml</Typography>
-              </Grid>
-            )}
-            {data.ph_level && (
-              <Grid item xs={6} md={4}>
-                <Typography variant="caption" color="textSecondary">pH</Typography>
-                <Typography variant="body2" fontWeight={500}>{data.ph_level}</Typography>
-              </Grid>
-            )}
-            {data.ec_ppm && (
-              <Grid item xs={6} md={4}>
-                <Typography variant="caption" color="textSecondary">EC</Typography>
-                <Typography variant="body2" fontWeight={500}>{data.ec_ppm} PPM</Typography>
-              </Grid>
-            )}
-            {data.water_temperature && (
-              <Grid item xs={6} md={4}>
-                <Typography variant="caption" color="textSecondary">Temp</Typography>
-                <Typography variant="body2" fontWeight={500}>{data.water_temperature}°C</Typography>
-              </Grid>
-            )}
-            {data.runoff_ph && (
-              <Grid item xs={6} md={4}>
-                <Typography variant="caption" color="textSecondary">Runoff pH</Typography>
-                <Typography variant="body2" fontWeight={500}>{data.runoff_ph}</Typography>
-              </Grid>
-            )}
-            {data.runoff_ec && (
-              <Grid item xs={6} md={4}>
-                <Typography variant="caption" color="textSecondary">Runoff EC</Typography>
-                <Typography variant="body2" fontWeight={500}>{data.runoff_ec} PPM</Typography>
-              </Grid>
-            )}
-          </Grid>
-        );
-
-      case 'feeding':
-        return (
           <Box sx={{ mt: 1 }}>
+            <Grid container spacing={1}>
+              {data.amount_ml && (
+                <Grid item xs={6} md={4}>
+                  <Typography variant="caption" color="textSecondary">Amount</Typography>
+                  <Typography variant="body2" fontWeight={500}>{data.amount_ml} ml</Typography>
+                </Grid>
+              )}
+              {data.ph_level && (
+                <Grid item xs={6} md={4}>
+                  <Typography variant="caption" color="textSecondary">pH</Typography>
+                  <Typography variant="body2" fontWeight={500}>{data.ph_level}</Typography>
+                </Grid>
+              )}
+              {data.ec_ppm && (
+                <Grid item xs={6} md={4}>
+                  <Typography variant="caption" color="textSecondary">EC</Typography>
+                  <Typography variant="body2" fontWeight={500}>{data.ec_ppm} PPM</Typography>
+                </Grid>
+              )}
+              {data.water_temperature && (
+                <Grid item xs={6} md={4}>
+                  <Typography variant="caption" color="textSecondary">Temp</Typography>
+                  <Typography variant="body2" fontWeight={500}>{data.water_temperature}°C</Typography>
+                </Grid>
+              )}
+              {data.runoff_ph && (
+                <Grid item xs={6} md={4}>
+                  <Typography variant="caption" color="textSecondary">Runoff pH</Typography>
+                  <Typography variant="body2" fontWeight={500}>{data.runoff_ph}</Typography>
+                </Grid>
+              )}
+              {data.runoff_ec && (
+                <Grid item xs={6} md={4}>
+                  <Typography variant="caption" color="textSecondary">Runoff EC</Typography>
+                  <Typography variant="body2" fontWeight={500}>{data.runoff_ec} PPM</Typography>
+                </Grid>
+              )}
+            </Grid>
             {data.nutrients && data.nutrients.length > 0 && (
-              <Box sx={{ mb: 1 }}>
-                <Typography variant="caption" color="textSecondary">Nutrients</Typography>
+              <Box sx={{ mt: 1 }}>
+                <Typography variant="caption" color="textSecondary" display="block">Nutrients</Typography>
                 {data.nutrients.map((nutrient, index) => (
                   <Typography key={index} variant="body2" fontWeight={500}>
                     {nutrient.name}: {nutrient.amount_ml} ml
@@ -82,22 +78,9 @@ const EventCard: React.FC<EventCardProps> = ({ event, onEdit }) => {
                 ))}
               </Box>
             )}
-            <Grid container spacing={1}>
-              {data.ph_level && (
-                <Grid item xs={6}>
-                  <Typography variant="caption" color="textSecondary">pH</Typography>
-                  <Typography variant="body2" fontWeight={500}>{data.ph_level}</Typography>
-                </Grid>
-              )}
-              {data.ec_ppm && (
-                <Grid item xs={6}>
-                  <Typography variant="caption" color="textSecondary">EC</Typography>
-                  <Typography variant="body2" fontWeight={500}>{data.ec_ppm} PPM</Typography>
-                </Grid>
-              )}
-            </Grid>
           </Box>
         );
+
 
       case 'training':
         return (
