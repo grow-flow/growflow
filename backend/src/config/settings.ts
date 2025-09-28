@@ -4,6 +4,10 @@ export const CONFIG = {
     CORS_ORIGIN: process.env.CORS_ORIGIN || (process.env.NODE_ENV === 'development' ? '*' : 'http://localhost:3000')
   },
   
+  SECURITY: {
+    ALLOWED_FRAME_ANCESTORS: process.env.ALLOWED_FRAME_ANCESTORS?.split(',') || ["'self'", "*"]
+  },
+  
   DATABASE: {
     PATH: process.env.DB_PATH || './data/growflow.db',
     SYNC: process.env.NODE_ENV !== 'production' || process.env.FORCE_DB_SYNC === 'true'

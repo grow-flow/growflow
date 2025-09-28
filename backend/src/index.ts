@@ -12,7 +12,18 @@ import { strainRoutes } from './controllers/strainController';
 
 const app = express();
 
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      frameAncestors: CONFIG.SECURITY.ALLOWED_FRAME_ANCESTORS,
+      frameSrc: ["'self'"]
+    }
+  },
+  frameguard: { action: 'sameorigin' }
+}));
 app.use(cors({ origin: CONFIG.API.CORS_ORIGIN }));
 app.use(morgan('combined'));
 app.use(express.json());
