@@ -9,6 +9,7 @@ import {
   Tab,
 } from "@mui/material";
 import { usePlant, useCreateEvent, useUpdateEvent, useDeleteEvent } from "../hooks/usePlants";
+import { PlantEvent } from "../types/models";
 import DynamicPlantTimeline from "../components/DynamicPlantTimeline";
 import PlantHeader from "../components/PlantHeader";
 import EventCard from "../components/EventCard";
@@ -37,26 +38,38 @@ const PlantDetail: React.FC = () => {
 
   const [tabValue, setTabValue] = useState(0);
   const [eventDialog, setEventDialog] = useState<{ open: boolean; event: any | null }>({ open: false, event: null });
-  const [eventData, setEventData] = useState({ 
-    title: "", 
+  const [eventData, setEventData] = useState<{
+    type: PlantEvent['type'];
+    title: string;
+    notes: string;
+    timestamp: string;
+    data?: PlantEvent['data'];
+  }>({ 
+    type: "watering" as PlantEvent['type'],
+    title: "Watering", 
     notes: "", 
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    data: {}
   });
 
   const handleCreateEvent = () => {
     setEventData({
+      type: "watering" as PlantEvent['type'],
       title: "Quick Watering",
       notes: "Quick watering logged from plant detail page",
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      data: {}
     });
     setEventDialog({ open: true, event: null });
   };
 
   const handleEditEvent = (event: any) => {
     setEventData({ 
+      type: event.type || "watering",
       title: event.title, 
       notes: event.notes || "",
-      timestamp: event.timestamp
+      timestamp: event.timestamp,
+      data: event.data || {}
     });
     setEventDialog({ open: true, event });
   };
@@ -75,10 +88,11 @@ const PlantDetail: React.FC = () => {
         await createEvent.mutateAsync({
           plantId: plant.id,
           eventData: {
-            type: "watering",
+            type: eventData.type,
             title: eventData.title,
             notes: eventData.notes,
-            timestamp: eventData.timestamp
+            timestamp: eventData.timestamp,
+            data: eventData.data
           }
         });
       }
@@ -91,15 +105,13 @@ const PlantDetail: React.FC = () => {
   const handleDeleteEvent = async (eventId: string) => {
     if (!plant) return;
 
-    if (window.confirm("Are you sure you want to delete this event?")) {
-      try {
-        await deleteEvent.mutateAsync({
-          plantId: plant.id,
-          eventId
-        });
-      } catch (error) {
-        console.error("Failed to delete event:", error);
-      }
+    try {
+      await deleteEvent.mutateAsync({
+        plantId: plant.id,
+        eventId
+      });
+    } catch (error) {
+      console.error("Failed to delete event:", error);
     }
   };
 
@@ -131,7 +143,6 @@ const PlantDetail: React.FC = () => {
                     key={event.id}
                     event={event}
                     onEdit={handleEditEvent}
-                    onDelete={handleDeleteEvent}
                   />
                 )) || []}
                 {(!plant.events || plant.events.length === 0) && (
@@ -151,7 +162,8 @@ const PlantDetail: React.FC = () => {
         eventData={eventData}
         onClose={() => setEventDialog({ open: false, event: null })}
         onSave={handleSaveEvent}
-        onChange={setEventData}
+        onDelete={handleDeleteEvent}
+        onChange={(data) => setEventData(data)}
       />
     </Box>
   );
