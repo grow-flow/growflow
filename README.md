@@ -1,84 +1,168 @@
-# GrowFlow Home Assistant Add-on Repository
+# GrowFlow - Plant Tracking System
 
-[![GitHub Release][releases-shield]][releases]
-[![GitHub Activity][commits-shield]][commits]
-[![License][license-shield]](LICENSE)
-
-![Supports amd64 Architecture][amd64-shield]
-![Supports aarch64 Architecture][aarch64-shield]
-![Supports armv7 Architecture][armv7-shield]
-
-_Plant tracking system with comprehensive lifecycle management and automation._
+_Comprehensive plant tracking system with complete lifecycle management and timeline documentation._
 
 ## About
 
-GrowFlow is a comprehensive Home Assistant add-on for plant growth management. It provides complete lifecycle tracking from germination to harvest with automated climate control, detailed analytics, and seamless Home Assistant integration.
-
-## Installation
-
-1. Navigate in your Home Assistant frontend to **Supervisor** → **Add-on Store**
-2. Click the 3-dots menu at upper right **...** → **Repositories**
-3. Add this repository URL: `https://github.com/moritzheine/growflow`
-4. Find "GrowFlow" in the add-on store and click it
-5. Click "Install" and wait for installation to complete
-6. Configure the add-on (see configuration section below)
-7. Start the add-on
-8. Access the web interface at `http://your-ha-ip:8080`
-
-## Configuration
-
-Add-on configuration:
-
-```yaml
-mqtt_broker: core-mosquitto
-mqtt_port: 1883
-mqtt_username: ""
-mqtt_password: ""
-ha_url: http://supervisor/core
-ha_token: ""
-log_level: info
-backup_enabled: true
-```
-
-### Option: `mqtt_broker`
-
-The MQTT broker hostname or IP address. Use `core-mosquitto` if using the Mosquitto broker add-on.
-
-### Option: `mqtt_port`
-
-The MQTT broker port (default: 1883).
-
-### Option: `ha_url`
-
-Home Assistant URL for API access (default: `http://supervisor/core`).
-
-### Option: `ha_token`
-
-Home Assistant long-lived access token for API authentication.
-
-### Option: `log_level`
-
-Controls the level of log output. Valid values are `trace`, `debug`, `info`, `warn`, `error`, and `fatal`.
+GrowFlow is a standalone plant tracking application designed for documenting the complete grow process from germination to harvest. Built with modern web technologies, it provides detailed lifecycle tracking, care event logging, and comprehensive analytics for plant cultivation management.
 
 ## Features
 
-- 🌱 **Complete Plant Lifecycle**: Track plants through 9 growth phases
-- 📊 **Grow Area Management**: Equipment and sensor mapping to HA entities
-- 🌡️ **VPD Automation**: Automated climate control based on plant phases
-- 💡 **Light Scheduling**: Automatic light cycle management
-- 💧 **Care Tracking**: Log watering, feeding, and observations
-- 📈 **Analytics**: Environmental data and growth charts
-- 📡 **MQTT Integration**: Auto-discovery for sensors and devices
-- 🔄 **Real-time Updates**: WebSocket support for live data
+- 🌱 **Complete Plant Lifecycle**: Track plants through 9 growth phases (germination → seedling → vegetation → pre_flower → flowering → flushing → harvest → drying → curing)
+- 💧 **Care Event Logging**: Record watering, feeding, training, observations, and harvests with detailed data
+- 🧬 **Strain Management**: Track genetics, breeding information, and custom phase templates
+- 📈 **Timeline Analytics**: Complete plant timeline visualization and progress tracking
+- 📊 **Dashboard Overview**: Monitor all active plants and their current status
+- 🌐 **Modern Web UI**: Responsive Material-UI interface optimized for desktop and mobile
 
-## Support
+## Screenshots
 
-For help with this add-on, please create an issue in this GitHub repository.
+<!-- Add screenshots here -->
+
+_Screenshots coming soon_
+
+## Tech Stack
+
+- **Backend**: Express.js + TypeScript + SQLite + TypeORM
+- **Frontend**: React + TypeScript + Material-UI + React Query
+- **Database**: SQLite with TypeORM for reliable data persistence
+- **Deployment**: Docker with multi-stage builds for production optimization
+
+## Installation
+
+### Docker Compose (Recommended)
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/moritzheine/growflow.git
+cd growflow
+```
+
+2. Start with Docker Compose:
+
+```bash
+docker-compose up -d
+```
+
+3. Access the application at `http://localhost:8080`
+
+### Docker
+
+```bash
+# Build and run manually
+docker build -t growflow:latest .
+docker run -d -p 8080:8080 -v ./data:/app/data growflow:latest
+```
+
+### Development Setup
+
+```bash
+# Install dependencies
+npm install
+cd backend && npm install
+cd ../frontend && npm install
+
+# Start development servers
+npm run dev                    # Start both backend and frontend
+cd backend && npm run dev      # Backend only (port 8080)
+cd frontend && npm start       # Frontend only (port 3000)
+```
+
+## Configuration
+
+### Environment Variables
+
+```bash
+NODE_ENV=production           # Set to production for optimized performance
+DB_PATH=/app/data/growflow.db # Database file location
+LOG_LEVEL=info               # Logging verbosity (trace, debug, info, warn, error)
+ALLOWED_FRAME_ANCESTORS="'self',*"  # CSP frame ancestors for iframe embedding
+```
+
+## Usage
+
+1. **Add Strains**: Define genetics with custom phase templates and growing characteristics
+2. **Plant Management**: Create plants, assign strains, and track through lifecycle phases
+3. **Care Logging**: Record detailed watering, feeding, training, and observation events
+4. **Timeline Tracking**: Monitor plant progress and view complete grow timelines
+5. **Analytics**: Review historical data and optimize growing processes
+
+## API Documentation
+
+The application provides a RESTful API for all plant management operations:
+
+- **Plants**: CRUD operations with phase management and event logging
+- **Strains**: Genetic information and phase template management
+- **Events**: Comprehensive care activity tracking with rich data structures
+
+Health check endpoint available at `/api/health` for monitoring.
+
+## Development
+
+### Project Structure
+
+```
+growflow/
+├── backend/           # Express.js API server
+│   ├── src/models/   # TypeORM database models
+│   ├── src/controllers/ # API route handlers
+│   └── src/config/   # Application configuration
+├── frontend/         # React web interface
+│   ├── src/pages/   # Main application pages
+│   ├── src/components/ # Reusable UI components
+│   └── src/services/ # API client and utilities
+└── data/            # SQLite database storage
+```
+
+### Development Commands
+
+```bash
+# Linting and type checking
+npm run lint                  # Lint both backend and frontend
+cd backend && npm run lint:fix # Auto-fix backend linting issues
+cd frontend && npm run lint:fix # Auto-fix frontend linting issues
+
+# Building
+npm run build                 # Build both backend and frontend
+cd backend && npm run build   # TypeScript compilation (type check)
+cd frontend && npm run build  # React production build
+
+# Testing
+npm run test                  # Run all tests
+cd backend && npm test        # Backend Jest tests
+cd frontend && npm test       # Frontend React tests
+```
+
+## Deployment
+
+### Production Deployment
+
+The application is optimized for production deployment using Docker:
+
+- **Multi-stage builds** for minimal image size
+- **Layer caching** for fast rebuilds
+- **Health checks** for container orchestration
+- **Data persistence** via volume mounts
+- **Environment-based configuration**
+
+### Synology NAS Deployment
+
+1. Install Docker package from Package Center
+2. Create project directory in File Station (e.g., `/docker/growflow/`)
+3. Upload `docker-compose.yml` to project directory
+4. Start container via Docker app or SSH
 
 ## Contributing
 
-This is an active open-source project. We are always open to people who want to
-use the code or contribute to it.
+This is an active open-source project. Contributions are welcome through:
+
+- Bug reports and feature requests via GitHub issues
+- Code contributions via pull requests
+- Documentation improvements
+- Testing and feedback
+
+Please ensure all code follows the established TypeScript and ESLint standards.
 
 ## License
 
@@ -86,11 +170,4 @@ MIT License
 
 Copyright (c) 2025 GrowFlow
 
-[amd64-shield]: https://img.shields.io/badge/amd64-yes-green.svg
-[aarch64-shield]: https://img.shields.io/badge/aarch64-yes-green.svg
-[armv7-shield]: https://img.shields.io/badge/armv7-yes-green.svg
-[commits-shield]: https://img.shields.io/github/commit-activity/y/moritzheine/growflow.svg
-[commits]: https://github.com/moritzheine/growflow/commits/main
 [license-shield]: https://img.shields.io/github/license/moritzheine/growflow.svg
-[releases-shield]: https://img.shields.io/github/release/moritzheine/growflow.svg
-[releases]: https://github.com/moritzheine/growflow/releases
