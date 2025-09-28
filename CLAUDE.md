@@ -125,14 +125,6 @@ docker run -d -p 8080:8080 -v ./data:/app/data growflow  # Run with data persist
 
 ## Docker Compose Deployment
 
-### Synology NAS Setup
-
-- **Docker Package**: Install Docker package from Package Center
-- **File Station**: Create project directory (e.g., `/docker/growflow/`)
-- **Configuration**: Place `docker-compose.yml` in project directory
-- **Data Persistence**: Volume mounts to `./data` for database storage
-- **Network Access**: Application accessible on port 8080
-
 ### Environment Variables
 
 - **NODE_ENV**: Set to `production` for optimal performance
