@@ -4,6 +4,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import path from 'path';
+import fs from 'fs';
 import { CONFIG } from './config/settings';
 import { initializeDatabase } from './database';
 import { errorHandler } from './middleware/errorHandler';
@@ -92,13 +93,37 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
-// Serve React frontend static files
+// Serve React frontend static files with Ingress path support
 const frontendPath = path.join(__dirname, '../../frontend/build');
+
+// Middleware to handle Ingress base path for static files
+app.use((req, res, next) => {
+  const ingressPath = req.headers['x-ingress-path'] as string || '';
+
+  // Strip ingress path from request URL for static file serving
+  if (ingressPath && req.url.startsWith(ingressPath)) {
+    req.url = req.url.substring(ingressPath.length) || '/';
+  }
+
+  next();
+});
+
 app.use(express.static(frontendPath));
 
-// Catch-all handler for React Router
+// Catch-all handler for React Router with Ingress support
 app.get('*', (req, res) => {
-  res.sendFile(path.join(frontendPath, 'index.html'));
+  const ingressPath = req.headers['x-ingress-path'] as string || '';
+  const indexPath = path.join(frontendPath, 'index.html');
+
+  if (ingressPath) {
+    // Inject base tag for Ingress routing
+    let html = fs.readFileSync(indexPath, 'utf8');
+    html = html.replace('<head>', `<head><base href="${ingressPath}/">`);
+    res.send(html);
+  } else {
+    // Normal serving without modifications
+    res.sendFile(indexPath);
+  }
 });
 
 app.use(errorHandler);

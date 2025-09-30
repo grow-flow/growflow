@@ -34,6 +34,16 @@ const queryClient = new QueryClient({
 });
 
 
+// Detect Ingress base path from meta tag (injected by backend)
+const getBasename = () => {
+  const baseMeta = document.querySelector('base');
+  if (baseMeta) {
+    const href = baseMeta.getAttribute('href');
+    return href ? href.replace(/\/$/, '') : '';
+  }
+  return '';
+};
+
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
@@ -41,7 +51,7 @@ const root = ReactDOM.createRoot(
 root.render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <BrowserRouter basename={getBasename()}>
         <ThemeProvider theme={theme}>
           <CssBaseline />
           <App />
