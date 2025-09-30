@@ -108,10 +108,19 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.static(frontendPath));
+app.use(express.static(frontendPath, {
+  index: false, // Don't serve index.html automatically
+  fallthrough: true
+}));
 
 // Catch-all handler for React Router with Ingress support
-app.get('*', (req, res) => {
+// Only serve index.html for non-file requests (React Router routes)
+app.get('*', (req, res, next) => {
+  // Skip if this looks like a file request (has extension)
+  if (req.path.includes('.')) {
+    return next();
+  }
+
   const ingressPath = req.headers['x-ingress-path'] as string || '';
   const indexPath = path.join(frontendPath, 'index.html');
 
