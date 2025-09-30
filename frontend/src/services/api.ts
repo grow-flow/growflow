@@ -2,7 +2,13 @@ import axios from 'axios';
 import { Plant, WateringLog, FeedingLog, ObservationLog, PlantPhaseInstance, PlantEvent } from '../types/models';
 import { Strain, CreateStrainData, UpdateStrainData } from '../types/strain';
 
-const API_BASE = '/api';
+// Detect base path from <base> tag (set by Ingress)
+const getBasePath = () => {
+  const baseTag = document.querySelector('base');
+  return baseTag?.getAttribute('href')?.replace(/\/$/, '') || '';
+};
+
+const API_BASE = `${getBasePath()}/api`;
 
 const api = axios.create({
   baseURL: API_BASE,
