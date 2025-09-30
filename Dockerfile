@@ -1,5 +1,5 @@
 # Multi-stage build for standalone deployment
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache python3 make g++
@@ -26,7 +26,7 @@ COPY frontend/vite.config.ts ./frontend/
 RUN cd frontend && npm run build
 
 # Production stage
-FROM node:18-alpine
+FROM node:20-alpine
 
 # Install runtime dependencies
 RUN apk add --no-cache curl sqlite
