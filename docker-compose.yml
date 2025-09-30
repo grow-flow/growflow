@@ -14,6 +14,8 @@ services:
       - DB_PATH=/app/data/growflow.db
       - LOG_LEVEL=info
       - FORCE_DB_SYNC=true
+      - CORS_ORIGIN=*
+      - TRUST_PROXY=true
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
       interval: 30s

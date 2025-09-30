@@ -12,6 +12,11 @@ import { strainRoutes } from './controllers/strainController';
 
 const app = express();
 
+// Trust proxy for reverse proxy setups (Home Assistant, nginx, etc)
+if (CONFIG.SECURITY.TRUST_PROXY) {
+  app.set('trust proxy', 1);
+}
+
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -26,7 +31,7 @@ app.use(helmet({
   frameguard: false,
   crossOriginEmbedderPolicy: false
 }));
-app.use(cors({ origin: CONFIG.API.CORS_ORIGIN }));
+app.use(cors({ origin: CONFIG.API.CORS_ORIGIN, credentials: true }));
 app.use(morgan('combined'));
 app.use(express.json());
 
