@@ -19,10 +19,12 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'"],
       scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
       frameAncestors: CONFIG.SECURITY.ALLOWED_FRAME_ANCESTORS,
-      frameSrc: ["'self'"]
+      frameSrc: ["'self'"],
+      connectSrc: ["'self'"]
     }
   },
-  frameguard: { action: 'sameorigin' }
+  frameguard: false,
+  crossOriginEmbedderPolicy: false
 }));
 app.use(cors({ origin: CONFIG.API.CORS_ORIGIN }));
 app.use(morgan('combined'));
