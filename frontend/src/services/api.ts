@@ -2,16 +2,21 @@ import axios from 'axios';
 import { Plant, WateringLog, FeedingLog, ObservationLog, PlantPhaseInstance, PlantEvent } from '../types/models';
 import { Strain, CreateStrainData, UpdateStrainData } from '../types/strain';
 
-// Detect base path from <base> tag (set by Ingress)
-const getBasePath = () => {
-  const baseTag = document.querySelector('base');
-  return baseTag?.getAttribute('href')?.replace(/\/$/, '') || '';
+// Get base path from current location
+const getApiBase = () => {
+  // If we're running under Ingress, use current path + /api
+  // Otherwise just use /api
+  const path = window.location.pathname;
+  if (path.startsWith('/hassio/ingress/')) {
+    // Extract token: /hassio/ingress/TOKEN/... -> /hassio/ingress/TOKEN/api
+    const match = path.match(/^(\/hassio\/ingress\/[^/]+)/);
+    return match ? `${match[1]}/api` : '/api';
+  }
+  return '/api';
 };
 
-const API_BASE = `${getBasePath()}/api`;
-
 const api = axios.create({
-  baseURL: API_BASE,
+  baseURL: getApiBase(),
   timeout: 10000,
 });
 
