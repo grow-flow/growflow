@@ -27,10 +27,9 @@ cd backend && npm run lint    # ESLint backend code
 cd backend && npm test        # Run Jest tests
 
 # Frontend specific commands
-cd frontend && npm start      # Start React dev server (port 3000, proxies to backend)
-cd frontend && npm run build  # Build React app for production
+cd frontend && npm start      # Start Vite dev server (port 3000, proxies to backend)
+cd frontend && npm run build  # Build React app for production with Vite
 cd frontend && npm run lint   # ESLint frontend code
-cd frontend && npm test       # Run React tests with react-scripts
 
 # Docker Deployment
 
@@ -65,12 +64,13 @@ docker run -d -p 8080:8080 -v ./data:/app/data growflow  # Run with data persist
 - **Configuration**: Centralized in `backend/src/config/settings.ts`
 - **API**: RESTful endpoints with validation, main routes in `backend/src/controllers/`
 
-### Frontend (React + Material-UI + React Query)
+### Frontend (React + Material-UI + React Query + Vite)
 
+- **Build Tool**: Vite for fast development and optimized production builds
 - **State Management**: React Query (@tanstack/react-query) for server state
-- **Routing**: React Router with pages: Dashboard, Plants, Strains, Grow Area Detail, Plant Detail, Settings
-- **Components**: Material-UI components with custom grow area and plant management dialogs
-- **API Layer**: Axios-based service in `frontend/src/services/api.ts`
+- **Routing**: React Router with pages: Dashboard, Plants, Strains, Plant Detail, Settings
+- **Components**: Material-UI components with custom plant management dialogs
+- **API Layer**: Axios-based service in `frontend/src/services/api.ts` with Home Assistant Ingress support
 - **Types**: Shared TypeScript interfaces between frontend/backend
 
 ### Core Features
@@ -83,21 +83,22 @@ docker run -d -p 8080:8080 -v ./data:/app/data growflow  # Run with data persist
 
 ### Data Flow
 
-1. GrowAreas contain Plants with dimensional tracking and organization
-2. Plants progress through 9 lifecycle phases with date tracking
-3. Care activities (watering/feeding/observations) are logged as timeline events per plant
-4. All plant data persists in SQLite database for historical tracking
-5. Frontend displays real-time plant status and complete grow timeline
+1. Plants progress through 9 lifecycle phases with date tracking
+2. Care activities (watering/feeding/training/observations/harvests) are logged as events per plant
+3. All plant data persists in SQLite database for historical tracking
+4. Frontend displays real-time plant status and complete grow timeline
+5. Home Assistant Ingress routing automatically detected via URL path (`/hassio/ingress/*`)
 
 ### Development Notes
 
 - Settings are centralized in `backend/src/config/settings.ts` using environment variables
-- Database auto-synchronizes in development (disabled in production)
-- Frontend proxies API requests to localhost:8080 (configured in `frontend/package.json`)
+- Database auto-synchronizes in development (disabled in production unless `FORCE_DB_SYNC=true`)
+- Frontend proxies API requests to localhost:8080 (configured in [vite.config.ts](frontend/vite.config.ts))
 - Both backend and frontend use ESLint for code quality with auto-fix available
 - TypeScript strict mode enabled across the project
 - Backend uses nodemon for hot reloading during development
-- Frontend uses React dev server with hot module replacement
+- Frontend uses Vite dev server with hot module replacement
+- Home Assistant Ingress support via automatic path detection and base tag injection
 
 ### Docker Deployment Strategy
 
@@ -120,7 +121,6 @@ docker run -d -p 8080:8080 -v ./data:/app/data growflow  # Run with data persist
 
 - **Linting**: ESLint with TypeScript support for both backend and frontend
 - **Backend**: Jest testing framework, run with `npm test` in backend directory
-- **Frontend**: React Testing Library with Jest (via react-scripts)
 - **Type Safety**: TypeScript strict mode enabled, use `npm run build` for type checking
 
 ## Docker Compose Deployment
@@ -130,6 +130,9 @@ docker run -d -p 8080:8080 -v ./data:/app/data growflow  # Run with data persist
 - **NODE_ENV**: Set to `production` for optimal performance
 - **DB_PATH**: Database file location (`/app/data/growflow.db`)
 - **LOG_LEVEL**: Control logging verbosity (`info`, `debug`, `error`)
+- **FORCE_DB_SYNC**: Force database synchronization in production (`true` or `false`)
+- **TRUST_PROXY**: Enable proxy trust for reverse proxy setups (`true` or `false`)
+- **ALLOWED_FRAME_ANCESTORS**: CSP frame ancestors for iframe embedding (comma-separated)
 
 ### Deployment Commands
 
@@ -151,8 +154,8 @@ docker-compose down
 
 ### GitHub Actions
 
-- **Build Workflow** (`.github/workflows/docker-publish.yml`): Automated Docker builds on push/PR
+- **Build Workflow** ([.github/workflows/docker.yml](.github/workflows/docker.yml)): Automated Docker builds on push to main
   - Multi-architecture builds (amd64, arm64) for broad compatibility
   - Pushes to DockerHub: `moritz03/growflow`
   - Build cache optimization using GitHub Actions cache
-  - Semantic versioning with tags
+  - Tags: `latest` for main branch, version tags on releases

@@ -56,6 +56,15 @@ app.use((req, res, next) => {
   next();
 });
 
+// Middleware to strip Ingress path from URL for routing
+app.use((req, res, next) => {
+  const ingressPath = req.headers['x-ingress-path'] as string;
+  if (ingressPath && req.url.startsWith(ingressPath)) {
+    req.url = req.url.substring(ingressPath.length) || '/';
+  }
+  next();
+});
+
 app.use('/api/plants', plantRoutes);
 // Care events are now handled via plant routes: POST /api/plants/:id/events
 app.use('/api/strains', strainRoutes);
@@ -93,20 +102,8 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
-// Serve React frontend static files with Ingress path support
+// Serve React frontend static files
 const frontendPath = path.join(__dirname, '../../frontend/build');
-
-// Middleware to handle Ingress base path for static files
-app.use((req, res, next) => {
-  const ingressPath = req.headers['x-ingress-path'] as string || '';
-
-  // Strip ingress path from request URL for static file serving
-  if (ingressPath && req.url.startsWith(ingressPath)) {
-    req.url = req.url.substring(ingressPath.length) || '/';
-  }
-
-  next();
-});
 
 app.use(express.static(frontendPath, {
   index: false, // Don't serve index.html automatically
