@@ -7,6 +7,7 @@ export const useStrains = () => {
     queryKey: ["strains"],
     queryFn: () => apiService.getStrains(),
     initialData: [],
+    staleTime: 0,
   });
 };
 

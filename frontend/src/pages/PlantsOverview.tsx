@@ -454,8 +454,6 @@ const PlantsOverview: React.FC = () => {
                   key={plant.id}
                   hover
                   selected={selectedPlantIds.includes(plant.id)}
-                  sx={{ cursor: "pointer" }}
-                  onClick={() => navigate(`/plant/${plant.id}`)}
                 >
                   <TableCell padding="checkbox">
                     <Checkbox
@@ -465,18 +463,11 @@ const PlantsOverview: React.FC = () => {
                       }
                     />
                   </TableCell>
-                  <TableCell>
-                    <Box>
-                      <Typography variant="subtitle2">{plant.name}</Typography>
-                      {plant.is_mother_plant && (
-                        <Chip
-                          label="Mother"
-                          size="small"
-                          color="success"
-                          sx={{ mt: 0.5 }}
-                        />
-                      )}
-                    </Box>
+                  <TableCell
+                    sx={{ cursor: "pointer" }}
+                    onClick={() => navigate(`/plant/${plant.id}`)}
+                  >
+                    <Typography variant="subtitle2">{plant.name}</Typography>
                   </TableCell>
                   <TableCell>{plant.strain}</TableCell>
                   <TableCell>

@@ -23,7 +23,7 @@ router.get("/", async (req: Request, res: Response) => {
     });
     res.json(plants);
   } catch (error) {
-    console.error('🔴 [Plants] Error fetching plants:', error);
+    console.error("🔴 [Plants] Error fetching plants:", error);
     res.status(500).json({ error: "Failed to fetch plants" });
   }
 });
@@ -57,8 +57,10 @@ router.post("/", async (req: Request, res: Response) => {
     }
 
     // Use phases from request if provided, otherwise create from plant type
-    const isAutoflower = req.body.plant_type === 'autoflower' || strain?.type === 'autoflower';
-    const phases = req.body.phases || createPlantPhasesFromStrain([], isAutoflower);
+    const isAutoflower =
+      req.body.plant_type === "autoflower" || strain?.type === "autoflower";
+    const phases =
+      req.body.phases || createPlantPhasesFromStrain([], isAutoflower);
 
     const plant = plantRepo.create({
       ...req.body,
@@ -120,7 +122,10 @@ router.put("/:id", async (req: Request, res: Response) => {
 
     res.json(updated);
   } catch (error: any) {
-    console.error(`🔴 [Plants] Failed to update plant ${req.params.id}:`, error.message);
+    console.error(
+      `🔴 [Plants] Failed to update plant ${req.params.id}:`,
+      error.message
+    );
     res.status(500).json({
       error: "Failed to update plant",
       details: error.message,
@@ -160,7 +165,14 @@ router.post("/:id/events", async (req: Request, res: Response) => {
 
     // Get current phase ID for event linking
     const currentPhase = getCurrentPhase(plant.phases);
-    const newEvent = createEvent(type, title, data, notes, currentPhase?.id, timestamp);
+    const newEvent = createEvent(
+      type,
+      title,
+      data,
+      notes,
+      currentPhase?.id,
+      timestamp
+    );
 
     plant.events = addEventToPlant(plant.events, newEvent);
 
