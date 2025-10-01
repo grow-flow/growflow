@@ -216,21 +216,24 @@ const Dashboard: React.FC = () => {
             </Typography>
             {Object.keys(phaseCounts).length > 0 ? (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {Object.entries(phaseCounts).map(([phase, count]) => (
-                  <Box key={phase}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                      <Typography variant="body2">{phase}</Typography>
-                      <Typography variant="body2" color="textSecondary">
-                        {count}
-                      </Typography>
+                {(() => {
+                  const maxCount = Math.max(...Object.values(phaseCounts));
+                  return Object.entries(phaseCounts).map(([phase, count]) => (
+                    <Box key={phase}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                        <Typography variant="body2">{phase}</Typography>
+                        <Typography variant="body2" color="textSecondary">
+                          {count}
+                        </Typography>
+                      </Box>
+                      <LinearProgress
+                        variant="determinate"
+                        value={(count / maxCount) * 100}
+                        sx={{ height: 6, borderRadius: 3 }}
+                      />
                     </Box>
-                    <LinearProgress 
-                      variant="determinate" 
-                      value={(count / totalPlants) * 100}
-                      sx={{ height: 6, borderRadius: 3 }}
-                    />
-                  </Box>
-                ))}
+                  ));
+                })()}
               </Box>
             ) : (
               <Typography color="textSecondary">
