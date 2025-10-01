@@ -36,32 +36,37 @@ app.use(cors({ origin: CONFIG.API.CORS_ORIGIN, credentials: true }));
 app.use(morgan('combined'));
 app.use(express.json());
 
-// Request logging middleware
+// Request logging middleware (only errors in production)
 app.use((req, res, next) => {
-  const timestamp = new Date().toISOString();
-  console.log(`[${timestamp}] ${req.method} ${req.path}`);
-  
-  if (req.method === 'POST' || req.method === 'PUT') {
-    console.log(`[${timestamp}] Request body:`, JSON.stringify(req.body, null, 2));
+  if (CONFIG.LOG_LEVEL === 'debug') {
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] ${req.method} ${req.path}`);
+
+    if (req.method === 'POST' || req.method === 'PUT') {
+      console.log(`[${timestamp}] Request body:`, JSON.stringify(req.body, null, 2));
+    }
   }
-  
+
   const originalSend = res.json;
   res.json = function(body) {
     if (res.statusCode >= 400) {
+      const timestamp = new Date().toISOString();
       console.error(`[${timestamp}] Error response ${res.statusCode}:`, body);
     }
     return originalSend.call(this, body);
   };
-  
+
   next();
 });
 
-// Middleware to strip Ingress path from URL for routing
+// Ingress detection middleware (no path stripping needed - Ingress does it)
 app.use((req, res, next) => {
   const ingressPath = req.headers['x-ingress-path'] as string;
-  if (ingressPath && req.url.startsWith(ingressPath)) {
-    req.url = req.url.substring(ingressPath.length) || '/';
+
+  if (ingressPath && CONFIG.LOG_LEVEL === 'debug') {
+    console.log(`🟢 [Ingress] Request via Ingress: ${req.method} ${req.url} (Base: ${ingressPath})`);
   }
+
   next();
 });
 
@@ -106,18 +111,12 @@ app.get('/api/health', async (req, res) => {
 const frontendPath = path.join(__dirname, '../../frontend/build');
 
 app.use(express.static(frontendPath, {
-  index: false, // Don't serve index.html automatically
-  fallthrough: true
+  index: false // Don't serve index.html automatically
 }));
 
 // Catch-all handler for React Router with Ingress support
-// Only serve index.html for non-file requests (React Router routes)
-app.get('*', (req, res, next) => {
-  // Skip if this looks like a file request (has extension)
-  if (req.path.includes('.')) {
-    return next();
-  }
-
+// Serve index.html for all non-API, non-file requests (SPA routing)
+app.get('*', (req, res) => {
   const ingressPath = req.headers['x-ingress-path'] as string || '';
   const indexPath = path.join(frontendPath, 'index.html');
 

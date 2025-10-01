@@ -12,10 +12,14 @@ export const AppDataSource = new DataSource({
 
 export const initializeDatabase = async () => {
   try {
+    console.log('🔵 [DB] Initializing database...');
+    console.log('🔵 [DB] Database path:', CONFIG.DATABASE.PATH);
+    console.log('🔵 [DB] Synchronize:', CONFIG.DATABASE.SYNC);
     await AppDataSource.initialize();
-    console.log('Database initialized successfully');
+    console.log('🟢 [DB] Database initialized successfully');
+    console.log('🟢 [DB] Is initialized:', AppDataSource.isInitialized);
   } catch (error) {
-    console.error('Database initialization failed:', error);
+    console.error('🔴 [DB] Database initialization failed:', error);
     throw error;
   }
 };

@@ -2,45 +2,11 @@ import axios from 'axios';
 import { Plant, WateringLog, FeedingLog, ObservationLog, PlantPhaseInstance, PlantEvent } from '../types/models';
 import { Strain, CreateStrainData, UpdateStrainData } from '../types/strain';
 
-// Get base path from current location
-const getApiBase = () => {
-  // Check if <base> tag exists (injected by Home Assistant Ingress)
-  const baseTag = document.querySelector('base');
-  if (baseTag && baseTag.href) {
-    const baseHref = baseTag.getAttribute('href');
-    if (baseHref && baseHref !== '/') {
-      // Remove trailing slash and add /api
-      const basePath = baseHref.replace(/\/$/, '');
-      console.log('[API] Using base tag for Ingress:', basePath + 'api');
-      return basePath + 'api';
-    }
-  }
-
-  // Fallback: check pathname for Ingress pattern
-  const path = window.location.pathname;
-  console.log('[API] Current pathname:', path);
-
-  if (path.startsWith('/hassio/ingress/')) {
-    // Extract token: /hassio/ingress/TOKEN/... -> /hassio/ingress/TOKEN/api
-    const match = path.match(/^(\/hassio\/ingress\/[^/]+)/);
-    const baseURL = match ? `${match[1]}/api` : '/api';
-    console.log('[API] Using Ingress baseURL from pathname:', baseURL);
-    return baseURL;
-  }
-
-  console.log('[API] Using default baseURL: /api');
-  return '/api';
-};
-
+// Use relative API path for Home Assistant Ingress compatibility
+// Ingress automatically strips the /api/hassio_ingress/TOKEN prefix
 const api = axios.create({
+  baseURL: 'api',
   timeout: 10000,
-});
-
-// Dynamically set baseURL on every request
-api.interceptors.request.use((config) => {
-  config.baseURL = getApiBase();
-  console.log('[API] Request to:', config.baseURL + config.url);
-  return config;
 });
 
 export const apiService = {

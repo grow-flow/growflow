@@ -11,7 +11,9 @@ export const CONFIG = {
 
   DATABASE: {
     PATH: process.env.DB_PATH || './data/growflow.db',
-    SYNC: process.env.NODE_ENV !== 'production' || process.env.FORCE_DB_SYNC === 'true'
+    // Auto-sync enabled by default for ease of use (new installs + updates)
+    // Set DISABLE_DB_SYNC=true to disable for advanced users with migrations
+    SYNC: process.env.DISABLE_DB_SYNC !== 'true'
   },
 
   LOG_LEVEL: process.env.LOG_LEVEL || 'info'
