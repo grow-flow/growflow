@@ -19,6 +19,11 @@ cd frontend && npm run lint:fix
 cd backend && npm run build   # TypeScript compilation serves as type check
 cd frontend && npm run build  # React TypeScript compilation
 
+# Debugging & Development
+FORCE_DB_SYNC=true npm run dev   # Force database schema sync in development
+npm run docker:health            # Check if Docker container is responding
+curl http://localhost:8080/api/health  # Manual health check
+
 # Backend specific commands
 cd backend && npm run dev     # Start backend dev server (nodemon on port 8080)
 cd backend && npm run build   # Compile TypeScript to dist/
@@ -72,6 +77,8 @@ docker run -d -p 8080:8080 -v ./data:/app/data growflow  # Run with data persist
 - **Components**: Material-UI components with custom plant management dialogs
 - **API Layer**: Axios-based service in `frontend/src/services/api.ts` with Home Assistant Ingress support
 - **Types**: Shared TypeScript interfaces between frontend/backend
+- **Path Alias**: `@/` maps to `frontend/src/` (configured in [vite.config.ts](frontend/vite.config.ts))
+- **Build Optimization**: Vendor chunks split into react-vendor, mui-vendor, query-vendor for optimal caching
 
 ### Core Features
 
@@ -92,13 +99,14 @@ docker run -d -p 8080:8080 -v ./data:/app/data growflow  # Run with data persist
 ### Development Notes
 
 - Settings are centralized in `backend/src/config/settings.ts` using environment variables
-- Database auto-synchronizes in development (disabled in production unless `FORCE_DB_SYNC=true`)
+- Database auto-synchronizes by default for ease of use (set `DISABLE_DB_SYNC=true` to disable)
 - Frontend proxies API requests to localhost:8080 (configured in [vite.config.ts](frontend/vite.config.ts))
 - Both backend and frontend use ESLint for code quality with auto-fix available
 - TypeScript strict mode enabled across the project
 - Backend uses nodemon for hot reloading during development
 - Frontend uses Vite dev server with hot module replacement
 - Home Assistant Ingress support via automatic path detection and base tag injection
+- Frontend path alias `@/` resolves to `src/` for cleaner imports
 
 ### Docker Deployment Strategy
 
@@ -128,11 +136,13 @@ docker run -d -p 8080:8080 -v ./data:/app/data growflow  # Run with data persist
 ### Environment Variables
 
 - **NODE_ENV**: Set to `production` for optimal performance
-- **DB_PATH**: Database file location (`/app/data/growflow.db`)
-- **LOG_LEVEL**: Control logging verbosity (`info`, `debug`, `error`)
-- **FORCE_DB_SYNC**: Force database synchronization in production (`true` or `false`)
+- **DB_PATH**: Database file location (default: `./data/growflow.db`)
+- **LOG_LEVEL**: Control logging verbosity (`trace`, `debug`, `info`, `warn`, `error`)
+- **DISABLE_DB_SYNC**: Disable automatic database schema synchronization (`true` or `false`, default: false)
 - **TRUST_PROXY**: Enable proxy trust for reverse proxy setups (`true` or `false`)
-- **ALLOWED_FRAME_ANCESTORS**: CSP frame ancestors for iframe embedding (comma-separated)
+- **ALLOWED_FRAME_ANCESTORS**: CSP frame ancestors for iframe embedding (comma-separated, default: `'self',*`)
+- **PORT**: API server port (default: `8080`)
+- **CORS_ORIGIN**: CORS origin configuration (default: `*`)
 
 ### Deployment Commands
 
