@@ -63,10 +63,23 @@ const Dashboard: React.FC = () => {
       return acc;
     }, {} as Record<string, number>);
 
-    return { totalPlants, activePlants, phaseCounts };
+    const totalGrowthDays = allPlants
+      .filter(p => p.is_active)
+      .reduce((sum, plant) => {
+        const timeline = createPlantTimeline(plant.phases || [], plant.events || []);
+        const firstPhase = plant.phases?.[0];
+        if (firstPhase?.start_date) {
+          const startDate = new Date(firstPhase.start_date);
+          const daysSinceStart = Math.floor((new Date().getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+          return sum + daysSinceStart;
+        }
+        return sum;
+      }, 0);
+
+    return { totalPlants, activePlants, phaseCounts, totalGrowthDays };
   }, [allPlants]);
 
-  const { totalPlants, activePlants, phaseCounts } = plantStats;
+  const { totalPlants, activePlants, phaseCounts, totalGrowthDays } = plantStats;
 
   const recentPlants = allPlants
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
@@ -137,7 +150,7 @@ const Dashboard: React.FC = () => {
               <TrendingUp />
             </Avatar>
             <Box>
-              <Typography variant="h4">{totalPlants}</Typography>
+              <Typography variant="h4">{totalGrowthDays}</Typography>
               <Typography variant="body2" color="textSecondary">
                 Growth Days
               </Typography>
