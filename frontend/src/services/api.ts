@@ -2,10 +2,17 @@ import axios from 'axios';
 import { Plant, WateringLog, FeedingLog, ObservationLog, PlantPhaseInstance, PlantEvent } from '../types/models';
 import { Strain, CreateStrainData, UpdateStrainData } from '../types/strain';
 
-// Use absolute API path for Home Assistant Ingress compatibility
-// Ingress automatically strips the /api/hassio_ingress/TOKEN prefix
+// Detect base path for Home Assistant Ingress compatibility
+// Ingress URLs: /api/hassio_ingress/TOKEN/...
+// We need to keep the ingress prefix in API calls
+const getBasePath = () => {
+  const path = window.location.pathname;
+  const ingressMatch = path.match(/^(\/api\/hassio_ingress\/[^\/]+)/);
+  return ingressMatch ? `${ingressMatch[1]}/api` : '/api';
+};
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: getBasePath(),
   timeout: 10000,
 });
 
