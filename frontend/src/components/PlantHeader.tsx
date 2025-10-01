@@ -17,8 +17,8 @@ interface PlantHeaderProps {
 }
 
 const PlantHeader: React.FC<PlantHeaderProps> = ({ plant, onWaterClick }) => {
-  const timeline = useMemo(() => 
-    createPlantTimeline(plant.phases, plant.events || []), 
+  const timeline = useMemo(() =>
+    createPlantTimeline(plant.phases || [], plant.events || []),
     [plant.phases, plant.events, plant.id, plant.updated_at]
   );
 
@@ -30,7 +30,7 @@ const PlantHeader: React.FC<PlantHeaderProps> = ({ plant, onWaterClick }) => {
   };
 
   const getTotalDays = () => {
-    const firstPhase = plant.phases.find((p) => p.start_date);
+    const firstPhase = plant.phases?.find((p) => p.start_date);
     if (!firstPhase?.start_date) return 0;
 
     const now = new Date();

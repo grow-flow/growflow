@@ -2,10 +2,10 @@ import axios from 'axios';
 import { Plant, WateringLog, FeedingLog, ObservationLog, PlantPhaseInstance, PlantEvent } from '../types/models';
 import { Strain, CreateStrainData, UpdateStrainData } from '../types/strain';
 
-// Use relative API path for Home Assistant Ingress compatibility
+// Use absolute API path for Home Assistant Ingress compatibility
 // Ingress automatically strips the /api/hassio_ingress/TOKEN prefix
 const api = axios.create({
-  baseURL: 'api',
+  baseURL: '/api',
   timeout: 10000,
 });
 

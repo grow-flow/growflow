@@ -57,12 +57,12 @@ const Dashboard: React.FC = () => {
     const totalPlants = allPlants.length;
     const activePlants = allPlants.filter(p => p.is_active).length;
     const phaseCounts = allPlants.reduce((acc, plant) => {
-      const timeline = createPlantTimeline(plant.phases, plant.events || []);
+      const timeline = createPlantTimeline(plant.phases || [], plant.events || []);
       const currentPhase = timeline.currentPhase?.name || 'Unknown';
       acc[currentPhase] = (acc[currentPhase] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
-    
+
     return { totalPlants, activePlants, phaseCounts };
   }, [allPlants]);
 

@@ -23,6 +23,7 @@ router.get("/", async (req: Request, res: Response) => {
     });
     res.json(plants);
   } catch (error) {
+    console.error('🔴 [Plants] Error fetching plants:', error);
     res.status(500).json({ error: "Failed to fetch plants" });
   }
 });
@@ -46,42 +47,30 @@ router.get("/:id", async (req: Request, res: Response) => {
 
 router.post("/", async (req: Request, res: Response) => {
   try {
-    console.log("Creating plant with data:", JSON.stringify(req.body, null, 2));
-
     const plantRepo = AppDataSource.getRepository(Plant);
     const strainRepo = AppDataSource.getRepository(Strain);
 
-    // Get strain to copy phase templates
+    // Get strain to determine plant type
     let strain = null;
     if (req.body.strain) {
       strain = await strainRepo.findOne({ where: { name: req.body.strain } });
     }
 
-    // Use phases from request if provided, otherwise create from strain
-    const phases = req.body.phases || createPlantPhasesFromStrain(
-      strain?.phase_templates || [],
-      strain?.is_autoflower || false
-    );
+    // Use phases from request if provided, otherwise create from plant type
+    const isAutoflower = req.body.plant_type === 'autoflower' || strain?.type === 'autoflower';
+    const phases = req.body.phases || createPlantPhasesFromStrain([], isAutoflower);
 
     const plant = plantRepo.create({
       ...req.body,
       phases,
     });
 
-    console.log("Plant entity created:", JSON.stringify(plant, null, 2));
-
     const saved = await plantRepo.save(plant);
     const savedPlant = Array.isArray(saved) ? saved[0] : saved;
 
-    console.log("Plant saved successfully:", savedPlant.id);
     res.status(201).json(savedPlant);
   } catch (error: any) {
-    console.error("Failed to create plant:", {
-      error: error.message,
-      stack: error.stack,
-      code: error.code,
-      requestBody: req.body,
-    });
+    console.error("🔴 [Plants] Failed to create plant:", error.message);
     res.status(500).json({
       error: "Failed to create plant",
       details: error.message,
@@ -120,29 +109,18 @@ router.put("/:id/phases", async (req: Request, res: Response) => {
 router.put("/:id", async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
-    console.log(
-      `Updating plant ${id} with data:`,
-      JSON.stringify(req.body, null, 2)
-    );
-
     const plantRepo = AppDataSource.getRepository(Plant);
 
     await plantRepo.update(id, req.body);
     const updated = await plantRepo.findOne({ where: { id } });
 
     if (!updated) {
-      console.warn(`Plant ${id} not found for update`);
       return res.status(404).json({ error: "Plant not found" });
     }
 
-    console.log(`Plant ${id} updated successfully`);
     res.json(updated);
   } catch (error: any) {
-    console.error(`Failed to update plant ${req.params.id}:`, {
-      error: error.message,
-      stack: error.stack,
-      requestBody: req.body,
-    });
+    console.error(`🔴 [Plants] Failed to update plant ${req.params.id}:`, error.message);
     res.status(500).json({
       error: "Failed to update plant",
       details: error.message,

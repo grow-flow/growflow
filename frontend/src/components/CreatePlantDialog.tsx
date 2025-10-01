@@ -56,20 +56,15 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({
       if (newStrainName && !strainId) {
         const newStrain = await createStrainMutation.mutateAsync({
           name: newStrainName,
-          type: 'photoperiod',
-          is_autoflower: false,
-          flowering_time_min: 56,
-          flowering_time_max: 70,
-          phase_templates: []
+          type: 'photoperiod'
         });
         strainId = newStrain.id;
       }
 
       const strain = strains.find(s => s.id === strainId);
       const phases = composePhaseTemplates(
-        strain?.is_autoflower ? 'autoflower' : 'photoperiod',
-        formData.start_method,
-        strain?.phase_templates
+        strain?.type === 'autoflower' ? 'autoflower' : 'photoperiod',
+        formData.start_method
       );
 
       const finalName = strain?.name || newStrainName;
@@ -173,7 +168,7 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({
                   <ListItem {...props}>
                     <ListItemText
                       primary={option.name}
-                      secondary={`${option.type} • ${option.flowering_time_min}-${option.flowering_time_max} days`}
+                      secondary={option.type}
                     />
                   </ListItem>
                 )}

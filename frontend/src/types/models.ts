@@ -90,14 +90,8 @@ export interface Strain {
   name: string;
   abbreviation?: string;
   type: string;
-  is_autoflower: boolean;
-  flowering_time_min: number;
-  flowering_time_max: number;
   description?: string;
   breeder?: string;
-  thc_content?: number;
-  cbd_content?: number;
-  phase_templates: PhaseTemplate[];
   created_at: Date;
   updated_at: Date;
 }

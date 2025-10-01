@@ -42,6 +42,7 @@ import {
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { format } from "date-fns";
 import {
   CheckCircle as CheckIcon,
   Warning as WarningIcon,
@@ -119,7 +120,7 @@ const DynamicPlantTimeline: React.FC<DynamicPlantTimelineProps> = ({
 
   // Create timeline instance - include plant.id to ensure updates after mutations
   const plantTimeline = useMemo(
-    () => createPlantTimeline(plant.phases, plant.events || []),
+    () => createPlantTimeline(plant.phases || [], plant.events || []),
     [plant.phases, plant.events, plant.id, plant.updated_at]
   );
 
@@ -357,7 +358,7 @@ const DynamicPlantTimeline: React.FC<DynamicPlantTimelineProps> = ({
               
               {isStarted && (
                 <Typography variant="caption" color="primary" sx={{ mt: 0.5, display: 'block' }}>
-                  Started: {plantTimeline.formatPhaseDate(new Date(phase.start_date!))}
+                  Started: {format(new Date(phase.start_date!), 'dd/MM/yy')}
                 </Typography>
               )}
             </Box>

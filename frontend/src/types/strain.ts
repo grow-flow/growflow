@@ -5,28 +5,18 @@ export interface Strain {
   name: string;
   abbreviation?: string; // max 4 chars for short labels like "WW", "GG", "AK"
   type: 'autoflower' | 'photoperiod';
-  is_autoflower: boolean;
-  flowering_time_min: number; // days
-  flowering_time_max: number; // days
   description?: string;
   breeder?: string;
   created_at: Date;
   updated_at: Date;
-  
-  // Phase templates
-  phase_templates: PhaseTemplate[];
 }
 
 export interface CreateStrainData {
   name: string;
   abbreviation?: string;
   type: 'autoflower' | 'photoperiod';
-  is_autoflower: boolean;
-  flowering_time_min: number;
-  flowering_time_max: number;
   description?: string;
   breeder?: string;
-  phase_templates?: PhaseTemplate[];
 }
 
 export interface UpdateStrainData extends Partial<CreateStrainData> {
@@ -72,38 +62,17 @@ export const END_PHASE_TEMPLATES = [
 
 // Modulare Phasen-Zusammenstellung
 export function composePhaseTemplates(
-  plantType: 'autoflower' | 'photoperiod', 
-  startMethod: StartMethod, 
-  strainPhases?: PhaseTemplate[]
+  plantType: 'autoflower' | 'photoperiod',
+  startMethod: StartMethod
 ): PhaseTemplate[] {
   const basePhasen = BASE_PHASE_TEMPLATES[startMethod];
+  const strainSpecificPhases = STRAIN_PHASE_TEMPLATES[plantType];
   const endPhasen = END_PHASE_TEMPLATES;
-  
-  console.log('🔍 composePhaseTemplates input:', { plantType, startMethod, strainPhases });
-  console.log('🔍 basePhasen:', basePhasen);
-  console.log('🔍 endPhasen:', endPhasen);
-  
-  // Use strain-specific phases if provided, otherwise use defaults
-  const strainSpecificPhases = strainPhases && strainPhases.length > 0 
-    ? strainPhases 
-    : STRAIN_PHASE_TEMPLATES[plantType];
-  
-  console.log('🔍 strainSpecificPhases:', strainSpecificPhases);
-  
-  const result = [
+
+  return [
     ...basePhasen,
     ...strainSpecificPhases,
     ...endPhasen
   ];
-  
-  console.log('✅ Final composed phases:', result.map(p => p.name));
-  console.log('✅ Total phase count:', result.length);
-  
-  return result;
-}
-
-// Nur strain-spezifische Default-Phasen für neue Strains
-export function getDefaultStrainPhases(plantType: 'autoflower' | 'photoperiod'): PhaseTemplate[] {
-  return [...STRAIN_PHASE_TEMPLATES[plantType]];
 }
 

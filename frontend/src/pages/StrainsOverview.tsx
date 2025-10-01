@@ -42,7 +42,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useStrains, useCreateStrain, useUpdateStrain, useDeleteStrain } from '../hooks/useStrains';
-import { Strain, CreateStrainData, getDefaultStrainPhases, composePhaseTemplates } from '../types/strain';
+import { Strain, CreateStrainData } from '../types/strain';
 
 const StrainsOverview: React.FC = () => {
   const navigate = useNavigate();
@@ -57,12 +57,8 @@ const StrainsOverview: React.FC = () => {
     name: '',
     abbreviation: '',
     type: 'photoperiod',
-    is_autoflower: false,
-    flowering_time_min: 56,
-    flowering_time_max: 70,
     description: '',
-    breeder: '',
-    phase_templates: getDefaultStrainPhases('photoperiod')
+    breeder: ''
   });
 
   const { data: strains = [], isLoading, error, refetch } = useStrains();
@@ -72,10 +68,7 @@ const StrainsOverview: React.FC = () => {
 
   const handleCreate = async () => {
     try {
-      await createStrainMutation.mutateAsync({
-        ...formData,
-        phase_templates: formData.phase_templates
-      });
+      await createStrainMutation.mutateAsync(formData);
       setCreateDialogOpen(false);
       resetForm();
     } catch (error) {
@@ -85,20 +78,13 @@ const StrainsOverview: React.FC = () => {
 
   const handleEdit = (strain: Strain) => {
     setSelectedStrain(strain);
-    const phaseTemplates = strain.phase_templates || getDefaultStrainPhases(strain.type);
     setFormData({
       name: strain.name,
       abbreviation: strain.abbreviation || '',
       type: strain.type,
-      is_autoflower: strain.is_autoflower,
-      flowering_time_min: strain.flowering_time_min,
-      flowering_time_max: strain.flowering_time_max,
       description: strain.description || '',
-      breeder: strain.breeder || '',
-      phase_templates: phaseTemplates
+      breeder: strain.breeder || ''
     });
-    const cleanTemplates = createCleanPhaseTemplates(phaseTemplates);
-    setPhaseJsonInput(JSON.stringify(cleanTemplates, null, 2));
     setEditDialogOpen(true);
   };
 
@@ -135,68 +121,11 @@ const StrainsOverview: React.FC = () => {
       name: '',
       abbreviation: '',
       type: 'photoperiod',
-      is_autoflower: false,
-      flowering_time_min: 56,
-      flowering_time_max: 70,
-      description: '',
-      breeder: '',
-      phase_templates: getDefaultStrainPhases('photoperiod')
+        description: '',
+      breeder: ''
     });
     setAdvancedOpen(false);
     setPhaseJsonInput('');
-  };
-
-  // Create clean phase templates without any extra fields
-  const createCleanPhaseTemplates = (templates: any[]) => {
-    return templates.map(template => ({
-      name: template.name,
-      duration_min: template.duration_min,
-      duration_max: template.duration_max,
-      description: template.description
-    }));
-  };
-
-  const exportPhaseTemplates = () => {
-    const cleanTemplates = createCleanPhaseTemplates(formData.phase_templates || []);
-    const json = JSON.stringify(cleanTemplates, null, 2);
-    navigator.clipboard.writeText(json);
-    setPhaseJsonInput(json);
-  };
-
-  const downloadPhaseTemplates = () => {
-    const cleanTemplates = createCleanPhaseTemplates(formData.phase_templates || []);
-    const json = JSON.stringify(cleanTemplates, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${formData.name || 'strain'}-phases.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  const importPhaseTemplates = () => {
-    try {
-      const parsed = JSON.parse(phaseJsonInput);
-      if (Array.isArray(parsed) && parsed.every(p => p.name && typeof p.duration_min === 'number' && typeof p.duration_max === 'number')) {
-        // Use the clean templates directly (no IDs needed for strain templates)
-        setFormData({ ...formData, phase_templates: parsed });
-        setPhaseJsonInput('');
-      } else {
-        alert('Ungültiges JSON Format. Erwartet wird ein Array von Phase Templates mit name, duration_min, duration_max.');
-      }
-    } catch (error) {
-      alert('Ungültiges JSON Format. Bitte überprüfen Sie die Syntax.');
-    }
-  };
-
-  const loadDefaultPhases = () => {
-    const defaultPhases = getDefaultStrainPhases(formData.type);
-    setFormData({ ...formData, phase_templates: defaultPhases });
-    const cleanTemplates = createCleanPhaseTemplates(defaultPhases);
-    setPhaseJsonInput(JSON.stringify(cleanTemplates, null, 2));
   };
 
   const getTypeColor = (type: string) => {
@@ -251,21 +180,17 @@ const StrainsOverview: React.FC = () => {
             <TableHead>
               <TableRow>
                 <TableCell>Name</TableCell>
-                <TableCell>Abbrev.</TableCell>
                 <TableCell>Type</TableCell>
-                <TableCell>Flowering Time</TableCell>
                 <TableCell>Breeder</TableCell>
-                <TableCell>Auto</TableCell>
-                <TableCell>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {strains.map((strain) => (
-                <TableRow 
-                  key={strain.id} 
-                  hover 
+                <TableRow
+                  key={strain.id}
+                  hover
                   sx={{ cursor: 'pointer' }}
-                  onClick={() => navigate(`/plants?strain=${encodeURIComponent(strain.name)}`)}
+                  onClick={() => handleEdit(strain)}
                 >
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -281,18 +206,6 @@ const StrainsOverview: React.FC = () => {
                     </Box>
                   </TableCell>
                   <TableCell>
-                    {strain.abbreviation ? (
-                      <Chip 
-                        label={strain.abbreviation} 
-                        size="small" 
-                        variant="outlined"
-                        sx={{ fontFamily: 'monospace', fontWeight: 'bold' }}
-                      />
-                    ) : (
-                      <Typography variant="caption" color="text.disabled">—</Typography>
-                    )}
-                  </TableCell>
-                  <TableCell>
                     <Chip
                       label={strain.type}
                       size="small"
@@ -300,47 +213,12 @@ const StrainsOverview: React.FC = () => {
                       sx={{ textTransform: 'capitalize' }}
                     />
                   </TableCell>
-                  <TableCell>
-                    {strain.flowering_time_min}-{strain.flowering_time_max} days
-                  </TableCell>
                   <TableCell>{strain.breeder || 'Unknown'}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={strain.is_autoflower ? 'Auto' : 'Photo'}
-                      size="small"
-                      color={strain.is_autoflower ? 'warning' : 'default'}
-                      variant="outlined"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEdit(strain);
-                      }}
-                      title="Edit strain"
-                    >
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedStrain(strain);
-                        setDeleteDialogOpen(true);
-                      }}
-                      title="Delete strain"
-                      color="error"
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </TableCell>
                 </TableRow>
               ))}
               {strains.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
+                  <TableCell colSpan={3} align="center" sx={{ py: 6 }}>
                     <Typography color="textSecondary">
                       No strains yet. Create your first strain to get started.
                     </Typography>
@@ -377,15 +255,14 @@ const StrainsOverview: React.FC = () => {
                 helperText="Max 4 characters"
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12}>
               <FormControl fullWidth>
                 <InputLabel>Type</InputLabel>
                 <Select
                   value={formData.type}
-                  onChange={(e) => setFormData({ 
-                    ...formData, 
-                    type: e.target.value as any,
-                    is_autoflower: e.target.value === 'autoflower'
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    type: e.target.value as any
                   })}
                   label="Type"
                 >
@@ -393,24 +270,6 @@ const StrainsOverview: React.FC = () => {
                   <MenuItem value="autoflower">Autoflower</MenuItem>
                 </Select>
               </FormControl>
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="Min Flowering Time (days)"
-                type="number"
-                value={formData.flowering_time_min}
-                onChange={(e) => setFormData({ ...formData, flowering_time_min: parseInt(e.target.value) })}
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="Max Flowering Time (days)"
-                type="number"
-                value={formData.flowering_time_max}
-                onChange={(e) => setFormData({ ...formData, flowering_time_max: parseInt(e.target.value) })}
-              />
             </Grid>
             <Grid item xs={12}>
               <TextField
@@ -429,130 +288,6 @@ const StrainsOverview: React.FC = () => {
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               />
-            </Grid>
-            <Grid item xs={12}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={formData.is_autoflower}
-                    onChange={(e) => setFormData({ ...formData, is_autoflower: e.target.checked })}
-                  />
-                }
-                label="Autoflowering"
-              />
-            </Grid>
-            
-            {/* Advanced Phase Duration Settings */}
-            <Grid item xs={12}>
-              <Button
-                size="small"
-                startIcon={<SettingsIcon />}
-                endIcon={<ExpandMoreIcon sx={{ transform: advancedOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />}
-                onClick={() => setAdvancedOpen(!advancedOpen)}
-                variant="outlined"
-                fullWidth
-              >
-                Phase Templates Konfiguration
-              </Button>
-            </Grid>
-            
-            <Grid item xs={12}>
-              <Collapse in={advancedOpen}>
-                <Box sx={{ mt: 2 }}>
-                  <Typography variant="h6" gutterBottom>
-                    Strain-spezifische Phasen
-                  </Typography>
-                  
-                  <Typography variant="body2" color="text.secondary" gutterBottom sx={{ mb: 2 }}>
-                    Nur strain-spezifische Phasen (Vegetation, Flowering) werden hier konfiguriert. 
-                    Start-Phasen und End-Phasen werden automatisch hinzugefügt.
-                  </Typography>
-                  
-                  {/* Current Phase Templates Display */}
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Aktuelle Phasen: {formData.phase_templates?.length || 0} Phasen
-                    </Typography>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-                      {formData.phase_templates?.map((phase, index) => (
-                        <Chip
-                          key={index}
-                          label={`${phase.name} (${phase.duration_min}-${phase.duration_max}d)`}
-                          size="small"
-                          variant="outlined"
-                        />
-                      ))}
-                    </Box>
-                  </Box>
-
-                  {/* Export Buttons */}
-                  <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                    <Button
-                      size="small"
-                      startIcon={<CopyIcon />}
-                      onClick={exportPhaseTemplates}
-                      variant="outlined"
-                    >
-                      In Zwischenablage kopieren
-                    </Button>
-                    <Button
-                      size="small"
-                      startIcon={<DownloadIcon />}
-                      onClick={downloadPhaseTemplates}
-                      variant="outlined"
-                    >
-                      Als JSON downloaden
-                    </Button>
-                    <Button
-                      size="small"
-                      startIcon={<SettingsIcon />}
-                      onClick={loadDefaultPhases}
-                      variant="outlined"
-                    >
-                      Standard laden
-                    </Button>
-                  </Box>
-
-                  {/* Import Area */}
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" gutterBottom>
-                      JSON Import
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      multiline
-                      rows={8}
-                      value={phaseJsonInput}
-                      onChange={(e) => setPhaseJsonInput(e.target.value)}
-                      placeholder="Phase Templates JSON hier einfügen..."
-                      variant="outlined"
-                      sx={{ fontFamily: 'monospace', fontSize: '0.875rem' }}
-                    />
-                    <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                      <Button
-                        size="small"
-                        startIcon={<UploadIcon />}
-                        onClick={importPhaseTemplates}
-                        variant="contained"
-                        disabled={!phaseJsonInput.trim()}
-                      >
-                        JSON importieren
-                      </Button>
-                      <Button
-                        size="small"
-                        onClick={() => setPhaseJsonInput('')}
-                        disabled={!phaseJsonInput.trim()}
-                      >
-                        Leeren
-                      </Button>
-                    </Box>
-                  </Box>
-
-                  <Typography variant="caption" color="text.secondary">
-                    Tipp: Sie können Phase Templates zwischen Strains kopieren oder als Backup exportieren.
-                  </Typography>
-                </Box>
-              </Collapse>
             </Grid>
           </Grid>
         </DialogContent>
@@ -593,15 +328,14 @@ const StrainsOverview: React.FC = () => {
                 helperText="Max 4 characters"
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12}>
               <FormControl fullWidth>
                 <InputLabel>Type</InputLabel>
                 <Select
                   value={formData.type}
-                  onChange={(e) => setFormData({ 
-                    ...formData, 
-                    type: e.target.value as any,
-                    is_autoflower: e.target.value === 'autoflower'
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    type: e.target.value as any
                   })}
                   label="Type"
                 >
@@ -609,24 +343,6 @@ const StrainsOverview: React.FC = () => {
                   <MenuItem value="autoflower">Autoflower</MenuItem>
                 </Select>
               </FormControl>
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="Min Flowering Time (days)"
-                type="number"
-                value={formData.flowering_time_min}
-                onChange={(e) => setFormData({ ...formData, flowering_time_min: parseInt(e.target.value) })}
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="Max Flowering Time (days)"
-                type="number"
-                value={formData.flowering_time_max}
-                onChange={(e) => setFormData({ ...formData, flowering_time_max: parseInt(e.target.value) })}
-              />
             </Grid>
             <Grid item xs={12}>
               <TextField
@@ -646,136 +362,24 @@ const StrainsOverview: React.FC = () => {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               />
             </Grid>
-            <Grid item xs={12}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={formData.is_autoflower}
-                    onChange={(e) => setFormData({ ...formData, is_autoflower: e.target.checked })}
-                  />
-                }
-                label="Autoflowering"
-              />
-            </Grid>
-            
-            {/* Advanced Phase Duration Settings */}
-            <Grid item xs={12}>
-              <Button
-                size="small"
-                startIcon={<SettingsIcon />}
-                endIcon={<ExpandMoreIcon sx={{ transform: advancedOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />}
-                onClick={() => setAdvancedOpen(!advancedOpen)}
-                variant="outlined"
-                fullWidth
-              >
-                Phase Templates Konfiguration
-              </Button>
-            </Grid>
-            
-            <Grid item xs={12}>
-              <Collapse in={advancedOpen}>
-                <Box sx={{ mt: 2 }}>
-                  <Typography variant="h6" gutterBottom>
-                    Strain-spezifische Phasen
-                  </Typography>
-                  
-                  <Typography variant="body2" color="text.secondary" gutterBottom sx={{ mb: 2 }}>
-                    Nur strain-spezifische Phasen (Vegetation, Flowering) werden hier konfiguriert. 
-                    Start-Phasen und End-Phasen werden automatisch hinzugefügt.
-                  </Typography>
-                  
-                  {/* Current Phase Templates Display */}
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      Aktuelle Phasen: {formData.phase_templates?.length || 0} Phasen
-                    </Typography>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-                      {formData.phase_templates?.map((phase, index) => (
-                        <Chip
-                          key={index}
-                          label={`${phase.name} (${phase.duration_min}-${phase.duration_max}d)`}
-                          size="small"
-                          variant="outlined"
-                        />
-                      ))}
-                    </Box>
-                  </Box>
-
-                  {/* Export Buttons */}
-                  <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                    <Button
-                      size="small"
-                      startIcon={<CopyIcon />}
-                      onClick={exportPhaseTemplates}
-                      variant="outlined"
-                    >
-                      In Zwischenablage kopieren
-                    </Button>
-                    <Button
-                      size="small"
-                      startIcon={<DownloadIcon />}
-                      onClick={downloadPhaseTemplates}
-                      variant="outlined"
-                    >
-                      Als JSON downloaden
-                    </Button>
-                    <Button
-                      size="small"
-                      startIcon={<SettingsIcon />}
-                      onClick={loadDefaultPhases}
-                      variant="outlined"
-                    >
-                      Standard laden
-                    </Button>
-                  </Box>
-
-                  {/* Import Area */}
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" gutterBottom>
-                      JSON Import
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      multiline
-                      rows={8}
-                      value={phaseJsonInput}
-                      onChange={(e) => setPhaseJsonInput(e.target.value)}
-                      placeholder="Phase Templates JSON hier einfügen..."
-                      variant="outlined"
-                      sx={{ fontFamily: 'monospace', fontSize: '0.875rem' }}
-                    />
-                    <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                      <Button
-                        size="small"
-                        startIcon={<UploadIcon />}
-                        onClick={importPhaseTemplates}
-                        variant="contained"
-                        disabled={!phaseJsonInput.trim()}
-                      >
-                        JSON importieren
-                      </Button>
-                      <Button
-                        size="small"
-                        onClick={() => setPhaseJsonInput('')}
-                        disabled={!phaseJsonInput.trim()}
-                      >
-                        Leeren
-                      </Button>
-                    </Box>
-                  </Box>
-
-                  <Typography variant="caption" color="text.secondary">
-                    Tipp: Sie können Phase Templates zwischen Strains kopieren oder als Backup exportieren.
-                  </Typography>
-                </Box>
-              </Collapse>
-            </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
+          <Button
+            onClick={() => {
+              setSelectedStrain(selectedStrain);
+              setEditDialogOpen(false);
+              setDeleteDialogOpen(true);
+            }}
+            color="error"
+            startIcon={<DeleteIcon />}
+          >
+            Delete
+          </Button>
+          <Box sx={{ flex: 1 }} />
           <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
-          <Button 
-            onClick={handleUpdate} 
+          <Button
+            onClick={handleUpdate}
             variant="contained"
             disabled={updateStrainMutation.isPending || !formData.name}
           >

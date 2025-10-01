@@ -20,26 +20,11 @@ export class Strain {
   @Column({ default: 'photoperiod' })
   type: string;
 
-  @Column({ default: false })
-  is_autoflower: boolean;
-
-  @Column({ type: 'int' })
-  flowering_time_min: number;
-
-  @Column({ type: 'int' })
-  flowering_time_max: number;
-
   @Column({ type: 'text', nullable: true })
   description?: string;
 
   @Column({ nullable: true })
   breeder?: string;
-
-  @Column({ 
-    type: 'json',
-    default: () => "'[]'"
-  })
-  phase_templates: PhaseTemplate[];
 
   @CreateDateColumn()
   created_at: Date;
