@@ -6,17 +6,19 @@ import {
   Box,
   Button,
   Chip,
+  IconButton,
 } from "@mui/material";
-import { Opacity } from "@mui/icons-material";
+import { Opacity, Edit } from "@mui/icons-material";
 import { Plant } from "../types/models";
 import { createPlantTimeline } from "../utils/PlantTimeline";
 
 interface PlantHeaderProps {
   plant: Plant;
   onWaterClick: () => void;
+  onEditClick: () => void;
 }
 
-const PlantHeader: React.FC<PlantHeaderProps> = ({ plant, onWaterClick }) => {
+const PlantHeader: React.FC<PlantHeaderProps> = ({ plant, onWaterClick, onEditClick }) => {
   const timeline = useMemo(() =>
     createPlantTimeline(plant.phases || [], plant.events || []),
     [plant.phases, plant.events, plant.id, plant.updated_at]
@@ -43,9 +45,14 @@ const PlantHeader: React.FC<PlantHeaderProps> = ({ plant, onWaterClick }) => {
     <Paper sx={{ p: 3, mb: 3 }}>
       <Grid container spacing={3} alignItems="center">
         <Grid item xs={12} md={8}>
-          <Typography variant="h4" gutterBottom>
-            {plant.name}
-          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+            <Typography variant="h4">
+              {plant.name}
+            </Typography>
+            <IconButton onClick={onEditClick} size="small" sx={{ ml: 1 }}>
+              <Edit />
+            </IconButton>
+          </Box>
           <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
             <Chip label={plant.strain} color="primary" />
             <Chip

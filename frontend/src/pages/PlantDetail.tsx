@@ -8,12 +8,13 @@ import {
   Tabs,
   Tab,
 } from "@mui/material";
-import { usePlant, useCreateEvent, useUpdateEvent, useDeleteEvent } from "../hooks/usePlants";
+import { usePlant, useCreateEvent, useUpdateEvent, useDeleteEvent, useUpdatePlant } from "../hooks/usePlants";
 import { PlantEvent } from "../types/models";
 import DynamicPlantTimeline from "../components/DynamicPlantTimeline";
 import PlantHeader from "../components/PlantHeader";
 import EventCard from "../components/EventCard";
 import EventDialog from "../components/EventDialog";
+import EditPlantDialog from "../components/EditPlantDialog";
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -35,9 +36,11 @@ const PlantDetail: React.FC = () => {
   const createEvent = useCreateEvent();
   const updateEvent = useUpdateEvent();
   const deleteEvent = useDeleteEvent();
+  const updatePlant = useUpdatePlant();
 
   const [tabValue, setTabValue] = useState(0);
   const [eventDialog, setEventDialog] = useState<{ open: boolean; event: any | null }>({ open: false, event: null });
+  const [editPlantDialog, setEditPlantDialog] = useState(false);
   const [eventData, setEventData] = useState<{
     type: PlantEvent['type'];
     title: string;
@@ -115,13 +118,30 @@ const PlantDetail: React.FC = () => {
     }
   };
 
+  const handleSavePlant = async (data: any) => {
+    if (!plant) return;
+
+    try {
+      await updatePlant.mutateAsync({
+        id: plant.id,
+        data
+      });
+    } catch (error) {
+      console.error("Failed to update plant:", error);
+    }
+  };
+
   if (isLoading) return <Typography>Loading...</Typography>;
   if (error) return <Typography>Error loading plant</Typography>;
   if (!plant) return <Typography>Plant not found</Typography>;
 
   return (
     <Box>
-      <PlantHeader plant={plant} onWaterClick={handleCreateEvent} />
+      <PlantHeader
+        plant={plant}
+        onWaterClick={handleCreateEvent}
+        onEditClick={() => setEditPlantDialog(true)}
+      />
 
       <Grid container spacing={3}>
         <Grid item xs={12} md={4}>
@@ -164,6 +184,13 @@ const PlantDetail: React.FC = () => {
         onSave={handleSaveEvent}
         onDelete={handleDeleteEvent}
         onChange={(data) => setEventData(data)}
+      />
+
+      <EditPlantDialog
+        open={editPlantDialog}
+        plant={plant}
+        onClose={() => setEditPlantDialog(false)}
+        onSave={handleSavePlant}
       />
     </Box>
   );
