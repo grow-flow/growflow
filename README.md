@@ -49,6 +49,8 @@ docker-compose up -d
 
 3. Access the application at `http://localhost:8080`
 
+> **Note**: Due to self-signed certificates in development, Chrome is currently recommended for local testing. Other browsers may show SSL warnings when accessing via HTTPS.
+
 ### Docker
 
 ```bash
