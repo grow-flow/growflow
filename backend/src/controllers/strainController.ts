@@ -6,13 +6,19 @@ const router = Router();
 
 router.get('/', async (req: Request, res: Response) => {
   try {
+    console.log('🔵 [Strains] GET / - Fetching all strains');
+    console.log('   DB initialized:', AppDataSource.isInitialized);
+
     const strains = await AppDataSource.getRepository(Strain).find({
       order: { name: 'ASC' }
     });
+
+    console.log(`✅ [Strains] Found ${strains.length} strains`);
     res.json(strains);
-  } catch (error) {
+  } catch (error: any) {
     console.error('🔴 [Strains] Error fetching strains:', error);
-    res.status(500).json({ error: 'Failed to fetch strains' });
+    console.error('   Error details:', error.message, error.stack);
+    res.status(500).json({ error: 'Failed to fetch strains', details: error.message });
   }
 });
 

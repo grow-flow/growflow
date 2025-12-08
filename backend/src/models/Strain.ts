@@ -1,5 +1,4 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
-import { PhaseTemplate } from './Phase';
 
 export enum StrainType {
   AUTOFLOWER = 'autoflower',
@@ -17,8 +16,11 @@ export class Strain {
   @Column({ length: 4, nullable: true })
   abbreviation?: string;
 
-  @Column({ default: 'photoperiod' })
-  type: string;
+  @Column({
+    type: 'varchar',
+    default: 'photoperiod'
+  })
+  type: StrainType;
 
   @Column({ type: 'text', nullable: true })
   description?: string;
