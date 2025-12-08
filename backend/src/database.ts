@@ -1,6 +1,7 @@
 import { DataSource } from 'typeorm';
 import { CONFIG } from './config/settings';
 import { Plant, Strain } from './models';
+import { InitialSchema1733666000000 } from './migrations/1733666000000-InitialSchema';
 
 export const AppDataSource = new DataSource({
   type: 'sqlite',
@@ -8,6 +9,8 @@ export const AppDataSource = new DataSource({
   synchronize: CONFIG.DATABASE.SYNC,
   logging: CONFIG.LOG_LEVEL === 'debug',
   entities: [Plant, Strain],
+  migrations: [InitialSchema1733666000000],
+  migrationsRun: true,
 });
 
 export const initializeDatabase = async () => {
@@ -15,6 +18,7 @@ export const initializeDatabase = async () => {
     console.log('🔵 [DB] Initializing database...');
     console.log('🔵 [DB] Database path:', CONFIG.DATABASE.PATH);
     console.log('🔵 [DB] Synchronize:', CONFIG.DATABASE.SYNC);
+    console.log('🔵 [DB] Migrations enabled: true');
     await AppDataSource.initialize();
     console.log('🟢 [DB] Database initialized successfully');
     console.log('🟢 [DB] Is initialized:', AppDataSource.isInitialized);

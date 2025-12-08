@@ -67,9 +67,5 @@ LABEL \
     org.opencontainers.image.url="https://github.com/grow-flow/growflow" \
     org.opencontainers.image.source="https://github.com/grow-flow/growflow"
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:8080/api/health || exit 1
-
 # Start the application
 CMD ["node", "/app/backend/dist/index.js"]
