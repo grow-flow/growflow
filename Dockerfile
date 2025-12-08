@@ -1,16 +1,14 @@
 # Multi-stage build for standalone deployment
 FROM node:20-alpine AS builder
 
-# Install build dependencies (split to avoid busybox trigger in QEMU)
-RUN apk add --no-cache make g++
-RUN apk add --no-cache python3
-
 WORKDIR /app
 
-# Copy package files and install dependencies
+# Copy package files
 COPY backend/package*.json ./backend/
 COPY frontend/package*.json ./frontend/
-RUN cd backend && npm ci --no-audit --no-fund
+
+# Install dependencies with pre-built binaries (no python/make/g++ needed)
+RUN cd backend && npm ci --no-audit --no-fund --build-from-source=false
 RUN cd frontend && npm ci --no-audit --no-fund
 
 # Copy and build backend
@@ -29,15 +27,14 @@ RUN cd frontend && npm run build
 # Production stage
 FROM node:20-alpine
 
-# Install runtime dependencies (split to avoid busybox trigger in QEMU)
-RUN apk add --no-cache curl
-RUN apk add --no-cache sqlite
+# Install minimal runtime dependencies
+RUN apk add --no-cache curl sqlite
 
 WORKDIR /app
 
 # Copy package files and install production dependencies
 COPY backend/package*.json ./backend/
-RUN cd backend && npm ci --omit=dev --no-audit --no-fund
+RUN cd backend && npm ci --omit=dev --no-audit --no-fund --build-from-source=false
 
 # Copy built application
 COPY --from=builder /app/backend/dist ./backend/dist/
