@@ -1,8 +1,9 @@
 # Multi-stage build for standalone deployment
 FROM node:20-alpine AS builder
 
-# Install build dependencies
-RUN apk add --no-cache python3 make g++
+# Install build dependencies (split to avoid busybox trigger in QEMU)
+RUN apk add --no-cache make g++
+RUN apk add --no-cache python3
 
 WORKDIR /app
 
@@ -28,8 +29,9 @@ RUN cd frontend && npm run build
 # Production stage
 FROM node:20-alpine
 
-# Install runtime dependencies with --no-scripts to avoid busybox trigger in QEMU
-RUN apk add --no-cache --no-scripts curl sqlite
+# Install runtime dependencies (split to avoid busybox trigger in QEMU)
+RUN apk add --no-cache curl
+RUN apk add --no-cache sqlite
 
 WORKDIR /app
 
