@@ -31,8 +31,6 @@ export class Plant {
   @Column({ type: 'simple-json' })
   phases: PlantPhaseInstance[];
 
-
-
   @Column({ type: 'varchar' })
   medium: 'soil' | 'hydro' | 'coco' | 'dwc';
 
