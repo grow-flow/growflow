@@ -1,18 +1,18 @@
 export const CONFIG = {
+  NODE_ENV: process.env.NODE_ENV || 'development',
+
   API: {
     PORT: parseInt(process.env.PORT || '8080', 10),
-    CORS_ORIGIN: process.env.CORS_ORIGIN || (process.env.NODE_ENV === 'development' ? '*' : '*')
+    CORS_ORIGIN: process.env.CORS_ORIGIN || '*'
   },
 
   SECURITY: {
     ALLOWED_FRAME_ANCESTORS: process.env.ALLOWED_FRAME_ANCESTORS?.split(',') || ["'self'", "*"],
-    TRUST_PROXY: process.env.TRUST_PROXY === 'true' || false
+    DISABLE_HTTPS_UPGRADE: process.env.DISABLE_HTTPS_UPGRADE === 'true'
   },
 
   DATABASE: {
     PATH: process.env.DB_PATH || './data/growflow.db',
-    // Auto-sync enabled by default for ease of use (new installs + updates)
-    // Set DISABLE_DB_SYNC=true to disable for advanced users with migrations
     SYNC: process.env.DISABLE_DB_SYNC !== 'true'
   },
 

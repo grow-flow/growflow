@@ -4,7 +4,6 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import path from 'path';
-import fs from 'fs';
 import { CONFIG } from './config/settings';
 import { initializeDatabase } from './database';
 import { errorHandler } from './middleware/errorHandler';
@@ -14,28 +13,35 @@ import { strainRoutes } from './controllers/strainController';
 const app = express();
 
 // Trust proxy for reverse proxy setups (Home Assistant, nginx, etc)
-if (CONFIG.SECURITY.TRUST_PROXY) {
-  app.set('trust proxy', 1);
-}
+// This makes req.protocol respect X-Forwarded-Proto header
+app.set('trust proxy', 1);
 
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "data:", "https:"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https:"],
-      imgSrc: ["'self'", "data:", "blob:", "https:"], // For Base64 photos
-      fontSrc: ["'self'", "data:", "https:"],
-      frameAncestors: CONFIG.SECURITY.ALLOWED_FRAME_ANCESTORS,
-      frameSrc: ["'self'"],
-      connectSrc: ["'self'", "https:"],
-      workerSrc: ["'self'", "blob:"], // For Vite/React dev
-      childSrc: ["'self'", "blob:"]
-    }
-  },
-  frameguard: false,
-  crossOriginEmbedderPolicy: false
-}));
+// Dynamic security headers based on protocol
+app.use((req, res, next) => {
+  const isHTTPS = req.protocol === 'https';
+  const shouldUpgradeHTTPS = !CONFIG.SECURITY.DISABLE_HTTPS_UPGRADE && isHTTPS;
+
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "data:", "https:", "http:"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https:", "http:"],
+        imgSrc: ["'self'", "data:", "blob:", "https:", "http:"],
+        fontSrc: ["'self'", "data:", "https:", "http:"],
+        frameAncestors: CONFIG.SECURITY.ALLOWED_FRAME_ANCESTORS,
+        frameSrc: ["'self'"],
+        connectSrc: ["'self'", "https:", "http:", "ws:", "wss:"],
+        workerSrc: ["'self'", "blob:"],
+        childSrc: ["'self'", "blob:"],
+        upgradeInsecureRequests: shouldUpgradeHTTPS ? [] : null
+      }
+    },
+    hsts: isHTTPS ? { maxAge: 15552000, includeSubDomains: true } : false,
+    frameguard: false,
+    crossOriginEmbedderPolicy: false
+  })(req, res, next);
+});
 app.use(cors({ origin: CONFIG.API.CORS_ORIGIN, credentials: true }));
 app.use(morgan('combined'));
 app.use(express.json());

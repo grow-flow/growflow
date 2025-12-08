@@ -28,10 +28,8 @@ RUN cd frontend && npm run build
 # Production stage
 FROM node:20-alpine
 
-# Install runtime dependencies
-# Split into separate commands to avoid busybox trigger issues in QEMU
-RUN apk add --no-cache curl
-RUN apk add --no-cache sqlite
+# Install runtime dependencies with --no-scripts to avoid busybox trigger in QEMU
+RUN apk add --no-cache --no-scripts curl sqlite
 
 WORKDIR /app
 

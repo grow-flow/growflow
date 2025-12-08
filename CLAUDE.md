@@ -107,6 +107,7 @@ docker run -d -p 8080:8080 -v ./data:/app/data growflow  # Run with data persist
 - **Settings**: Centralized in `backend/src/config/settings.ts` using environment variables
 - **Database**: Auto-synchronizes by default for ease of use (set `DISABLE_DB_SYNC=true` to disable)
 - **Dev Proxy**: Frontend proxies API requests to localhost:8080 (configured in [vite.config.ts](frontend/vite.config.ts))
+- **Local Docker**: Set `DISABLE_HTTPS_UPGRADE=true` for HTTP-only development (avoids Mixed Content CSP errors)
 - **Code Quality**: ESLint with auto-fix available via `npm run lint:fix`
 - **Type Safety**: TypeScript strict mode enabled, compilation serves as type check
 - **Hot Reload**: Backend uses nodemon, frontend uses Vite HMR
