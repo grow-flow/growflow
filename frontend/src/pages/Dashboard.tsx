@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Grid, Typography, Card, CardContent, Button, Box, CircularProgress, Alert, Paper, Chip, Avatar, LinearProgress, CardActionArea } from '@mui/material';
+import { Grid, Typography, Card, CardContent, Button, Box, Alert, Paper, Chip, Avatar, LinearProgress, CardActionArea } from '@mui/material';
 import { Add as AddIcon, LocalFlorist as PlantIcon, Timeline, Speed, TrendingUp, LocalFlorist } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { usePlants, useCreatePlant } from '../hooks/usePlants';
@@ -10,12 +10,11 @@ import { createPlantTimeline } from '../utils/PlantTimeline';
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [createPlantDialogOpen, setCreatePlantDialogOpen] = useState(false);
-  
-  const { 
-    data: allPlants = [], 
-    isLoading, 
+
+  const {
+    data: allPlants = [],
     error,
-    refetch 
+    refetch
   } = usePlants();
   
   const createPlantMutation = useCreatePlant();
@@ -55,14 +54,6 @@ const Dashboard: React.FC = () => {
       console.error('Failed to create plant:', error);
     }
   };
-
-  if (isLoading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-        <CircularProgress />
-      </Box>
-    );
-  }
 
   if (error) {
     return (

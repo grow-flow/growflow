@@ -23,7 +23,7 @@ export const usePlants = () => {
   return useQuery({
     queryKey: plantKeys.lists(),
     queryFn: () => apiService.getPlants(),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 1 * 60 * 1000,
   });
 };
 

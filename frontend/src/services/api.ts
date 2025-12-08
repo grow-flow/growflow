@@ -2,18 +2,17 @@ import axios from 'axios';
 import { Plant, WateringLog, FeedingLog, ObservationLog, PlantPhaseInstance, PlantEvent } from '../types/models';
 import { Strain, CreateStrainData, UpdateStrainData } from '../types/strain';
 
-// Detect base path for Home Assistant Ingress compatibility
-// Ingress URLs: /api/hassio_ingress/TOKEN/...
-// We need to keep the ingress prefix in API calls
-const getBasePath = () => {
+const api = axios.create({
+  timeout: 10000,
+});
+
+// Dynamic base path detection for Home Assistant Ingress
+api.interceptors.request.use((config) => {
   const path = window.location.pathname;
   const ingressMatch = path.match(/^(\/api\/hassio_ingress\/[^\/]+)/);
-  return ingressMatch ? `${ingressMatch[1]}/api` : '/api';
-};
-
-const api = axios.create({
-  baseURL: getBasePath(),
-  timeout: 10000,
+  const basePath = ingressMatch ? `${ingressMatch[1]}/api` : '/api';
+  config.baseURL = basePath;
+  return config;
 });
 
 export const apiService = {
