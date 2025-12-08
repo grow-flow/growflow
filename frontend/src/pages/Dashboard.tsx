@@ -20,6 +20,33 @@ const Dashboard: React.FC = () => {
   
   const createPlantMutation = useCreatePlant();
 
+  const plantStats = useMemo(() => {
+    const totalPlants = allPlants.length;
+    const activePlants = allPlants.filter(p => p.is_active).length;
+    const phaseCounts = allPlants.reduce((acc, plant) => {
+      const timeline = createPlantTimeline(plant.phases || [], plant.events || []);
+      const currentPhase = timeline.currentPhase?.name || 'Unknown';
+      acc[currentPhase] = (acc[currentPhase] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const totalGrowthDays = allPlants
+      .filter(p => p.is_active)
+      .reduce((sum, plant) => {
+        const firstPhase = plant.phases?.[0];
+        if (firstPhase?.start_date) {
+          const startDate = new Date(firstPhase.start_date);
+          const daysSinceStart = Math.floor((new Date().getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+          return sum + daysSinceStart;
+        }
+        return sum;
+      }, 0);
+
+    return { totalPlants, activePlants, phaseCounts, totalGrowthDays };
+  }, [allPlants]);
+
+  const { totalPlants, activePlants, phaseCounts, totalGrowthDays } = plantStats;
+
   const handlePlantCreated = async (plantData: Partial<Plant>) => {
     try {
       await createPlantMutation.mutateAsync(plantData);
@@ -39,8 +66,8 @@ const Dashboard: React.FC = () => {
 
   if (error) {
     return (
-      <Alert 
-        severity="error" 
+      <Alert
+        severity="error"
         action={
           <Button color="inherit" size="small" onClick={() => refetch()}>
             Retry
@@ -51,39 +78,6 @@ const Dashboard: React.FC = () => {
       </Alert>
     );
   }
-
-  // Calculate stats using timeline logic
-  const plantStats = useMemo(() => {
-    const totalPlants = allPlants.length;
-    const activePlants = allPlants.filter(p => p.is_active).length;
-    const phaseCounts = allPlants.reduce((acc, plant) => {
-      const timeline = createPlantTimeline(plant.phases || [], plant.events || []);
-      const currentPhase = timeline.currentPhase?.name || 'Unknown';
-      acc[currentPhase] = (acc[currentPhase] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const totalGrowthDays = allPlants
-      .filter(p => p.is_active)
-      .reduce((sum, plant) => {
-        const timeline = createPlantTimeline(plant.phases || [], plant.events || []);
-        const firstPhase = plant.phases?.[0];
-        if (firstPhase?.start_date) {
-          const startDate = new Date(firstPhase.start_date);
-          const daysSinceStart = Math.floor((new Date().getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-          return sum + daysSinceStart;
-        }
-        return sum;
-      }, 0);
-
-    return { totalPlants, activePlants, phaseCounts, totalGrowthDays };
-  }, [allPlants]);
-
-  const { totalPlants, activePlants, phaseCounts, totalGrowthDays } = plantStats;
-
-  const recentPlants = allPlants
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 5);
 
   return (
     <Box>
