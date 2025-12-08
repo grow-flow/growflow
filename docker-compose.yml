@@ -14,7 +14,6 @@ services:
       NODE_ENV: production
       DB_PATH: /app/data/growflow.db
       LOG_LEVEL: info
-      # FORCE_DB_SYNC: "true"  # WARNING: Only enable for development, will drop/recreate tables!
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
       interval: 30s

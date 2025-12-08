@@ -111,10 +111,7 @@ docker run -d -p 8080:8080 -v ./data:/app/data growflow  # Run with data persist
 ### Development Notes
 
 - **Settings**: Centralized in `backend/src/config/settings.ts` using environment variables
-- **Database Sync**:
-  - **Development**: Auto-sync enabled by default (set `DISABLE_DB_SYNC=true` to disable)
-  - **Production**: Auto-sync **disabled** by default to prevent data loss
-  - **Force Sync in Production**: Set `FORCE_DB_SYNC=true` (⚠️ WARNING: Will drop/recreate tables!)
+- **Database**: Auto-migrations handle schema changes safely - no manual sync needed
 - **Dev Proxy**: Frontend proxies API requests to localhost:8080 (configured in [vite.config.ts](frontend/vite.config.ts))
 - **Local Docker**: Set `DISABLE_HTTPS_UPGRADE=true` for HTTP-only development (avoids Mixed Content CSP errors)
 - **Code Quality**: ESLint with auto-fix available via `npm run lint:fix`
@@ -157,11 +154,6 @@ docker run -d -p 8080:8080 -v ./data:/app/data growflow  # Run with data persist
 - **NODE_ENV**: Set to `production` for optimal performance
 - **DB_PATH**: Database file location (default: `./data/growflow.db`)
 - **LOG_LEVEL**: Control logging verbosity (`trace`, `debug`, `info`, `warn`, `error`)
-- **Database Sync Controls**:
-  - Production (NODE_ENV=production): Auto-sync **disabled** by default
-  - Development: Auto-sync **enabled** by default
-  - **FORCE_DB_SYNC**: Force enable sync in production (`true` - ⚠️ **DANGEROUS**: Will drop/recreate tables!)
-  - **DISABLE_DB_SYNC**: Disable sync in development (`true`)
 - **TRUST_PROXY**: Enable proxy trust for reverse proxy setups (`true` or `false`)
 - **ALLOWED_FRAME_ANCESTORS**: CSP frame ancestors for iframe embedding (comma-separated, default: `'self',*`)
 - **PORT**: API server port (default: `8080`)
