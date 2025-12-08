@@ -2,6 +2,7 @@ import { DataSource } from 'typeorm';
 import { CONFIG } from './config/settings';
 import { Plant, Strain } from './models';
 import { InitialSchema1733666000000 } from './migrations/1733666000000-InitialSchema';
+import { UpdateStrainType1733667000000 } from './migrations/1733667000000-UpdateStrainType';
 
 export const AppDataSource = new DataSource({
   type: 'sqlite',
@@ -9,7 +10,7 @@ export const AppDataSource = new DataSource({
   synchronize: false,
   logging: CONFIG.LOG_LEVEL === 'debug',
   entities: [Plant, Strain],
-  migrations: [InitialSchema1733666000000],
+  migrations: [InitialSchema1733666000000, UpdateStrainType1733667000000],
   migrationsRun: true,
 });
 
