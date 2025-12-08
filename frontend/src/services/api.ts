@@ -10,8 +10,13 @@ const api = axios.create({
 api.interceptors.request.use((config) => {
   const path = window.location.pathname;
   const ingressMatch = path.match(/^(\/api\/hassio_ingress\/[^\/]+)/);
-  const basePath = ingressMatch ? `${ingressMatch[1]}/api` : '/api';
-  config.baseURL = basePath;
+  const basePath = ingressMatch ? ingressMatch[1] : '';
+
+  // Reconstruct full URL with ingress prefix
+  if (config.url && !config.url.startsWith('http')) {
+    config.url = `${basePath}/api${config.url}`;
+  }
+
   return config;
 });
 
