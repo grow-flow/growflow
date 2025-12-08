@@ -126,21 +126,11 @@ app.use(express.static(frontendPath, {
   index: false // Don't serve index.html automatically
 }));
 
-// Catch-all handler for React Router with Ingress support
-// Serve index.html for all non-API, non-file requests (SPA routing)
+// Catch-all handler for React Router (SPA routing)
 app.get('*', (req, res) => {
   const indexPath = path.join(frontendPath, 'index.html');
-
   console.log(`📄 [HTML] Serving index.html for: ${req.url}`);
-
-  try {
-    // No path rewriting needed - Vite generates relative paths (./assets/)
-    // which work correctly with Ingress
-    res.sendFile(indexPath);
-  } catch (error) {
-    console.error(`❌ [HTML] Error serving index.html:`, error);
-    res.status(500).send('Failed to load application');
-  }
+  res.sendFile(indexPath);
 });
 
 app.use(errorHandler);
