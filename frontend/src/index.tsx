@@ -39,10 +39,16 @@ const getBasename = () => {
   const baseMeta = document.querySelector("base");
   if (baseMeta) {
     const href = baseMeta.getAttribute("href");
+    console.log(`🟢 [Frontend] Detected base path: ${href || '(none)'}`);
     return href ? href.replace(/\/$/, "") : "";
   }
+  console.log(`🔵 [Frontend] No base tag found, using root path`);
   return "";
 };
+
+console.log(`🚀 [Frontend] GrowFlow starting...`);
+console.log(`   URL: ${window.location.href}`);
+console.log(`   Path: ${window.location.pathname}`);
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement

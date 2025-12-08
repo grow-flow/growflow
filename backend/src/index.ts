@@ -22,11 +22,15 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "data:", "https:"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https:"],
+      imgSrc: ["'self'", "data:", "blob:", "https:"], // For Base64 photos
+      fontSrc: ["'self'", "data:", "https:"],
       frameAncestors: CONFIG.SECURITY.ALLOWED_FRAME_ANCESTORS,
       frameSrc: ["'self'"],
-      connectSrc: ["'self'"]
+      connectSrc: ["'self'", "https:"],
+      workerSrc: ["'self'", "blob:"], // For Vite/React dev
+      childSrc: ["'self'", "blob:"]
     }
   },
   frameguard: false,
@@ -62,9 +66,11 @@ app.use((req, res, next) => {
 // Ingress detection middleware (no path stripping needed - Ingress does it)
 app.use((req, res, next) => {
   const ingressPath = req.headers['x-ingress-path'] as string;
+  const isIngress = req.url.includes('/api/hassio_ingress') || ingressPath;
 
-  if (ingressPath && CONFIG.LOG_LEVEL === 'debug') {
-    console.log(`🟢 [Ingress] Request via Ingress: ${req.method} ${req.url} (Base: ${ingressPath})`);
+  if (isIngress || CONFIG.LOG_LEVEL === 'debug') {
+    console.log(`🔵 [Request] ${req.method} ${req.url}`);
+    console.log(`   Headers: x-ingress-path=${ingressPath}, host=${req.headers.host}`);
   }
 
   next();
@@ -117,17 +123,17 @@ app.use(express.static(frontendPath, {
 // Catch-all handler for React Router with Ingress support
 // Serve index.html for all non-API, non-file requests (SPA routing)
 app.get('*', (req, res) => {
-  const ingressPath = req.headers['x-ingress-path'] as string || '';
   const indexPath = path.join(frontendPath, 'index.html');
 
-  if (ingressPath) {
-    // Inject base tag for Ingress routing
-    let html = fs.readFileSync(indexPath, 'utf8');
-    html = html.replace('<head>', `<head><base href="${ingressPath}/">`);
-    res.send(html);
-  } else {
-    // Normal serving without modifications
+  console.log(`📄 [HTML] Serving index.html for: ${req.url}`);
+
+  try {
+    // No path rewriting needed - Vite generates relative paths (./assets/)
+    // which work correctly with Ingress
     res.sendFile(indexPath);
+  } catch (error) {
+    console.error(`❌ [HTML] Error serving index.html:`, error);
+    res.status(500).send('Failed to load application');
   }
 });
 
