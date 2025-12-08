@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Development Commands
 
 ```bash
-# Local Development (outside Home Assistant)
+# Local Development
 npm run dev                   # Start both backend and frontend in development mode
 npm run build                 # Build both backend and frontend
 npm run test                  # Run tests for both backend and frontend
@@ -39,16 +39,21 @@ cd frontend && npm run lint   # ESLint frontend code
 # Docker Deployment
 
 # Docker commands for standalone deployment
-npm run docker:build            # Build Docker image
+npm run docker:build            # Build Docker image locally
 npm run docker:run              # Run container with volume mounting
 npm run docker:health           # Check if application is responding
 npm run docker:logs             # View container logs
 npm run docker:stop             # Stop running container
 npm run docker:clean            # Remove built image
 
+# Releases (automated via GitHub Actions)
+# Use git tags to trigger automated builds and releases
+git tag v0.3.0 && git push --tags  # Automated multi-arch build + addon update
+
 # Docker Compose deployment (recommended for production)
 docker-compose up -d             # Start application in background
-docker-compose logs              # View logs
+docker-compose logs -f           # View logs (follow mode)
+docker-compose pull && docker-compose up -d  # Update to latest image
 docker-compose down              # Stop application
 
 # Manual Docker commands
@@ -94,19 +99,20 @@ docker run -d -p 8080:8080 -v ./data:/app/data growflow  # Run with data persist
 2. Care activities (watering/feeding/training/observations/harvests) are logged as events per plant
 3. All plant data persists in SQLite database for historical tracking
 4. Frontend displays real-time plant status and complete grow timeline
-5. Home Assistant Ingress routing automatically detected via URL path (`/hassio/ingress/*`)
+5. Home Assistant Ingress routing automatically detected via URL path (`/api/hassio_ingress/*`)
+6. API base path dynamically adjusted in `frontend/src/services/api.ts` based on URL detection
 
 ### Development Notes
 
-- Settings are centralized in `backend/src/config/settings.ts` using environment variables
-- Database auto-synchronizes by default for ease of use (set `DISABLE_DB_SYNC=true` to disable)
-- Frontend proxies API requests to localhost:8080 (configured in [vite.config.ts](frontend/vite.config.ts))
-- Both backend and frontend use ESLint for code quality with auto-fix available
-- TypeScript strict mode enabled across the project
-- Backend uses nodemon for hot reloading during development
-- Frontend uses Vite dev server with hot module replacement
-- Home Assistant Ingress support via automatic path detection and base tag injection
-- Frontend path alias `@/` resolves to `src/` for cleaner imports
+- **Settings**: Centralized in `backend/src/config/settings.ts` using environment variables
+- **Database**: Auto-synchronizes by default for ease of use (set `DISABLE_DB_SYNC=true` to disable)
+- **Dev Proxy**: Frontend proxies API requests to localhost:8080 (configured in [vite.config.ts](frontend/vite.config.ts))
+- **Code Quality**: ESLint with auto-fix available via `npm run lint:fix`
+- **Type Safety**: TypeScript strict mode enabled, compilation serves as type check
+- **Hot Reload**: Backend uses nodemon, frontend uses Vite HMR
+- **Ingress Support**: Automatic path detection and dynamic base URL adjustment
+- **Path Alias**: `@/` resolves to `frontend/src/` for cleaner imports
+- **Build Output**: Backend compiles to `backend/dist/`, frontend to `frontend/build/`
 
 ### Docker Deployment Strategy
 
@@ -120,10 +126,13 @@ docker run -d -p 8080:8080 -v ./data:/app/data growflow  # Run with data persist
 
 ### Important File Locations
 
-- **API Layer**: `frontend/src/services/api.ts` - all backend communication
-- **Models**: `backend/src/models/` - TypeORM entity definitions
-- **Configuration**: `backend/src/config/settings.ts` - environment-based config
-- **Types**: Shared interfaces between frontend/backend in respective `types/` directories
+- **API Layer**: `frontend/src/services/api.ts` - Axios client with Ingress detection
+- **Models**: `backend/src/models/` - TypeORM entity definitions (Plant, Strain, Event, Phase)
+- **Controllers**: `backend/src/controllers/` - Express route handlers (plantController, strainController)
+- **Configuration**: `backend/src/config/settings.ts` - Environment-based config (PORT, DB_PATH, CORS, etc.)
+- **Types**: Shared TypeScript interfaces in `frontend/src/types/` and `backend/src/types/`
+- **Frontend Entry**: `frontend/src/index.tsx` - React app initialization
+- **Backend Entry**: `backend/src/index.ts` - Express server startup
 
 ### Testing & Quality
 
@@ -162,10 +171,45 @@ docker-compose down
 
 ## CI/CD Pipeline
 
+### Automated Release Workflow
+
+**Single Command Release**: `git tag v0.3.0 && git push --tags`
+
+This triggers a fully automated release process:
+1. Builds multi-arch Docker images (amd64, arm64, arm/v7)
+2. Pushes to GitHub Container Registry: `ghcr.io/grow-flow/growflow`
+3. Automatically updates addon repository with new version
+4. Synchronizes versions across all configuration files
+
 ### GitHub Actions
 
-- **Build Workflow** ([.github/workflows/docker.yml](.github/workflows/docker.yml)): Automated Docker builds on push to main
-  - Multi-architecture builds (amd64, arm64) for broad compatibility
-  - Pushes to DockerHub: `moritz03/growflow`
+- **Release Workflow** ([.github/workflows/docker.yml](.github/workflows/docker.yml)): Automated releases on tag push
+  - Trigger: Git tags matching `v*` pattern (e.g., `v0.3.0`)
+  - Multi-architecture builds (amd64, arm64, arm/v7)
+  - Pushes to GitHub Container Registry: `ghcr.io/grow-flow/growflow`
   - Build cache optimization using GitHub Actions cache
-  - Tags: `latest` for main branch, version tags on releases
+  - Tags: Version-specific tags + `:latest`
+  - Triggers addon repository update via `repository_dispatch`
+
+- **Addon Automation**: Separate [growflow-addon](https://github.com/grow-flow/growflow-addon) repository
+  - Auto-updates config.yaml, Dockerfile, CHANGELOG.md
+  - Creates matching git tags
+  - Zero manual intervention required
+
+### Release Process
+
+```bash
+# Create and push a version tag
+git tag v0.3.0
+git push --tags
+
+# Monitor progress
+# - Main repo: Builds and pushes Docker images (~10 min)
+# - Addon repo: Auto-updates and tags (~2 min)
+```
+
+### Required Secrets
+
+- **ADDON_REPO_TOKEN**: Personal Access Token with `repo` scope
+  - Required for triggering addon repository updates
+  - Add to main repo secrets at Settings → Secrets and variables → Actions
