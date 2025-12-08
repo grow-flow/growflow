@@ -38,7 +38,13 @@ cd frontend && npm run lint   # ESLint frontend code
 
 # Docker Deployment
 
-# Docker commands for standalone deployment
+# Docker Buildx Bake commands (recommended)
+make build                      # Build local image with buildx bake
+make push VERSION=v0.3.0        # Build multi-arch and push to registry
+docker compose up -d            # Run with docker compose
+docker compose logs -f          # View logs
+
+# Legacy npm commands (still available)
 npm run docker:build            # Build Docker image locally
 npm run docker:run              # Run container with volume mounting
 npm run docker:health           # Check if application is responding

@@ -1,40 +1,47 @@
+# syntax=docker/dockerfile:1.4
 # Multi-stage build for standalone deployment
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files (separate layer for better caching)
 COPY backend/package*.json ./backend/
 COPY frontend/package*.json ./frontend/
 
-# Install dependencies with pre-built binaries (no python/make/g++ needed)
-RUN cd backend && npm ci --no-audit --no-fund --build-from-source=false
-RUN cd frontend && npm ci --no-audit --no-fund
+# Install dependencies with cache mounts (faster rebuilds)
+RUN --mount=type=cache,target=/root/.npm \
+    cd backend && npm ci --no-audit --no-fund --build-from-source=false
 
-# Copy and build backend
+RUN --mount=type=cache,target=/root/.npm \
+    cd frontend && npm ci --no-audit --no-fund
+
+# Copy source files (only invalidates if code changes)
 COPY backend/src ./backend/src/
 COPY backend/tsconfig.json ./backend/
-RUN cd backend && npm run build
-
-# Copy and build frontend
 COPY frontend/src ./frontend/src/
 COPY frontend/index.html ./frontend/
 COPY frontend/tsconfig.json ./frontend/
 COPY frontend/tsconfig.node.json ./frontend/
 COPY frontend/vite.config.ts ./frontend/
+
+# Build applications
+RUN cd backend && npm run build
 RUN cd frontend && npm run build
 
 # Production stage
 FROM node:20-alpine
 
-# Install minimal runtime dependencies
+# Install runtime dependencies in single layer
 RUN apk add --no-cache curl sqlite
 
 WORKDIR /app
 
-# Copy package files and install production dependencies
+# Copy package files
 COPY backend/package*.json ./backend/
-RUN cd backend && npm ci --omit=dev --no-audit --no-fund --build-from-source=false
+
+# Install production dependencies with cache mount
+RUN --mount=type=cache,target=/root/.npm \
+    cd backend && npm ci --omit=dev --no-audit --no-fund --build-from-source=false
 
 # Copy built application
 COPY --from=builder /app/backend/dist ./backend/dist/
@@ -44,8 +51,8 @@ COPY --from=builder /app/frontend/build ./frontend/build/
 RUN mkdir -p /app/data
 
 # Set environment variables
-ENV NODE_ENV=production
-ENV DB_PATH=/app/data/growflow.db
+ENV NODE_ENV=production \
+    DB_PATH=/app/data/growflow.db
 
 # Expose port
 EXPOSE 8080
