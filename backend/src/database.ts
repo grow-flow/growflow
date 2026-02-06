@@ -1,25 +1,18 @@
-import { DataSource } from 'typeorm';
+import { PrismaClient } from '@prisma/client';
 import { CONFIG } from './config/settings';
-import { Plant, Strain } from './models';
 
-export const AppDataSource = new DataSource({
-  type: 'sqlite',
-  database: CONFIG.DATABASE.PATH,
-  synchronize: CONFIG.DATABASE.SYNC,
-  logging: CONFIG.LOG_LEVEL === 'debug',
-  entities: [Plant, Strain],
+export const prisma = new PrismaClient({
+  log: CONFIG.LOG_LEVEL === 'debug' ? ['query', 'info', 'warn', 'error'] : ['error']
 });
 
 export const initializeDatabase = async () => {
   try {
-    console.log('🔵 [DB] Initializing database...');
-    console.log('🔵 [DB] Database path:', CONFIG.DATABASE.PATH);
-    console.log('🔵 [DB] Synchronize:', CONFIG.DATABASE.SYNC);
-    await AppDataSource.initialize();
-    console.log('🟢 [DB] Database initialized successfully');
-    console.log('🟢 [DB] Is initialized:', AppDataSource.isInitialized);
+    console.log('🔵 [DB] Initializing Prisma...');
+    console.log('🔵 [DB] Path:', CONFIG.DATABASE.PATH);
+    await prisma.$connect();
+    console.log('🟢 [DB] Initialized successfully');
   } catch (error) {
-    console.error('🔴 [DB] Database initialization failed:', error);
+    console.error('🔴 [DB] Initialization failed:', error);
     throw error;
   }
 };

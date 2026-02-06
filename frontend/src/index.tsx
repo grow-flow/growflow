@@ -34,15 +34,23 @@ const queryClient = new QueryClient({
   },
 });
 
-// Detect Ingress base path from meta tag (injected by backend)
+// Detect Ingress base path automatically
 const getBasename = () => {
-  const baseMeta = document.querySelector("base");
-  if (baseMeta) {
-    const href = baseMeta.getAttribute("href");
-    return href ? href.replace(/\/$/, "") : "";
+  const path = window.location.pathname;
+  const ingressMatch = path.match(/^(\/api\/hassio_ingress\/[^\/]+)/);
+
+  if (ingressMatch) {
+    console.log(`🟢 [Frontend] Detected Ingress path: ${ingressMatch[1]}`);
+    return ingressMatch[1];
   }
+
+  console.log(`🔵 [Frontend] No Ingress detected, using root path`);
   return "";
 };
+
+console.log(`🚀 [Frontend] GrowFlow starting...`);
+console.log(`   URL: ${window.location.href}`);
+console.log(`   Path: ${window.location.pathname}`);
 
 const root = ReactDOM.createRoot(
   document.getElementById("root") as HTMLElement

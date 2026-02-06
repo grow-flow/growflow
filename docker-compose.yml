@@ -1,8 +1,9 @@
-version: "3.8"
-
 services:
   growflow:
-    image: moritz03/growflow:latest
+    image: growflow:dev
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: growflow
     restart: unless-stopped
     ports:
@@ -10,17 +11,12 @@ services:
     volumes:
       - ./data:/app/data
     environment:
-      - NODE_ENV=production
-      - DB_PATH=/app/data/growflow.db
-      - LOG_LEVEL=info
-      - FORCE_DB_SYNC=true
-      - TRUST_PROXY=true
+      NODE_ENV: production
+      DB_PATH: /app/data/growflow.db
+      LOG_LEVEL: info
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 30s
-    labels:
-      - "com.centurylinklabs.watchtower.enable=true"
-      - "com.centurylinklabs.watchtower.monitor-only=false"

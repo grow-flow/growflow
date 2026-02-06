@@ -4,7 +4,6 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import path from 'path';
-import fs from 'fs';
 import { CONFIG } from './config/settings';
 import { initializeDatabase } from './database';
 import { errorHandler } from './middleware/errorHandler';
@@ -14,24 +13,35 @@ import { strainRoutes } from './controllers/strainController';
 const app = express();
 
 // Trust proxy for reverse proxy setups (Home Assistant, nginx, etc)
-if (CONFIG.SECURITY.TRUST_PROXY) {
-  app.set('trust proxy', 1);
-}
+// This makes req.protocol respect X-Forwarded-Proto header
+app.set('trust proxy', 1);
 
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-      frameAncestors: CONFIG.SECURITY.ALLOWED_FRAME_ANCESTORS,
-      frameSrc: ["'self'"],
-      connectSrc: ["'self'"]
-    }
-  },
-  frameguard: false,
-  crossOriginEmbedderPolicy: false
-}));
+// Dynamic security headers based on protocol
+app.use((req, res, next) => {
+  const isHTTPS = req.protocol === 'https';
+  const shouldUpgradeHTTPS = !CONFIG.SECURITY.DISABLE_HTTPS_UPGRADE && isHTTPS;
+
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "data:", "https:", "http:"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https:", "http:"],
+        imgSrc: ["'self'", "data:", "blob:", "https:", "http:"],
+        fontSrc: ["'self'", "data:", "https:", "http:"],
+        frameAncestors: CONFIG.SECURITY.ALLOWED_FRAME_ANCESTORS,
+        frameSrc: ["'self'"],
+        connectSrc: ["'self'", "https:", "http:", "ws:", "wss:"],
+        workerSrc: ["'self'", "blob:"],
+        childSrc: ["'self'", "blob:"],
+        upgradeInsecureRequests: shouldUpgradeHTTPS ? [] : null
+      }
+    },
+    hsts: isHTTPS ? { maxAge: 15552000, includeSubDomains: true } : false,
+    frameguard: false,
+    crossOriginEmbedderPolicy: false
+  })(req, res, next);
+});
 app.use(cors({ origin: CONFIG.API.CORS_ORIGIN, credentials: true }));
 app.use(morgan('combined'));
 app.use(express.json());
@@ -62,9 +72,11 @@ app.use((req, res, next) => {
 // Ingress detection middleware (no path stripping needed - Ingress does it)
 app.use((req, res, next) => {
   const ingressPath = req.headers['x-ingress-path'] as string;
+  const isIngress = req.url.includes('/api/hassio_ingress') || ingressPath;
 
-  if (ingressPath && CONFIG.LOG_LEVEL === 'debug') {
-    console.log(`🟢 [Ingress] Request via Ingress: ${req.method} ${req.url} (Base: ${ingressPath})`);
+  if (isIngress || CONFIG.LOG_LEVEL === 'debug') {
+    console.log(`🔵 [Request] ${req.method} ${req.url}`);
+    console.log(`   Headers: x-ingress-path=${ingressPath}, host=${req.headers.host}`);
   }
 
   next();
@@ -84,10 +96,10 @@ app.get('/api/health', async (req, res) => {
       }
     };
 
-    // Check database connection
     try {
-      const { AppDataSource } = await import('./database');
-      health.services.database = AppDataSource.isInitialized ? 'ok' : 'disconnected';
+      const { prisma } = await import('./database');
+      await prisma.$queryRaw`SELECT 1`;
+      health.services.database = 'ok';
     } catch (error) {
       health.services.database = 'error';
     }
@@ -99,8 +111,8 @@ app.get('/api/health', async (req, res) => {
 
     res.json(health);
   } catch (error) {
-    res.status(500).json({ 
-      status: 'error', 
+    res.status(500).json({
+      status: 'error',
       timestamp: new Date().toISOString(),
       error: 'Health check failed'
     });
@@ -114,21 +126,11 @@ app.use(express.static(frontendPath, {
   index: false // Don't serve index.html automatically
 }));
 
-// Catch-all handler for React Router with Ingress support
-// Serve index.html for all non-API, non-file requests (SPA routing)
+// Catch-all handler for React Router (SPA routing)
 app.get('*', (req, res) => {
-  const ingressPath = req.headers['x-ingress-path'] as string || '';
   const indexPath = path.join(frontendPath, 'index.html');
-
-  if (ingressPath) {
-    // Inject base tag for Ingress routing
-    let html = fs.readFileSync(indexPath, 'utf8');
-    html = html.replace('<head>', `<head><base href="${ingressPath}/">`);
-    res.send(html);
-  } else {
-    // Normal serving without modifications
-    res.sendFile(indexPath);
-  }
+  console.log(`📄 [HTML] Serving index.html for: ${req.url}`);
+  res.sendFile(indexPath);
 });
 
 app.use(errorHandler);

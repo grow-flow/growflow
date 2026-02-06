@@ -1,0 +1,38 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Strain {
+  id           Int      @id @default(autoincrement())
+  name         String   @unique
+  abbreviation String?
+  type         String   @default("photoperiod")
+  description  String?
+  breeder      String?
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  @@map("strains")
+}
+
+model Plant {
+  id              Int      @id @default(autoincrement())
+  name            String
+  strain          String
+  start_method    String   @default("seed")
+  plant_type      String   @default("photoperiod")
+  phases          String
+  events          String   @default("[]")
+  notes           String?  @default("")
+  is_active       Boolean  @default(true)
+  is_mother_plant Boolean  @default(false)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  @@map("plant")
+}

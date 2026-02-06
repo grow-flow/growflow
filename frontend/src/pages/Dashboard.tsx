@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Grid, Typography, Card, CardContent, Button, Box, CircularProgress, Alert, Paper, Chip, Avatar, LinearProgress, CardActionArea } from '@mui/material';
+import { Grid, Typography, Card, CardContent, Button, Box, Alert, Paper, Chip, Avatar, LinearProgress, CardActionArea } from '@mui/material';
 import { Add as AddIcon, LocalFlorist as PlantIcon, Timeline, Speed, TrendingUp, LocalFlorist } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { usePlants, useCreatePlant } from '../hooks/usePlants';
@@ -10,49 +10,15 @@ import { createPlantTimeline } from '../utils/PlantTimeline';
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [createPlantDialogOpen, setCreatePlantDialogOpen] = useState(false);
-  
-  const { 
-    data: allPlants = [], 
-    isLoading, 
+
+  const {
+    data: allPlants = [],
     error,
-    refetch 
+    refetch
   } = usePlants();
   
   const createPlantMutation = useCreatePlant();
 
-  const handlePlantCreated = async (plantData: Partial<Plant>) => {
-    try {
-      await createPlantMutation.mutateAsync(plantData);
-      setCreatePlantDialogOpen(false);
-    } catch (error) {
-      console.error('Failed to create plant:', error);
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Alert 
-        severity="error" 
-        action={
-          <Button color="inherit" size="small" onClick={() => refetch()}>
-            Retry
-          </Button>
-        }
-      >
-        Failed to load grow areas. Please try again.
-      </Alert>
-    );
-  }
-
-  // Calculate stats using timeline logic
   const plantStats = useMemo(() => {
     const totalPlants = allPlants.length;
     const activePlants = allPlants.filter(p => p.is_active).length;
@@ -63,14 +29,46 @@ const Dashboard: React.FC = () => {
       return acc;
     }, {} as Record<string, number>);
 
-    return { totalPlants, activePlants, phaseCounts };
+    const totalGrowthDays = allPlants
+      .filter(p => p.is_active)
+      .reduce((sum, plant) => {
+        const firstPhase = plant.phases?.[0];
+        if (firstPhase?.start_date) {
+          const startDate = new Date(firstPhase.start_date);
+          const daysSinceStart = Math.floor((new Date().getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+          return sum + daysSinceStart;
+        }
+        return sum;
+      }, 0);
+
+    return { totalPlants, activePlants, phaseCounts, totalGrowthDays };
   }, [allPlants]);
 
-  const { totalPlants, activePlants, phaseCounts } = plantStats;
+  const { totalPlants, activePlants, phaseCounts, totalGrowthDays } = plantStats;
 
-  const recentPlants = allPlants
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 5);
+  const handlePlantCreated = async (plantData: Partial<Plant>) => {
+    try {
+      await createPlantMutation.mutateAsync(plantData);
+      setCreatePlantDialogOpen(false);
+    } catch (error) {
+      console.error('Failed to create plant:', error);
+    }
+  };
+
+  if (error) {
+    return (
+      <Alert
+        severity="error"
+        action={
+          <Button color="inherit" size="small" onClick={() => refetch()}>
+            Retry
+          </Button>
+        }
+      >
+        Failed to load grow areas. Please try again.
+      </Alert>
+    );
+  }
 
   return (
     <Box>
@@ -137,7 +135,7 @@ const Dashboard: React.FC = () => {
               <TrendingUp />
             </Avatar>
             <Box>
-              <Typography variant="h4">{totalPlants}</Typography>
+              <Typography variant="h4">{totalGrowthDays}</Typography>
               <Typography variant="body2" color="textSecondary">
                 Growth Days
               </Typography>
@@ -216,21 +214,24 @@ const Dashboard: React.FC = () => {
             </Typography>
             {Object.keys(phaseCounts).length > 0 ? (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {Object.entries(phaseCounts).map(([phase, count]) => (
-                  <Box key={phase}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
-                      <Typography variant="body2">{phase}</Typography>
-                      <Typography variant="body2" color="textSecondary">
-                        {count}
-                      </Typography>
+                {(() => {
+                  const maxCount = Math.max(...Object.values(phaseCounts));
+                  return Object.entries(phaseCounts).map(([phase, count]) => (
+                    <Box key={phase}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                        <Typography variant="body2">{phase}</Typography>
+                        <Typography variant="body2" color="textSecondary">
+                          {count}
+                        </Typography>
+                      </Box>
+                      <LinearProgress
+                        variant="determinate"
+                        value={(count / maxCount) * 100}
+                        sx={{ height: 6, borderRadius: 3 }}
+                      />
                     </Box>
-                    <LinearProgress 
-                      variant="determinate" 
-                      value={(count / totalPlants) * 100}
-                      sx={{ height: 6, borderRadius: 3 }}
-                    />
-                  </Box>
-                ))}
+                  ));
+                })()}
               </Box>
             ) : (
               <Typography color="textSecondary">
