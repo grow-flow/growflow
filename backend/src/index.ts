@@ -96,10 +96,10 @@ app.get('/api/health', async (req, res) => {
       }
     };
 
-    // Check database connection
     try {
-      const { AppDataSource } = await import('./database');
-      health.services.database = AppDataSource.isInitialized ? 'ok' : 'disconnected';
+      const { prisma } = await import('./database');
+      await prisma.$queryRaw`SELECT 1`;
+      health.services.database = 'ok';
     } catch (error) {
       health.services.database = 'error';
     }
@@ -111,8 +111,8 @@ app.get('/api/health', async (req, res) => {
 
     res.json(health);
   } catch (error) {
-    res.status(500).json({ 
-      status: 'error', 
+    res.status(500).json({
+      status: 'error',
       timestamp: new Date().toISOString(),
       error: 'Health check failed'
     });

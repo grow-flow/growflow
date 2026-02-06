@@ -5,41 +5,28 @@ export interface PlantEvent {
   title: string;
   description?: string;
   data?: {
-    // Watering data
     amount_ml?: number;
     ph_level?: number;
     ec_ppm?: number;
     water_temperature?: number;
     runoff_ph?: number;
     runoff_ec?: number;
-    
-    // Feeding data
     nutrients?: Array<{
       name: string;
       amount_ml: number;
       npk_ratio?: string;
     }>;
-    
-    // Observation data
     observation_type?: 'health' | 'training' | 'deficiency' | 'pest' | 'general';
     severity?: 'low' | 'medium' | 'high';
     resolved?: boolean;
-    
-    // Training data
     training_method?: string;
-    
-    // Harvest data
     wet_weight?: number;
     dry_weight?: number;
-    
-    // Photos for any event type
     photos?: string[];
-    
-    // Custom data for extensibility
     custom_fields?: { [key: string]: any };
   };
   notes?: string;
-  phase_id?: string; // Link to which phase this event occurred in
+  phase_id?: string;
 }
 
 export const EVENT_TYPES = {

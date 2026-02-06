@@ -1,11 +1,8 @@
 import { Router, Request, Response } from "express";
-import { AppDataSource } from "../database";
-import { Plant, Strain } from "../models";
+import { prisma } from "../database";
 import {
   createPlantPhasesFromStrain,
   getCurrentPhase,
-  startNextPhase,
-  updatePhaseStartDate,
 } from "../utils/phaseUtils";
 import {
   createEvent,
@@ -16,12 +13,25 @@ import {
 
 const router = Router();
 
+// Parse JSON fields for API response
+const parseJson = (str: string | null | undefined, fallback: any = []) => {
+  if (!str || str === "") return fallback;
+  try { return JSON.parse(str); } catch { return fallback; }
+};
+
+const parsePlant = (plant: any) => ({
+  ...plant,
+  phases: parseJson(plant.phases, []),
+  events: parseJson(plant.events, []),
+  training_methods: parseJson(plant.training_methods, []),
+});
+
 router.get("/", async (req: Request, res: Response) => {
   try {
-    const plants = await AppDataSource.getRepository(Plant).find({
+    const plants = await prisma.plant.findMany({
       where: { is_active: true },
     });
-    res.json(plants);
+    res.json(plants.map(parsePlant));
   } catch (error) {
     console.error("🔴 [Plants] Error fetching plants:", error);
     res.status(500).json({ error: "Failed to fetch plants" });
@@ -31,7 +41,7 @@ router.get("/", async (req: Request, res: Response) => {
 router.get("/:id", async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
-    const plant = await AppDataSource.getRepository(Plant).findOne({
+    const plant = await prisma.plant.findUnique({
       where: { id },
     });
 
@@ -39,7 +49,7 @@ router.get("/:id", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Plant not found" });
     }
 
-    res.json(plant);
+    res.json(parsePlant(plant));
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch plant" });
   }
@@ -47,30 +57,30 @@ router.get("/:id", async (req: Request, res: Response) => {
 
 router.post("/", async (req: Request, res: Response) => {
   try {
-    const plantRepo = AppDataSource.getRepository(Plant);
-    const strainRepo = AppDataSource.getRepository(Strain);
-
-    // Get strain to determine plant type
     let strain = null;
     if (req.body.strain) {
-      strain = await strainRepo.findOne({ where: { name: req.body.strain } });
+      strain = await prisma.strain.findFirst({
+        where: { name: req.body.strain }
+      });
     }
 
-    // Use phases from request if provided, otherwise create from plant type
     const isAutoflower =
       req.body.plant_type === "autoflower" || strain?.type === "autoflower";
     const phases =
       req.body.phases || createPlantPhasesFromStrain([], isAutoflower);
 
-    const plant = plantRepo.create({
-      ...req.body,
-      phases,
+    const { training_methods, events, ...rest } = req.body;
+
+    const plant = await prisma.plant.create({
+      data: {
+        ...rest,
+        phases: JSON.stringify(phases),
+        training_methods: Array.isArray(training_methods) ? JSON.stringify(training_methods) : (training_methods || ""),
+        events: Array.isArray(events) ? JSON.stringify(events) : (events || "[]"),
+      },
     });
 
-    const saved = await plantRepo.save(plant);
-    const savedPlant = Array.isArray(saved) ? saved[0] : saved;
-
-    res.status(201).json(savedPlant);
+    res.status(201).json(parsePlant(plant));
   } catch (error: any) {
     console.error("🔴 [Plants] Failed to create plant:", error.message);
     res.status(500).json({
@@ -85,24 +95,20 @@ router.put("/:id/phases", async (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
     const { phases } = req.body;
 
-    const plantRepo = AppDataSource.getRepository(Plant);
-    const plant = await plantRepo.findOne({ where: { id } });
-
-    if (!plant) {
-      return res.status(404).json({ error: "Plant not found" });
-    }
-
-    // Validate phases array
     if (!Array.isArray(phases) || phases.length === 0) {
       return res.status(400).json({ error: "Invalid phases data" });
     }
 
-    // Update plant phases - all logic is derived from the dates in the phases
-    plant.phases = phases;
+    const plant = await prisma.plant.update({
+      where: { id },
+      data: { phases: JSON.stringify(phases) },
+    });
 
-    const saved = await plantRepo.save(plant);
-    res.json(saved);
-  } catch (error) {
+    res.json(parsePlant(plant));
+  } catch (error: any) {
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: "Plant not found" });
+    }
     console.error("Failed to update plant phases:", error);
     res.status(500).json({ error: "Failed to update plant phases" });
   }
@@ -111,21 +117,30 @@ router.put("/:id/phases", async (req: Request, res: Response) => {
 router.put("/:id", async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
-    const plantRepo = AppDataSource.getRepository(Plant);
+    const { training_methods, events, phases, ...rest } = req.body;
 
-    await plantRepo.update(id, req.body);
-    const updated = await plantRepo.findOne({ where: { id } });
-
-    if (!updated) {
-      return res.status(404).json({ error: "Plant not found" });
+    const data: any = { ...rest };
+    if (training_methods !== undefined) {
+      data.training_methods = Array.isArray(training_methods) ? JSON.stringify(training_methods) : training_methods;
+    }
+    if (events !== undefined) {
+      data.events = Array.isArray(events) ? JSON.stringify(events) : events;
+    }
+    if (phases !== undefined) {
+      data.phases = Array.isArray(phases) ? JSON.stringify(phases) : phases;
     }
 
-    res.json(updated);
+    const plant = await prisma.plant.update({
+      where: { id },
+      data,
+    });
+
+    res.json(parsePlant(plant));
   } catch (error: any) {
-    console.error(
-      `🔴 [Plants] Failed to update plant ${req.params.id}:`,
-      error.message
-    );
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: "Plant not found" });
+    }
+    console.error(`🔴 [Plants] Failed to update plant ${req.params.id}:`, error.message);
     res.status(500).json({
       error: "Failed to update plant",
       details: error.message,
@@ -136,35 +151,35 @@ router.put("/:id", async (req: Request, res: Response) => {
 router.delete("/:id", async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
-    const plantRepo = AppDataSource.getRepository(Plant);
-
-    const result = await plantRepo.delete(id);
-    if (result.affected === 0) {
+    await prisma.plant.delete({
+      where: { id }
+    });
+    res.status(204).send();
+  } catch (error: any) {
+    if (error.code === 'P2025') {
       return res.status(404).json({ error: "Plant not found" });
     }
-
-    res.status(204).send();
-  } catch (error) {
     console.error("Delete plant error:", error);
     res.status(500).json({ error: "Failed to delete plant" });
   }
 });
 
-// Event management endpoints
 router.post("/:id/events", async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
     const { type, title, data, notes, timestamp } = req.body;
 
-    const plantRepo = AppDataSource.getRepository(Plant);
-    const plant = await plantRepo.findOne({ where: { id } });
+    const plant = await prisma.plant.findUnique({
+      where: { id },
+    });
 
     if (!plant) {
       return res.status(404).json({ error: "Plant not found" });
     }
 
-    // Get current phase ID for event linking
-    const currentPhase = getCurrentPhase(plant.phases);
+    const phases = JSON.parse(plant.phases);
+    const events = JSON.parse(plant.events);
+    const currentPhase = getCurrentPhase(phases);
     const newEvent = createEvent(
       type,
       title,
@@ -174,10 +189,14 @@ router.post("/:id/events", async (req: Request, res: Response) => {
       timestamp
     );
 
-    plant.events = addEventToPlant(plant.events, newEvent);
+    const updatedEvents = addEventToPlant(events, newEvent);
 
-    const saved = await plantRepo.save(plant);
-    res.status(201).json(saved);
+    const saved = await prisma.plant.update({
+      where: { id },
+      data: { events: JSON.stringify(updatedEvents) },
+    });
+
+    res.status(201).json(parsePlant(saved));
   } catch (error) {
     console.error("Failed to create event:", error);
     res.status(500).json({ error: "Failed to create event" });
@@ -189,17 +208,23 @@ router.put("/:id/events/:eventId", async (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
     const { eventId } = req.params;
 
-    const plantRepo = AppDataSource.getRepository(Plant);
-    const plant = await plantRepo.findOne({ where: { id } });
+    const plant = await prisma.plant.findUnique({
+      where: { id },
+    });
 
     if (!plant) {
       return res.status(404).json({ error: "Plant not found" });
     }
 
-    plant.events = updateEvent(plant.events, eventId, req.body);
+    const events = JSON.parse(plant.events);
+    const updatedEvents = updateEvent(events, eventId, req.body);
 
-    const saved = await plantRepo.save(plant);
-    res.json(saved);
+    const saved = await prisma.plant.update({
+      where: { id },
+      data: { events: JSON.stringify(updatedEvents) },
+    });
+
+    res.json(parsePlant(saved));
   } catch (error) {
     console.error("Failed to update event:", error);
     res.status(500).json({ error: "Failed to update event" });
@@ -211,17 +236,23 @@ router.delete("/:id/events/:eventId", async (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
     const { eventId } = req.params;
 
-    const plantRepo = AppDataSource.getRepository(Plant);
-    const plant = await plantRepo.findOne({ where: { id } });
+    const plant = await prisma.plant.findUnique({
+      where: { id },
+    });
 
     if (!plant) {
       return res.status(404).json({ error: "Plant not found" });
     }
 
-    plant.events = deleteEvent(plant.events, eventId);
+    const events = JSON.parse(plant.events);
+    const updatedEvents = deleteEvent(events, eventId);
 
-    const saved = await plantRepo.save(plant);
-    res.json(saved);
+    const saved = await prisma.plant.update({
+      where: { id },
+      data: { events: JSON.stringify(updatedEvents) },
+    });
+
+    res.json(parsePlant(saved));
   } catch (error) {
     console.error("Failed to delete event:", error);
     res.status(500).json({ error: "Failed to delete event" });

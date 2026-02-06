@@ -1,23 +1,16 @@
 import { Router, Request, Response } from 'express';
-import { AppDataSource } from '../database';
-import { Strain } from '../models/Strain';
+import { prisma } from '../database';
 
 const router = Router();
 
 router.get('/', async (req: Request, res: Response) => {
   try {
-    console.log('🔵 [Strains] GET / - Fetching all strains');
-    console.log('   DB initialized:', AppDataSource.isInitialized);
-
-    const strains = await AppDataSource.getRepository(Strain).find({
-      order: { name: 'ASC' }
+    const strains = await prisma.strain.findMany({
+      orderBy: { name: 'asc' }
     });
-
-    console.log(`✅ [Strains] Found ${strains.length} strains`);
     res.json(strains);
   } catch (error: any) {
     console.error('🔴 [Strains] Error fetching strains:', error);
-    console.error('   Error details:', error.message, error.stack);
     res.status(500).json({ error: 'Failed to fetch strains', details: error.message });
   }
 });
@@ -25,14 +18,14 @@ router.get('/', async (req: Request, res: Response) => {
 router.get('/:id', async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
-    const strain = await AppDataSource.getRepository(Strain).findOne({
+    const strain = await prisma.strain.findUnique({
       where: { id }
     });
-    
+
     if (!strain) {
       return res.status(404).json({ error: 'Strain not found' });
     }
-    
+
     res.json(strain);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch strain' });
@@ -41,13 +34,10 @@ router.get('/:id', async (req: Request, res: Response) => {
 
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const strainRepo = AppDataSource.getRepository(Strain);
-    const strain = strainRepo.create(req.body);
-
-    const saved = await strainRepo.save(strain);
-    const savedStrain = Array.isArray(saved) ? saved[0] : saved;
-
-    res.status(201).json(savedStrain);
+    const strain = await prisma.strain.create({
+      data: req.body
+    });
+    res.status(201).json(strain);
   } catch (error: any) {
     console.error('🔴 [Strains] Failed to create strain:', error.message);
     res.status(500).json({
@@ -60,17 +50,15 @@ router.post('/', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
-    const strainRepo = AppDataSource.getRepository(Strain);
-    
-    await strainRepo.update(id, req.body);
-    const updated = await strainRepo.findOne({ where: { id } });
-    
-    if (!updated) {
+    const strain = await prisma.strain.update({
+      where: { id },
+      data: req.body
+    });
+    res.json(strain);
+  } catch (error: any) {
+    if (error.code === 'P2025') {
       return res.status(404).json({ error: 'Strain not found' });
     }
-    
-    res.json(updated);
-  } catch (error) {
     res.status(500).json({ error: 'Failed to update strain' });
   }
 });
@@ -78,15 +66,14 @@ router.put('/:id', async (req: Request, res: Response) => {
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
-    const strainRepo = AppDataSource.getRepository(Strain);
-    
-    const result = await strainRepo.delete(id);
-    if (result.affected === 0) {
+    await prisma.strain.delete({
+      where: { id }
+    });
+    res.status(204).send();
+  } catch (error: any) {
+    if (error.code === 'P2025') {
       return res.status(404).json({ error: 'Strain not found' });
     }
-    
-    res.status(204).send();
-  } catch (error) {
     res.status(500).json({ error: 'Failed to delete strain' });
   }
 });

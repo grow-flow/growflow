@@ -1,4 +1,4 @@
-import { PlantPhaseInstance, PhaseTemplate, PHOTOPERIOD_PHASES, AUTOFLOWER_PHASES } from '../models/Phase';
+import { PlantPhaseInstance, PhaseTemplate, PHOTOPERIOD_PHASES, AUTOFLOWER_PHASES } from '../types/phase';
 import { v4 as uuidv4 } from 'uuid';
 
 export const createPlantPhasesFromStrain = (

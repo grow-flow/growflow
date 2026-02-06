@@ -1,4 +1,4 @@
-import { PlantEvent, EVENT_TYPES } from '../models/Event';
+import { PlantEvent, EVENT_TYPES } from '../types/event';
 import { v4 as uuidv4 } from 'uuid';
 
 export const createEvent = (
