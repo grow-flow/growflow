@@ -15,14 +15,14 @@ interface DynamicPlantTimelineProps {
 }
 
 const DynamicPlantTimeline: React.FC<DynamicPlantTimelineProps> = ({ plant }) => {
-  const [expandedPhase, setExpandedPhase] = useState<string | null>(null);
-  const [lastCurrentPhaseId, setLastCurrentPhaseId] = useState<string | null>(null);
+  const [expandedPhase, setExpandedPhase] = useState<number | null>(null);
+  const [lastCurrentPhaseId, setLastCurrentPhaseId] = useState<number | null>(null);
   const [configModalOpen, setConfigModalOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const plantTimeline = useMemo(
     () => createPlantTimeline(plant.phases || [], plant.events || []),
-    [plant.phases, plant.events, plant.id, plant.updated_at]
+    [plant.phases, plant.events, plant.id, plant.updatedAt]
   );
 
   const timeline = plantTimeline.timeline;
@@ -31,7 +31,7 @@ const DynamicPlantTimeline: React.FC<DynamicPlantTimelineProps> = ({ plant }) =>
   const daysUntilNext = plantTimeline.daysUntilNextPhase;
 
   const updatePhaseDateMutation = useMutation({
-    mutationFn: ({ phaseId, startDate }: { phaseId: string; startDate: string | null }) =>
+    mutationFn: ({ phaseId, startDate }: { phaseId: number; startDate: string | null }) =>
       apiService.updatePhaseStartDate(plant.id, phaseId, startDate),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["plants"] });
@@ -64,11 +64,11 @@ const DynamicPlantTimeline: React.FC<DynamicPlantTimelineProps> = ({ plant }) =>
     }
   }, [plantTimeline.currentPhase?.id, lastCurrentPhaseId]);
 
-  const handlePhaseClick = (phaseId: string) => {
+  const handlePhaseClick = (phaseId: number) => {
     setExpandedPhase(expandedPhase === phaseId ? null : phaseId);
   };
 
-  const handleDateChange = async (phaseId: string, newDate: Date | null) => {
+  const handleDateChange = async (phaseId: number, newDate: Date | null) => {
     const phaseIndex = plantTimeline.getPhaseIndex(phaseId);
 
     if (newDate) {

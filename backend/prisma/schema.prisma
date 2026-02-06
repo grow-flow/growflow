@@ -8,31 +8,60 @@ datasource db {
 }
 
 model Strain {
-  id           Int      @id @default(autoincrement())
-  name         String   @unique
-  abbreviation String?
-  type         String   @default("photoperiod")
-  description  String?
-  breeder      String?
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
+  id         Int      @id @default(autoincrement())
+  name       String   @unique
+  type       String   @default("photoperiod") // autoflower | photoperiod
+  plants     Plant[]
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   @@map("strains")
 }
 
 model Plant {
-  id              Int      @id @default(autoincrement())
-  name            String
-  strain          String
-  start_method    String   @default("seed")
-  plant_type      String   @default("photoperiod")
-  phases          String
-  events          String   @default("[]")
-  notes           String?  @default("")
-  is_active       Boolean  @default(true)
-  is_mother_plant Boolean  @default(false)
-  created_at      DateTime @default(now())
-  updated_at      DateTime @updatedAt
+  id        Int          @id @default(autoincrement())
+  name      String
+  strainId  Int?
+  strain    Strain?      @relation(fields: [strainId], references: [id])
+  notes     String?      @default("")
+  isActive  Boolean      @default(true)
+  phases    PlantPhase[]
+  events    PlantEvent[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 
-  @@map("plant")
+  @@map("plants")
+}
+
+model PlantPhase {
+  id          Int          @id @default(autoincrement())
+  plantId     Int
+  plant       Plant        @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  name        String
+  durationMin Int          @default(7)
+  durationMax Int          @default(14)
+  startDate   DateTime?
+  isActive    Boolean      @default(false)
+  isCompleted Boolean      @default(false)
+  notes       String?
+  events      PlantEvent[]
+  createdAt   DateTime     @default(now())
+
+  @@map("plant_phases")
+}
+
+model PlantEvent {
+  id        Int         @id @default(autoincrement())
+  plantId   Int
+  plant     Plant       @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  phaseId   Int?
+  phase     PlantPhase? @relation(fields: [phaseId], references: [id], onDelete: SetNull)
+  type      String      // watering | observation | training | harvest | transplant
+  title     String
+  timestamp DateTime    @default(now())
+  notes     String?
+  data      String?     // JSON für type-spezifische Daten
+  createdAt DateTime    @default(now())
+
+  @@map("plant_events")
 }

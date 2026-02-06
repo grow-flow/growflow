@@ -3,7 +3,7 @@ import { Grid, Typography, Card, CardContent, Button, Box, Alert, Paper, Chip, A
 import { Add as AddIcon, LocalFlorist as PlantIcon, Timeline, Speed, TrendingUp, LocalFlorist } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { usePlants, useCreatePlant } from '../hooks/usePlants';
-import { Plant } from '../types/models';
+import { CreatePlantRequest } from '../types/models';
 import CreatePlantDialog from '../components/CreatePlantDialog';
 import { createPlantTimeline } from '../utils/PlantTimeline';
 
@@ -21,7 +21,7 @@ const Dashboard: React.FC = () => {
 
   const plantStats = useMemo(() => {
     const totalPlants = allPlants.length;
-    const activePlants = allPlants.filter(p => p.is_active).length;
+    const activePlants = allPlants.filter(p => p.isActive).length;
     const phaseCounts = allPlants.reduce((acc, plant) => {
       const timeline = createPlantTimeline(plant.phases || [], plant.events || []);
       const currentPhase = timeline.currentPhase?.name || 'Unknown';
@@ -30,12 +30,12 @@ const Dashboard: React.FC = () => {
     }, {} as Record<string, number>);
 
     const totalGrowthDays = allPlants
-      .filter(p => p.is_active)
+      .filter(p => p.isActive)
       .reduce((sum, plant) => {
         const firstPhase = plant.phases?.[0];
-        if (firstPhase?.start_date) {
-          const startDate = new Date(firstPhase.start_date);
-          const daysSinceStart = Math.floor((new Date().getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        if (firstPhase?.startDate) {
+          const start = new Date(firstPhase.startDate);
+          const daysSinceStart = Math.floor((new Date().getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
           return sum + daysSinceStart;
         }
         return sum;
@@ -46,7 +46,7 @@ const Dashboard: React.FC = () => {
 
   const { totalPlants, activePlants, phaseCounts, totalGrowthDays } = plantStats;
 
-  const handlePlantCreated = async (plantData: Partial<Plant>) => {
+  const handlePlantCreated = async (plantData: CreatePlantRequest) => {
     try {
       await createPlantMutation.mutateAsync(plantData);
       setCreatePlantDialogOpen(false);
@@ -184,14 +184,15 @@ const Dashboard: React.FC = () => {
                         <CardContent>
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                             <Typography variant="h6">{plant.name}</Typography>
-                            <Chip 
-                              label={plant.start_method === 'seed' ? 'Seed' : 'Clone'} 
-                              size="small" 
+                            <Chip
+                              label={plant.isActive ? 'Active' : 'Inactive'}
+                              size="small"
+                              color={plant.isActive ? 'success' : 'default'}
                               variant="outlined"
                             />
                           </Box>
                           <Typography color="textSecondary" gutterBottom>
-                            {plant.strain}
+                            {plant.strain?.name || 'Unknown Strain'}
                           </Typography>
                           <Typography variant="body2" color="primary">
                             {currentPhase?.name || 'No current phase'} · Day {daysInPhase}

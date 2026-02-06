@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiService } from "../services/api";
-import { Plant, PlantEvent } from "../types/models";
+import { Plant, PlantEvent, CreatePlantRequest, CreateEventRequest } from "../types/models";
 
 export const plantKeys = {
   all: ["plants"] as const,
@@ -28,7 +28,7 @@ export const usePlant = (id: number) => {
 export const useCreatePlant = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: Partial<Plant>) => apiService.createPlant(data),
+    mutationFn: (data: CreatePlantRequest) => apiService.createPlant(data),
     onSuccess: (newPlant) => {
       queryClient.invalidateQueries({ queryKey: plantKeys.lists() });
       queryClient.setQueryData(plantKeys.lists(), (old: Plant[] = []) => [...old, newPlant]);
@@ -67,10 +67,8 @@ export const useDeletePlant = () => {
 export const useCreateEvent = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ plantId, eventData }: {
-      plantId: number;
-      eventData: { type: PlantEvent["type"]; title: string; data?: PlantEvent["data"]; notes?: string; timestamp?: string };
-    }) => apiService.createEvent(plantId, eventData),
+    mutationFn: ({ plantId, eventData }: { plantId: number; eventData: CreateEventRequest }) =>
+      apiService.createEvent(plantId, eventData),
     onSuccess: (updatedPlant) => {
       queryClient.setQueryData(plantKeys.detail(updatedPlant.id), updatedPlant);
       queryClient.setQueryData(plantKeys.lists(), (old: Plant[] = []) =>
@@ -83,7 +81,7 @@ export const useCreateEvent = () => {
 export const useUpdateEvent = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ plantId, eventId, eventData }: { plantId: number; eventId: string; eventData: Partial<PlantEvent> }) =>
+    mutationFn: ({ plantId, eventId, eventData }: { plantId: number; eventId: number; eventData: Partial<PlantEvent> }) =>
       apiService.updateEvent(plantId, eventId, eventData),
     onSuccess: (updatedPlant) => {
       queryClient.setQueryData(plantKeys.detail(updatedPlant.id), updatedPlant);
@@ -97,7 +95,7 @@ export const useUpdateEvent = () => {
 export const useDeleteEvent = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ plantId, eventId }: { plantId: number; eventId: string }) =>
+    mutationFn: ({ plantId, eventId }: { plantId: number; eventId: number }) =>
       apiService.deleteEvent(plantId, eventId),
     onSuccess: (updatedPlant) => {
       queryClient.setQueryData(plantKeys.detail(updatedPlant.id), updatedPlant);

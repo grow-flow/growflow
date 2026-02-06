@@ -18,14 +18,15 @@ RUN --mount=type=cache,target=/root/.npm \
 # Copy source files (only invalidates if code changes)
 COPY backend/src ./backend/src/
 COPY backend/tsconfig.json ./backend/
+COPY backend/prisma ./backend/prisma/
 COPY frontend/src ./frontend/src/
 COPY frontend/index.html ./frontend/
 COPY frontend/tsconfig.json ./frontend/
 COPY frontend/tsconfig.node.json ./frontend/
 COPY frontend/vite.config.ts ./frontend/
 
-# Build applications
-RUN cd backend && npm run build
+# Generate Prisma client and build applications
+RUN cd backend && DATABASE_URL="file:/app/data/growflow.db" npx prisma generate && npm run build
 RUN cd frontend && npm run build
 
 # Production stage
@@ -39,9 +40,14 @@ WORKDIR /app
 # Copy package files
 COPY backend/package*.json ./backend/
 
-# Install production dependencies with cache mount
+# Copy prisma schema and config for production
+COPY backend/prisma ./backend/prisma/
+COPY backend/prisma.config.ts ./backend/
+
+# Install production dependencies and generate Prisma client
 RUN --mount=type=cache,target=/root/.npm \
-    cd backend && npm ci --omit=dev --no-audit --no-fund --build-from-source=false
+    cd backend && npm ci --omit=dev --no-audit --no-fund --build-from-source=false && \
+    DATABASE_URL="file:/app/data/growflow.db" npx prisma generate
 
 # Copy built application
 COPY --from=builder /app/backend/dist ./backend/dist/
@@ -52,7 +58,8 @@ RUN mkdir -p /app/data
 
 # Set environment variables
 ENV NODE_ENV=production \
-    DB_PATH=/app/data/growflow.db
+    DB_PATH=/app/data/growflow.db \
+    DATABASE_URL="file:/app/data/growflow.db"
 
 # Expose port
 EXPOSE 8080
@@ -67,5 +74,5 @@ LABEL \
     org.opencontainers.image.url="https://github.com/grow-flow/growflow" \
     org.opencontainers.image.source="https://github.com/grow-flow/growflow"
 
-# Start the application
-CMD ["node", "/app/backend/dist/index.js"]
+# Start script: migrate DB and start app
+CMD ["sh", "-c", "cd /app/backend && npx prisma db push --skip-generate && node /app/backend/dist/index.js"]

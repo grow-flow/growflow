@@ -37,7 +37,7 @@ interface EventDialogProps {
   };
   onClose: () => void;
   onSave: () => void;
-  onDelete?: (eventId: string) => void;
+  onDelete?: (eventId: number) => void;
   onChange: (data: { 
     type: PlantEvent['type']; 
     title: string; 

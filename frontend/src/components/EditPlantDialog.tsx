@@ -7,10 +7,16 @@ import {
   TextField,
   Button,
   Grid,
-  FormControlLabel,
-  Checkbox,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Autocomplete,
+  ListItem,
+  ListItemText,
 } from "@mui/material";
 import { Plant } from "../types/models";
+import { useStrains } from "../hooks/useStrains";
 
 interface EditPlantDialogProps {
   open: boolean;
@@ -20,20 +26,19 @@ interface EditPlantDialogProps {
 }
 
 const EditPlantDialog: React.FC<EditPlantDialogProps> = ({ open, plant, onClose, onSave }) => {
+  const { data: strains = [] } = useStrains();
   const [formData, setFormData] = useState({
     name: plant.name,
-    strain: plant.strain,
+    strainId: plant.strainId,
     notes: plant.notes || "",
-    is_mother_plant: plant.is_mother_plant,
   });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     setFormData({
       name: plant.name,
-      strain: plant.strain,
+      strainId: plant.strainId,
       notes: plant.notes || "",
-      is_mother_plant: plant.is_mother_plant,
     });
   }, [plant]);
 
@@ -43,9 +48,8 @@ const EditPlantDialog: React.FC<EditPlantDialogProps> = ({ open, plant, onClose,
     try {
       await onSave({
         name: formData.name,
-        strain: formData.strain,
+        strainId: formData.strainId,
         notes: formData.notes || undefined,
-        is_mother_plant: formData.is_mother_plant,
       });
       onClose();
     } catch (error) {
@@ -72,12 +76,21 @@ const EditPlantDialog: React.FC<EditPlantDialogProps> = ({ open, plant, onClose,
             </Grid>
 
             <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Strain"
-                value={formData.strain}
-                onChange={(e) => setFormData({ ...formData, strain: e.target.value })}
-                required
+              <Autocomplete
+                options={strains}
+                getOptionLabel={(opt) => opt.name}
+                value={strains.find((s) => s.id === formData.strainId) || null}
+                onChange={(_, val) => {
+                  setFormData({ ...formData, strainId: val?.id });
+                }}
+                renderInput={(params) => (
+                  <TextField {...params} label="Strain" />
+                )}
+                renderOption={(props, option) => (
+                  <ListItem {...props}>
+                    <ListItemText primary={option.name} secondary={option.type} />
+                  </ListItem>
+                )}
               />
             </Grid>
 
@@ -89,18 +102,6 @@ const EditPlantDialog: React.FC<EditPlantDialogProps> = ({ open, plant, onClose,
                 label="Notes"
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={formData.is_mother_plant}
-                    onChange={(e) => setFormData({ ...formData, is_mother_plant: e.target.checked })}
-                  />
-                }
-                label="Mother Plant"
               />
             </Grid>
           </Grid>

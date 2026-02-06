@@ -7,10 +7,6 @@ import {
   TextField,
   Button,
   Grid,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Box,
   Typography,
   Autocomplete,
@@ -19,24 +15,24 @@ import {
 } from "@mui/material";
 import { useStrains, useCreateStrain } from "../hooks/useStrains";
 import { usePlants } from "../hooks/usePlants";
-import { Plant, PhaseTemplate } from "../types/models";
-import { Strain, StartMethod } from "../types/strain";
+import { CreatePlantRequest, PlantPhase } from "../types/models";
+import { Strain } from "../types/strain";
 
-const DEFAULT_PHASES: PhaseTemplate[] = [
-  { name: 'Germination', duration_min: 3, duration_max: 7, description: 'Seeds sprouting' },
-  { name: 'Seedling', duration_min: 14, duration_max: 21, description: 'First leaves developing' },
-  { name: 'Vegetation', duration_min: 21, duration_max: 60, description: 'Rapid growth phase' },
-  { name: 'Pre-Flower', duration_min: 7, duration_max: 14, description: 'Transition to flowering' },
-  { name: 'Flowering', duration_min: 49, duration_max: 77, description: 'Producing buds' },
-  { name: 'Flushing', duration_min: 7, duration_max: 14, description: 'Final flush' },
-  { name: 'Drying', duration_min: 7, duration_max: 14, description: 'Drying buds' },
-  { name: 'Curing', duration_min: 14, duration_max: 60, description: 'Final curing' }
+const DEFAULT_PHASES: Omit<PlantPhase, 'id' | 'plantId'>[] = [
+  { name: 'Germination', durationMin: 3, durationMax: 7, isActive: true, isCompleted: false },
+  { name: 'Seedling', durationMin: 14, durationMax: 21, isActive: false, isCompleted: false },
+  { name: 'Vegetation', durationMin: 21, durationMax: 60, isActive: false, isCompleted: false },
+  { name: 'Pre-Flower', durationMin: 7, durationMax: 14, isActive: false, isCompleted: false },
+  { name: 'Flowering', durationMin: 49, durationMax: 77, isActive: false, isCompleted: false },
+  { name: 'Flushing', durationMin: 7, durationMax: 14, isActive: false, isCompleted: false },
+  { name: 'Drying', durationMin: 7, durationMax: 14, isActive: false, isCompleted: false },
+  { name: 'Curing', durationMin: 14, durationMax: 60, isActive: false, isCompleted: false }
 ];
 
 interface CreatePlantDialogProps {
   open: boolean;
   onClose: () => void;
-  onSuccess: (plantData: Partial<Plant>) => Promise<void>;
+  onSuccess: (plantData: CreatePlantRequest) => Promise<void>;
 }
 
 const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({ open, onClose, onSuccess }) => {
@@ -45,14 +41,13 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({ open, onClose, on
   const createStrainMutation = useCreateStrain();
 
   const [formData, setFormData] = useState({
-    strain_id: null as number | null,
-    start_method: "seed" as StartMethod,
+    strainId: null as number | null,
   });
   const [newStrainName, setNewStrainName] = useState("");
   const [loading, setLoading] = useState(false);
 
   const generatePlantName = (strain: Strain | null, strainName: string) => {
-    const abbr = strain?.abbreviation || strainName.substring(0, 3).toUpperCase();
+    const abbr = strainName.substring(0, 3).toUpperCase();
     const existing = plants.filter((p) => p.name.startsWith(abbr));
     return `${abbr}-${(existing.length + 1).toString().padStart(2, "0")}`;
   };
@@ -62,7 +57,7 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({ open, onClose, on
     setLoading(true);
 
     try {
-      let strainId = formData.strain_id;
+      let strainId = formData.strainId;
 
       if (newStrainName && !strainId) {
         const newStrain = await createStrainMutation.mutateAsync({ name: newStrainName, type: "photoperiod" });
@@ -72,28 +67,19 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({ open, onClose, on
       const strain = strains.find((s) => s.id === strainId);
       const finalName = strain?.name || newStrainName;
 
-      const plantData: Partial<Plant> = {
+      const plantData: CreatePlantRequest = {
         name: generatePlantName(strain || null, finalName),
-        strain: finalName,
-        start_method: formData.start_method,
-        plant_type: strain?.type || "photoperiod",
+        strainId: strainId || undefined,
         notes: "",
         phases: DEFAULT_PHASES.map((template, index) => ({
-          id: `phase-${index}-${Date.now()}`,
-          name: template.name,
-          duration_min: template.duration_min,
-          duration_max: template.duration_max,
-          description: template.description,
-          is_active: index === 0,
-          is_completed: false,
-          start_date: index === 0 ? new Date().toISOString() : undefined,
+          ...template,
+          isActive: index === 0,
+          startDate: index === 0 ? new Date().toISOString() : undefined,
         })),
-        events: [],
-        is_active: true,
       };
 
       await onSuccess(plantData);
-      setFormData({ strain_id: null, start_method: "seed" });
+      setFormData({ strainId: null });
       setNewStrainName("");
     } catch (error) {
       console.error("Failed to create plant:", error);
@@ -103,7 +89,7 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({ open, onClose, on
   };
 
   const handleClose = () => {
-    setFormData({ strain_id: null, start_method: "seed" });
+    setFormData({ strainId: null });
     setNewStrainName("");
     onClose();
   };
@@ -118,19 +104,19 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({ open, onClose, on
               <Autocomplete
                 options={strains}
                 getOptionLabel={(opt) => (typeof opt === "string" ? opt : opt.name)}
-                value={strains.find((s) => s.id === formData.strain_id) || null}
+                value={strains.find((s) => s.id === formData.strainId) || null}
                 onChange={(_, val) => {
                   if (val && typeof val !== "string") {
-                    setFormData({ ...formData, strain_id: val.id });
+                    setFormData({ ...formData, strainId: val.id });
                     setNewStrainName("");
                   } else {
-                    setFormData({ ...formData, strain_id: null });
+                    setFormData({ ...formData, strainId: null });
                   }
                 }}
                 onInputChange={(_, val) => {
                   setNewStrainName(val);
                   if (val && !strains.find((s) => s.name.toLowerCase() === val.toLowerCase())) {
-                    setFormData({ ...formData, strain_id: null });
+                    setFormData({ ...formData, strainId: null });
                   }
                 }}
                 freeSolo
@@ -143,20 +129,6 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({ open, onClose, on
                   </ListItem>
                 )}
               />
-            </Grid>
-
-            <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel>Start Method</InputLabel>
-                <Select
-                  value={formData.start_method}
-                  label="Start Method"
-                  onChange={(e) => setFormData({ ...formData, start_method: e.target.value as StartMethod })}
-                >
-                  <MenuItem value="seed">Seed</MenuItem>
-                  <MenuItem value="clone">Clone</MenuItem>
-                </Select>
-              </FormControl>
             </Grid>
           </Grid>
 

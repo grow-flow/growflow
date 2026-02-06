@@ -1,8 +1,8 @@
-import { PlantPhaseInstance, PlantEvent } from '../types/models';
+import { PlantPhase, PlantEvent } from '../types/models';
 import { differenceInDays, addDays, format } from 'date-fns';
 
 export interface DynamicPhaseInfo {
-  phase: PlantPhaseInstance;
+  phase: PlantPhase;
   actualDate: Date | null;
   estimatedDate: Date | null;
   estimatedEndDate: Date | null;
@@ -20,56 +20,56 @@ export interface ValidationResult {
 }
 
 export class PlantTimeline {
-  private phases: PlantPhaseInstance[];
+  private phases: PlantPhase[];
   private currentDate: Date;
 
-  constructor(phases: PlantPhaseInstance[], _events: PlantEvent[] = [], currentDate = new Date()) {
+  constructor(phases: PlantPhase[], _events: PlantEvent[] = [], currentDate = new Date()) {
     this.phases = [...phases];
     this.currentDate = currentDate;
   }
 
   get currentPhaseIndex(): number {
     for (let i = this.phases.length - 1; i >= 0; i--) {
-      if (this.phases[i].start_date) return i;
+      if (this.phases[i].startDate) return i;
     }
     return -1;
   }
 
-  get currentPhase(): PlantPhaseInstance | null {
+  get currentPhase(): PlantPhase | null {
     const idx = this.currentPhaseIndex;
     return idx >= 0 ? this.phases[idx] : null;
   }
 
   get timeline(): DynamicPhaseInfo[] {
-    const firstStarted = this.phases.find(p => p.start_date);
-    let estimatedDate = firstStarted?.start_date ? new Date(firstStarted.start_date) : this.currentDate;
+    const firstStarted = this.phases.find(p => p.startDate);
+    let estimatedDate = firstStarted?.startDate ? new Date(firstStarted.startDate) : this.currentDate;
 
     return this.phases.map((phase, index) => {
-      const actualDate = phase.start_date ? new Date(phase.start_date) : null;
+      const actualDate = phase.startDate ? new Date(phase.startDate) : null;
       const isCurrent = index === this.currentPhaseIndex;
       const isCompleted = index < this.currentPhaseIndex;
       const isFuture = index > this.currentPhaseIndex;
 
       if (index > 0) {
-        estimatedDate = addDays(estimatedDate, this.phases[index - 1].duration_max);
+        estimatedDate = addDays(estimatedDate, this.phases[index - 1].durationMax);
       }
 
-      const estimatedEndDate = addDays(estimatedDate, phase.duration_max);
+      const estimatedEndDate = addDays(estimatedDate, phase.durationMax);
 
       let daysElapsed = 0;
       if (actualDate) {
         if (isCompleted) {
           const nextPhase = this.phases[index + 1];
-          const endDate = nextPhase?.start_date ? new Date(nextPhase.start_date) : this.currentDate;
+          const endDate = nextPhase?.startDate ? new Date(nextPhase.startDate) : this.currentDate;
           daysElapsed = differenceInDays(endDate, actualDate) + 1;
         } else if (isCurrent) {
           daysElapsed = differenceInDays(this.currentDate, actualDate) + 1;
         }
       }
 
-      const isOverdue = actualDate && isCurrent && daysElapsed > phase.duration_max;
+      const isOverdue = actualDate && isCurrent && daysElapsed > phase.durationMax;
       const progressPercentage = actualDate && isCurrent
-        ? Math.min((daysElapsed / phase.duration_max) * 100, 100)
+        ? Math.min((daysElapsed / phase.durationMax) * 100, 100)
         : isCompleted ? 100 : 0;
 
       return {
@@ -106,19 +106,19 @@ export class PlantTimeline {
     const current = this.timeline.find(p => p.isCurrent);
     if (!current?.actualDate) return null;
     const daysSinceStart = differenceInDays(new Date(), current.actualDate) + 1;
-    return Math.max(0, current.phase.duration_min - daysSinceStart);
+    return Math.max(0, current.phase.durationMin - daysSinceStart);
   }
 
   getMinDateForPhase(phaseIndex: number): Date | null {
     if (phaseIndex === 0) return null;
     const prev = this.phases[phaseIndex - 1];
-    return prev.start_date ? new Date(prev.start_date) : null;
+    return prev.startDate ? new Date(prev.startDate) : null;
   }
 
   getMaxDateForPhase(phaseIndex: number): Date | null {
     if (phaseIndex >= this.phases.length - 1) return null;
     const next = this.phases[phaseIndex + 1];
-    return next.start_date ? new Date(next.start_date) : null;
+    return next.startDate ? new Date(next.startDate) : null;
   }
 
   validatePhaseDate(phaseIndex: number, newDate: Date): ValidationResult {
@@ -134,7 +134,7 @@ export class PlantTimeline {
     return { isValid: true };
   }
 
-  getPhaseIndex(phaseId: string): number {
+  getPhaseIndex(phaseId: number): number {
     return this.phases.findIndex(p => p.id === phaseId);
   }
 
@@ -142,14 +142,14 @@ export class PlantTimeline {
     const idx = this.currentPhaseIndex;
     if (idx < 0 || idx >= this.phases.length - 1) return false;
     const phase = this.phases[idx];
-    if (!phase.start_date) return false;
-    const daysElapsed = differenceInDays(this.currentDate, new Date(phase.start_date)) + 1;
-    return daysElapsed >= phase.duration_min;
+    if (!phase.startDate) return false;
+    const daysElapsed = differenceInDays(this.currentDate, new Date(phase.startDate)) + 1;
+    return daysElapsed >= phase.durationMin;
   }
 }
 
 export const createPlantTimeline = (
-  phases: PlantPhaseInstance[],
+  phases: PlantPhase[],
   events: PlantEvent[] = [],
   currentDate = new Date()
 ): PlantTimeline => new PlantTimeline(phases, events, currentDate);

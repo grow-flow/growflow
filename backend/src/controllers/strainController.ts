@@ -15,23 +15,6 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/:id', async (req: Request, res: Response) => {
-  try {
-    const id = parseInt(req.params.id);
-    const strain = await prisma.strain.findUnique({
-      where: { id }
-    });
-
-    if (!strain) {
-      return res.status(404).json({ error: 'Strain not found' });
-    }
-
-    res.json(strain);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch strain' });
-  }
-});
-
 router.post('/', async (req: Request, res: Response) => {
   try {
     const strain = await prisma.strain.create({

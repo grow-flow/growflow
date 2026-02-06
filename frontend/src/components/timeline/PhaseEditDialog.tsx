@@ -8,13 +8,13 @@ import {
   Button,
   Box,
 } from "@mui/material";
-import { PlantPhaseInstance } from "@/types/models";
+import { PlantPhase } from "@/types/models";
 
 interface PhaseEditDialogProps {
-  phase: PlantPhaseInstance | null;
+  phase: PlantPhase | null;
   open: boolean;
   onClose: () => void;
-  onSave: (phase: PlantPhaseInstance) => void;
+  onSave: (phase: PlantPhase) => void;
 }
 
 export const PhaseEditDialog: React.FC<PhaseEditDialogProps> = ({
@@ -25,25 +25,25 @@ export const PhaseEditDialog: React.FC<PhaseEditDialogProps> = ({
 }) => {
   const [formData, setFormData] = useState({
     name: '',
-    duration_min: 7,
-    duration_max: 14,
-    description: ''
+    durationMin: 7,
+    durationMax: 14,
+    notes: ''
   });
 
   useEffect(() => {
     if (phase) {
       setFormData({
         name: phase.name,
-        duration_min: phase.duration_min,
-        duration_max: phase.duration_max,
-        description: phase.description || ''
+        durationMin: phase.durationMin,
+        durationMax: phase.durationMax,
+        notes: phase.notes || ''
       });
     } else {
       setFormData({
         name: '',
-        duration_min: 7,
-        duration_max: 14,
-        description: ''
+        durationMin: 7,
+        durationMax: 14,
+        notes: ''
       });
     }
   }, [phase, open]);
@@ -54,32 +54,33 @@ export const PhaseEditDialog: React.FC<PhaseEditDialogProps> = ({
       return;
     }
 
-    if (formData.duration_min <= 0 || formData.duration_max <= 0) {
+    if (formData.durationMin <= 0 || formData.durationMax <= 0) {
       alert('Duration must be positive numbers');
       return;
     }
 
-    if (formData.duration_min > formData.duration_max) {
+    if (formData.durationMin > formData.durationMax) {
       alert('Minimum duration cannot be greater than maximum duration');
       return;
     }
 
-    const savedPhase: PlantPhaseInstance = phase
+    const savedPhase: PlantPhase = phase
       ? {
           ...phase,
           name: formData.name.trim(),
-          duration_min: formData.duration_min,
-          duration_max: formData.duration_max,
-          description: formData.description.trim() || undefined
+          durationMin: formData.durationMin,
+          durationMax: formData.durationMax,
+          notes: formData.notes.trim() || undefined
         }
       : {
-          id: crypto.randomUUID(),
+          id: 0,
+          plantId: 0,
           name: formData.name.trim(),
-          duration_min: formData.duration_min,
-          duration_max: formData.duration_max,
-          description: formData.description.trim() || undefined,
-          is_active: false,
-          is_completed: false
+          durationMin: formData.durationMin,
+          durationMax: formData.durationMax,
+          notes: formData.notes.trim() || undefined,
+          isActive: false,
+          isCompleted: false
         };
 
     onSave(savedPhase);
@@ -104,27 +105,27 @@ export const PhaseEditDialog: React.FC<PhaseEditDialogProps> = ({
           <TextField
             label="Min Duration (days)"
             type="number"
-            value={formData.duration_min}
-            onChange={(e) => setFormData({ ...formData, duration_min: parseInt(e.target.value) || 0 })}
+            value={formData.durationMin}
+            onChange={(e) => setFormData({ ...formData, durationMin: parseInt(e.target.value) || 0 })}
             inputProps={{ min: 1 }}
           />
           <TextField
             label="Max Duration (days)"
             type="number"
-            value={formData.duration_max}
-            onChange={(e) => setFormData({ ...formData, duration_max: parseInt(e.target.value) || 0 })}
+            value={formData.durationMax}
+            onChange={(e) => setFormData({ ...formData, durationMax: parseInt(e.target.value) || 0 })}
             inputProps={{ min: 1 }}
           />
         </Box>
 
         <TextField
-          label="Description (optional)"
+          label="Notes (optional)"
           fullWidth
           multiline
           rows={3}
           variant="outlined"
-          value={formData.description}
-          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          value={formData.notes}
+          onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
         />
       </DialogContent>
       <DialogActions>

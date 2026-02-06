@@ -1,45 +1,27 @@
-import { PlantEvent } from '../types/event';
-import { v4 as uuidv4 } from 'uuid';
+export interface PlantEventCreateInput {
+  plantId: number;
+  phaseId: number | null;
+  type: string;
+  title: string;
+  timestamp: Date;
+  notes: string | null;
+  data: string | null;
+}
 
-export const createEvent = (
-  type: PlantEvent['type'],
+export const createEventInput = (
+  plantId: number,
+  type: string,
   title: string,
-  data?: PlantEvent['data'],
+  data?: any,
   notes?: string,
-  phaseId?: string,
-  timestamp?: string
-): PlantEvent => ({
-  id: uuidv4(),
-  timestamp: timestamp || new Date().toISOString(),
+  phaseId?: number | null,
+  timestamp?: string | Date
+): PlantEventCreateInput => ({
+  plantId,
+  phaseId: phaseId ?? null,
   type,
   title,
-  data,
-  notes,
-  phase_id: phaseId
+  timestamp: timestamp ? new Date(timestamp) : new Date(),
+  notes: notes || null,
+  data: data ? JSON.stringify(data) : null,
 });
-
-export const addEventToPlant = (
-  events: PlantEvent[],
-  newEvent: PlantEvent
-): PlantEvent[] => {
-  return [...events, newEvent].sort((a, b) =>
-    new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-  );
-};
-
-export const updateEvent = (
-  events: PlantEvent[],
-  eventId: string,
-  updates: Partial<PlantEvent>
-): PlantEvent[] => {
-  return events.map(event =>
-    event.id === eventId ? { ...event, ...updates } : event
-  );
-};
-
-export const deleteEvent = (
-  events: PlantEvent[],
-  eventId: string
-): PlantEvent[] => {
-  return events.filter(event => event.id !== eventId);
-};

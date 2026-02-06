@@ -9,7 +9,7 @@ import {
   Tab,
 } from "@mui/material";
 import { usePlant, useCreateEvent, useUpdateEvent, useDeleteEvent, useUpdatePlant } from "../hooks/usePlants";
-import { PlantEvent } from "../types/models";
+import { Plant, PlantEvent } from "../types/models";
 import DynamicPlantTimeline from "../components/DynamicPlantTimeline";
 import PlantHeader from "../components/PlantHeader";
 import EventCard from "../components/EventCard";
@@ -39,7 +39,7 @@ const PlantDetail: React.FC = () => {
   const updatePlant = useUpdatePlant();
 
   const [tabValue, setTabValue] = useState(0);
-  const [eventDialog, setEventDialog] = useState<{ open: boolean; event: any | null }>({ open: false, event: null });
+  const [eventDialog, setEventDialog] = useState<{ open: boolean; event: PlantEvent | null }>({ open: false, event: null });
   const [editPlantDialog, setEditPlantDialog] = useState(false);
   const [eventData, setEventData] = useState<{
     type: PlantEvent['type'];
@@ -47,17 +47,17 @@ const PlantDetail: React.FC = () => {
     notes: string;
     timestamp: string;
     data?: PlantEvent['data'];
-  }>({ 
-    type: "watering" as PlantEvent['type'],
-    title: "Watering", 
-    notes: "", 
+  }>({
+    type: "watering",
+    title: "Watering",
+    notes: "",
     timestamp: new Date().toISOString(),
     data: {}
   });
 
   const handleCreateEvent = () => {
     setEventData({
-      type: "watering" as PlantEvent['type'],
+      type: "watering",
       title: "Quick Watering",
       notes: "Quick watering logged from plant detail page",
       timestamp: new Date().toISOString(),
@@ -66,10 +66,10 @@ const PlantDetail: React.FC = () => {
     setEventDialog({ open: true, event: null });
   };
 
-  const handleEditEvent = (event: any) => {
-    setEventData({ 
-      type: event.type || "watering",
-      title: event.title, 
+  const handleEditEvent = (event: PlantEvent) => {
+    setEventData({
+      type: event.type,
+      title: event.title,
       notes: event.notes || "",
       timestamp: event.timestamp,
       data: event.data || {}
@@ -105,7 +105,7 @@ const PlantDetail: React.FC = () => {
     }
   };
 
-  const handleDeleteEvent = async (eventId: string) => {
+  const handleDeleteEvent = async (eventId: number) => {
     if (!plant) return;
 
     try {
@@ -118,7 +118,7 @@ const PlantDetail: React.FC = () => {
     }
   };
 
-  const handleSavePlant = async (data: any) => {
+  const handleSavePlant = async (data: Partial<Plant>) => {
     if (!plant) return;
 
     try {

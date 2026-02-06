@@ -11,7 +11,6 @@ import {
   TableRow,
   Button,
   Chip,
-  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -22,43 +21,26 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  FormControlLabel,
-  Switch,
   CircularProgress,
-  Alert,
-  Collapse,
-  Divider
+  Alert
 } from '@mui/material';
 import {
   Add as AddIcon,
-  Edit as EditIcon,
   Delete as DeleteIcon,
-  LocalFlorist as PlantIcon,
-  ExpandMore as ExpandMoreIcon,
-  Settings as SettingsIcon,
-  Download as DownloadIcon,
-  Upload as UploadIcon,
-  ContentCopy as CopyIcon
+  LocalFlorist as PlantIcon
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
 import { useStrains, useCreateStrain, useUpdateStrain, useDeleteStrain } from '../hooks/useStrains';
 import { Strain, CreateStrainData } from '../types/strain';
 
 const StrainsOverview: React.FC = () => {
-  const navigate = useNavigate();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedStrain, setSelectedStrain] = useState<Strain | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
-  const [phaseJsonInput, setPhaseJsonInput] = useState('');
-  
+
   const [formData, setFormData] = useState<CreateStrainData>({
     name: '',
-    abbreviation: '',
-    type: 'photoperiod',
-    description: '',
-    breeder: ''
+    type: 'photoperiod'
   });
 
   const { data: strains = [], isLoading, error, refetch } = useStrains();
@@ -80,17 +62,14 @@ const StrainsOverview: React.FC = () => {
     setSelectedStrain(strain);
     setFormData({
       name: strain.name,
-      abbreviation: strain.abbreviation || '',
-      type: strain.type,
-      description: strain.description || '',
-      breeder: strain.breeder || ''
+      type: strain.type
     });
     setEditDialogOpen(true);
   };
 
   const handleUpdate = async () => {
     if (!selectedStrain) return;
-    
+
     try {
       await updateStrainMutation.mutateAsync({
         id: selectedStrain.id,
@@ -106,7 +85,7 @@ const StrainsOverview: React.FC = () => {
 
   const handleDelete = async () => {
     if (!selectedStrain) return;
-    
+
     try {
       await deleteStrainMutation.mutateAsync(selectedStrain.id);
       setDeleteDialogOpen(false);
@@ -119,21 +98,12 @@ const StrainsOverview: React.FC = () => {
   const resetForm = () => {
     setFormData({
       name: '',
-      abbreviation: '',
-      type: 'photoperiod',
-        description: '',
-      breeder: ''
+      type: 'photoperiod'
     });
-    setAdvancedOpen(false);
-    setPhaseJsonInput('');
   };
 
   const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'photoperiod': return 'primary';
-      case 'autoflower': return 'warning';
-      default: return 'default';
-    }
+    return type === 'autoflower' ? 'warning' : 'primary';
   };
 
   if (isLoading) {
@@ -146,7 +116,7 @@ const StrainsOverview: React.FC = () => {
 
   if (error) {
     return (
-      <Alert 
+      <Alert
         severity="error"
         action={
           <Button color="inherit" size="small" onClick={() => refetch()}>
@@ -161,7 +131,6 @@ const StrainsOverview: React.FC = () => {
 
   return (
     <Box>
-      {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h4">Strain Management</Typography>
         <Button
@@ -173,7 +142,6 @@ const StrainsOverview: React.FC = () => {
         </Button>
       </Box>
 
-      {/* Strains Table */}
       <Paper>
         <TableContainer>
           <Table>
@@ -181,7 +149,7 @@ const StrainsOverview: React.FC = () => {
               <TableRow>
                 <TableCell>Name</TableCell>
                 <TableCell>Type</TableCell>
-                <TableCell>Breeder</TableCell>
+                <TableCell width={100} />
               </TableRow>
             </TableHead>
             <TableBody>
@@ -195,25 +163,18 @@ const StrainsOverview: React.FC = () => {
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <PlantIcon color="primary" />
-                      <Box>
-                        <Typography variant="subtitle2">{strain.name}</Typography>
-                        {strain.description && (
-                          <Typography variant="caption" color="textSecondary">
-                            {strain.description}
-                          </Typography>
-                        )}
-                      </Box>
+                      <Typography variant="subtitle2">{strain.name}</Typography>
                     </Box>
                   </TableCell>
                   <TableCell>
                     <Chip
                       label={strain.type}
                       size="small"
-                      color={getTypeColor(strain.type) as any}
+                      color={getTypeColor(strain.type) as 'primary' | 'warning'}
                       sx={{ textTransform: 'capitalize' }}
                     />
                   </TableCell>
-                  <TableCell>{strain.breeder || 'Unknown'}</TableCell>
+                  <TableCell />
                 </TableRow>
               ))}
               {strains.length === 0 && (
@@ -230,12 +191,11 @@ const StrainsOverview: React.FC = () => {
         </TableContainer>
       </Paper>
 
-      {/* Create Strain Dialog */}
-      <Dialog open={createDialogOpen} onClose={() => setCreateDialogOpen(false)} maxWidth="md" fullWidth>
+      <Dialog open={createDialogOpen} onClose={() => setCreateDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Create New Strain</DialogTitle>
         <DialogContent>
           <Grid container spacing={3} sx={{ mt: 1 }}>
-            <Grid item xs={12} md={8}>
+            <Grid item xs={12}>
               <TextField
                 fullWidth
                 label="Strain Name"
@@ -244,71 +204,38 @@ const StrainsOverview: React.FC = () => {
                 required
               />
             </Grid>
-            <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
-                label="Abbreviation"
-                value={formData.abbreviation}
-                onChange={(e) => setFormData({ ...formData, abbreviation: e.target.value.slice(0, 4).toUpperCase() })}
-                placeholder="WW, GG, AK..."
-                inputProps={{ maxLength: 4 }}
-                helperText="Max 4 characters"
-              />
-            </Grid>
             <Grid item xs={12}>
               <FormControl fullWidth>
                 <InputLabel>Type</InputLabel>
                 <Select
                   value={formData.type}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    type: e.target.value as any
-                  })}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value as 'autoflower' | 'photoperiod' })}
                   label="Type"
                 >
                   <MenuItem value="photoperiod">Photoperiod</MenuItem>
                   <MenuItem value="autoflower">Autoflower</MenuItem>
                 </Select>
               </FormControl>
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Breeder"
-                value={formData.breeder}
-                onChange={(e) => setFormData({ ...formData, breeder: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Description"
-                multiline
-                rows={3}
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              />
             </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
-          <Button 
-            onClick={handleCreate} 
+          <Button
+            onClick={handleCreate}
             variant="contained"
             disabled={createStrainMutation.isPending || !formData.name}
           >
-            Create Strain
+            Create
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Edit Strain Dialog */}
-      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Edit Strain: {selectedStrain?.name}</DialogTitle>
+      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Edit Strain</DialogTitle>
         <DialogContent>
           <Grid container spacing={3} sx={{ mt: 1 }}>
-            <Grid item xs={12} md={8}>
+            <Grid item xs={12}>
               <TextField
                 fullWidth
                 label="Strain Name"
@@ -317,57 +244,24 @@ const StrainsOverview: React.FC = () => {
                 required
               />
             </Grid>
-            <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
-                label="Abbreviation"
-                value={formData.abbreviation}
-                onChange={(e) => setFormData({ ...formData, abbreviation: e.target.value.slice(0, 4).toUpperCase() })}
-                placeholder="WW, GG, AK..."
-                inputProps={{ maxLength: 4 }}
-                helperText="Max 4 characters"
-              />
-            </Grid>
             <Grid item xs={12}>
               <FormControl fullWidth>
                 <InputLabel>Type</InputLabel>
                 <Select
                   value={formData.type}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    type: e.target.value as any
-                  })}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value as 'autoflower' | 'photoperiod' })}
                   label="Type"
                 >
                   <MenuItem value="photoperiod">Photoperiod</MenuItem>
                   <MenuItem value="autoflower">Autoflower</MenuItem>
                 </Select>
               </FormControl>
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Breeder"
-                value={formData.breeder}
-                onChange={(e) => setFormData({ ...formData, breeder: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Description"
-                multiline
-                rows={3}
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              />
             </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
           <Button
             onClick={() => {
-              setSelectedStrain(selectedStrain);
               setEditDialogOpen(false);
               setDeleteDialogOpen(true);
             }}
@@ -383,25 +277,23 @@ const StrainsOverview: React.FC = () => {
             variant="contained"
             disabled={updateStrainMutation.isPending || !formData.name}
           >
-            Update Strain
+            Update
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
         <DialogTitle>Delete Strain</DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to delete the strain "{selectedStrain?.name}"? 
-            This action cannot be undone.
+            Are you sure you want to delete "{selectedStrain?.name}"?
           </Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-          <Button 
-            onClick={handleDelete} 
-            color="error" 
+          <Button
+            onClick={handleDelete}
+            color="error"
             variant="contained"
             disabled={deleteStrainMutation.isPending}
           >

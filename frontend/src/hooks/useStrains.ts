@@ -11,14 +11,6 @@ export const useStrains = () => {
   });
 };
 
-export const useStrain = (id: number) => {
-  return useQuery({
-    queryKey: ["strain", id],
-    queryFn: () => apiService.getStrain(id),
-    enabled: !!id,
-  });
-};
-
 export const useCreateStrain = () => {
   const queryClient = useQueryClient();
 
