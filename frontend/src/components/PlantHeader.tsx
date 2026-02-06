@@ -59,12 +59,11 @@ const PlantHeader: React.FC<PlantHeaderProps> = ({ plant, onWaterClick, onEditCl
               label={currentPhase?.name || "Unknown"}
               color="secondary"
             />
-            <Chip 
-              label={plant.start_method === 'seed' ? 'Seed' : 'Clone'} 
-              variant="outlined" 
+            <Chip
+              label={plant.start_method === 'seed' ? 'Seed' : 'Clone'}
+              variant="outlined"
               color="info"
             />
-            <Chip label={plant.medium} variant="outlined" />
             {plant.is_mother_plant && (
               <Chip label="Mother Plant" color="success" />
             )}

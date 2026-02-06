@@ -443,7 +443,6 @@ const PlantsOverview: React.FC = () => {
                 <TableCell>Phase</TableCell>
                 <TableCell>Days in Phase</TableCell>
                 <TableCell>Total Days</TableCell>
-                <TableCell>Medium</TableCell>
                 <TableCell>Start Date</TableCell>
                 <TableCell>Status</TableCell>
               </TableRow>
@@ -503,13 +502,6 @@ const PlantsOverview: React.FC = () => {
                   </TableCell>
                   <TableCell>{getDaysInPhase(plant)}</TableCell>
                   <TableCell>{getTotalDays(plant)}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={plant.medium}
-                      size="small"
-                      variant="outlined"
-                    />
-                  </TableCell>
                   <TableCell>
                     {plant.phases.find((p) => p.start_date)
                       ? format(

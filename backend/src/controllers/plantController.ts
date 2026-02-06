@@ -23,7 +23,6 @@ const parsePlant = (plant: any) => ({
   ...plant,
   phases: parseJson(plant.phases, []),
   events: parseJson(plant.events, []),
-  training_methods: parseJson(plant.training_methods, []),
 });
 
 router.get("/", async (req: Request, res: Response) => {
@@ -69,14 +68,17 @@ router.post("/", async (req: Request, res: Response) => {
     const phases =
       req.body.phases || createPlantPhasesFromStrain([], isAutoflower);
 
-    const { training_methods, events, ...rest } = req.body;
-
     const plant = await prisma.plant.create({
       data: {
-        ...rest,
+        name: req.body.name,
+        strain: req.body.strain || "",
+        start_method: req.body.start_method || "seed",
+        plant_type: req.body.plant_type || "photoperiod",
+        notes: req.body.notes || "",
+        is_active: req.body.is_active ?? true,
+        is_mother_plant: req.body.is_mother_plant ?? false,
         phases: JSON.stringify(phases),
-        training_methods: Array.isArray(training_methods) ? JSON.stringify(training_methods) : (training_methods || ""),
-        events: Array.isArray(events) ? JSON.stringify(events) : (events || "[]"),
+        events: Array.isArray(req.body.events) ? JSON.stringify(req.body.events) : "[]",
       },
     });
 
@@ -117,12 +119,9 @@ router.put("/:id/phases", async (req: Request, res: Response) => {
 router.put("/:id", async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
-    const { training_methods, events, phases, ...rest } = req.body;
+    const { events, phases, ...rest } = req.body;
 
     const data: any = { ...rest };
-    if (training_methods !== undefined) {
-      data.training_methods = Array.isArray(training_methods) ? JSON.stringify(training_methods) : training_methods;
-    }
     if (events !== undefined) {
       data.events = Array.isArray(events) ? JSON.stringify(events) : events;
     }

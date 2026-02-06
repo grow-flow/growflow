@@ -72,8 +72,8 @@ const SimplePlantList: React.FC<SimplePlantListProps> = ({ plants }) => {
                     variant="outlined"
                     size="small"
                   />
-                  <Chip 
-                    label={plant.medium}
+                  <Chip
+                    label={plant.start_method === 'seed' ? 'Seed' : 'Clone'}
                     variant="outlined"
                     size="small"
                   />

@@ -21,23 +21,18 @@ model Strain {
 }
 
 model Plant {
-  id                 Int      @id @default(autoincrement())
-  name               String
-  strain             String
-  breeder            String?
-  phenotype          String?
-  start_method       String   @default("seed")
-  plant_type         String   @default("photoperiod")
-  phases             String
-  medium             String
-  pot_size_liters    Float
-  training_methods   String   @default("")
-  notes              String?  @default("")
-  is_active          Boolean  @default(true)
-  is_mother_plant    Boolean  @default(false)
-  created_at         DateTime @default(now())
-  updated_at         DateTime @updatedAt
-  events             String   @default("[]")
+  id              Int      @id @default(autoincrement())
+  name            String
+  strain          String
+  start_method    String   @default("seed")
+  plant_type      String   @default("photoperiod")
+  phases          String
+  events          String   @default("[]")
+  notes           String?  @default("")
+  is_active       Boolean  @default(true)
+  is_mother_plant Boolean  @default(false)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
 
   @@map("plant")
 }
