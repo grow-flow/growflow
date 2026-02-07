@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { prisma } from "../database";
-import { createPlantPhasesFromStrain, getCurrentPhase } from "../utils/phaseUtils";
+import { createPlantPhases, getCurrentPhase } from "../utils/phaseUtils";
 
 const router = Router();
 
@@ -40,26 +40,28 @@ router.get("/:id", async (req: Request, res: Response) => {
 router.post("/", async (req: Request, res: Response) => {
   try {
     let strainId: number | undefined = undefined;
-    let isAutoflower = req.body.plant_type === "autoflower";
+    let growType = req.body.plant_type || "photoperiod";
+    const sourceType = req.body.sourceType || "seed";
 
     if (req.body.strainId) {
       strainId = req.body.strainId;
       const strain = await prisma.strain.findUnique({ where: { id: strainId } });
-      if (strain?.type === "autoflower") isAutoflower = true;
+      if (strain) growType = strain.type;
     } else if (req.body.strain) {
       const strain = await prisma.strain.findFirst({ where: { name: req.body.strain } });
       if (strain) {
         strainId = strain.id;
-        if (strain.type === "autoflower") isAutoflower = true;
+        growType = strain.type;
       }
     }
 
-    const phasesData = req.body.phases || createPlantPhasesFromStrain([], isAutoflower);
+    const phasesData = req.body.phases || await createPlantPhases(growType, sourceType, strainId);
 
     const plant = await prisma.plant.create({
       data: {
         name: req.body.name,
         strainId,
+        sourceType,
         notes: req.body.notes || "",
         isActive: req.body.isActive ?? true,
         phases: {

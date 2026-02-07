@@ -9,6 +9,7 @@ import { initializeDatabase } from './database';
 import { errorHandler } from './middleware/errorHandler';
 import { plantRoutes } from './controllers/plantController';
 import { strainRoutes } from './controllers/strainController';
+import { presetRoutes } from './controllers/presetController';
 
 const app = express();
 
@@ -85,6 +86,7 @@ app.use((req, res, next) => {
 app.use('/api/plants', plantRoutes);
 // Care events are now handled via plant routes: POST /api/plants/:id/events
 app.use('/api/strains', strainRoutes);
+app.use('/api/presets', presetRoutes);
 
 app.get('/api/health', async (req, res) => {
   try {

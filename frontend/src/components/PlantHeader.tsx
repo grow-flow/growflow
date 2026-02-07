@@ -8,9 +8,10 @@ import {
   Chip,
   IconButton,
 } from "@mui/material";
-import { Opacity, Edit } from "@mui/icons-material";
+import { AddCircleOutline, Edit } from "@mui/icons-material";
 import { Plant } from "../types/models";
 import { createPlantTimeline } from "../utils/PlantTimeline";
+import { formatDaysAsWeeks } from "../utils/formatDuration";
 
 interface PlantHeaderProps {
   plant: Plant;
@@ -47,21 +48,21 @@ const PlantHeader: React.FC<PlantHeaderProps> = ({ plant, onWaterClick, onEditCl
             </IconButton>
           </Box>
           <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-            <Chip label={plant.strain?.name || 'Unknown Strain'} color="primary" />
+            {plant.strain && <Chip label={plant.strain.name} color="primary" />}
             <Chip label={currentPhase?.name || "Unknown"} color="secondary" />
           </Box>
           <Typography color="textSecondary">
-            Day {getDaysInCurrentPhase()} in {currentPhase?.name || "Unknown"} • Total: {getTotalDays()} days
+            {formatDaysAsWeeks(getDaysInCurrentPhase())} in {currentPhase?.name || "Unknown"} • Total: {formatDaysAsWeeks(getTotalDays())}
           </Typography>
         </Grid>
         <Grid item xs={12} md={4}>
           <Button
             variant="contained"
-            startIcon={<Opacity />}
+            startIcon={<AddCircleOutline />}
             onClick={onWaterClick}
             fullWidth
           >
-            Water Now
+            Log Event
           </Button>
         </Grid>
       </Grid>

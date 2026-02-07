@@ -17,6 +17,7 @@ import {
   PlayArrow as StartIcon,
 } from "@mui/icons-material";
 import { DynamicPhaseInfo, PlantTimeline } from "@/utils/PlantTimeline";
+import { formatDaysAsWeeks, formatDurationRange } from "@/utils/formatDuration";
 
 interface TimelineStepperProps {
   timeline: DynamicPhaseInfo[];
@@ -73,12 +74,12 @@ export const TimelineStepper: React.FC<TimelineStepperProps> = ({
                 </Typography>
 
                 {phaseInfo.isCurrent && (
-                  <Chip label={`Day ${phaseInfo.daysElapsed}/${phaseInfo.phase.durationMax}`} size="small" color="primary" />
+                  <Chip label={`${formatDaysAsWeeks(phaseInfo.daysElapsed)} / ${phaseInfo.phase.durationMax}d`} size="small" color="primary" />
                 )}
 
                 {phaseInfo.isCompleted && (
                   <Chip
-                    label={`${phaseInfo.daysElapsed} days`}
+                    label={formatDaysAsWeeks(phaseInfo.daysElapsed)}
                     size="small"
                     variant="outlined"
                     color={phaseInfo.daysElapsed >= phaseInfo.phase.durationMax || phaseInfo.daysElapsed <= phaseInfo.phase.durationMin ? "warning" : "default"}
@@ -86,7 +87,7 @@ export const TimelineStepper: React.FC<TimelineStepperProps> = ({
                 )}
 
                 {!phaseInfo.actualDate && !phaseInfo.isCurrent && !phaseInfo.isCompleted && (
-                  <Chip label={`Est. ${phaseInfo.phase.durationMin}-${phaseInfo.phase.durationMax} days`} size="small" variant="outlined" color="default" />
+                  <Chip label={`Est. ${formatDurationRange(phaseInfo.phase.durationMin, phaseInfo.phase.durationMax)}`} size="small" variant="outlined" color="default" />
                 )}
 
                 {getPhaseIcon(phaseInfo)}

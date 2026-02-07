@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Plant, PlantPhase, PlantEvent, CreatePlantRequest, CreateEventRequest } from '../types/models';
+import { Plant, PlantPhase, PlantEvent, CreatePlantRequest, CreateEventRequest, PhasePreset } from '../types/models';
 import { Strain, CreateStrainData, UpdateStrainData } from '../types/strain';
 
 const api = axios.create({
@@ -105,5 +105,14 @@ export const apiService = {
 
   deleteStrain: async (id: number): Promise<void> => {
     await api.delete(`/strains/${id}`);
+  },
+
+  // Presets
+  getPresets: async (growType?: string, sourceType?: string): Promise<PhasePreset[]> => {
+    const params = new URLSearchParams();
+    if (growType) params.set('growType', growType);
+    if (sourceType) params.set('sourceType', sourceType);
+    const response = await api.get(`/presets?${params}`);
+    return response.data;
   },
 };

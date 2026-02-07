@@ -8,27 +8,29 @@ datasource db {
 }
 
 model Strain {
-  id         Int      @id @default(autoincrement())
-  name       String   @unique
-  type       String   @default("photoperiod") // autoflower | photoperiod
-  plants     Plant[]
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
+  id           Int            @id @default(autoincrement())
+  name         String         @unique
+  type         String         @default("photoperiod") // autoflower | photoperiod
+  plants       Plant[]
+  phasePresets PhasePreset[]
+  created_at   DateTime       @default(now())
+  updated_at   DateTime       @updatedAt
 
   @@map("strains")
 }
 
 model Plant {
-  id        Int          @id @default(autoincrement())
-  name      String
-  strainId  Int?
-  strain    Strain?      @relation(fields: [strainId], references: [id])
-  notes     String?      @default("")
-  isActive  Boolean      @default(true)
-  phases    PlantPhase[]
-  events    PlantEvent[]
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  id         Int          @id @default(autoincrement())
+  name       String
+  strainId   Int?
+  strain     Strain?      @relation(fields: [strainId], references: [id])
+  sourceType String       @default("seed") // seed | clone
+  notes      String?      @default("")
+  isActive   Boolean      @default(true)
+  phases     PlantPhase[]
+  events     PlantEvent[]
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
 
   @@map("plants")
 }
@@ -64,4 +66,20 @@ model PlantEvent {
   createdAt DateTime    @default(now())
 
   @@map("plant_events")
+}
+
+model PhasePreset {
+  id          Int     @id @default(autoincrement())
+  name        String
+  sortOrder   Int     @default(0)
+  growType    String  @default("photoperiod") // photoperiod | autoflower
+  sourceType  String  @default("seed") // seed | clone
+  durationMin Int     @default(7)
+  durationMax Int     @default(14)
+  description String?
+  strainId    Int?
+  strain      Strain? @relation(fields: [strainId], references: [id], onDelete: Cascade)
+
+  @@unique([name, growType, sourceType, strainId])
+  @@map("phase_presets")
 }

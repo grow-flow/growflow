@@ -36,11 +36,24 @@ export interface PlantEvent {
   };
 }
 
+export interface PhasePreset {
+  id: number;
+  name: string;
+  sortOrder: number;
+  growType: 'photoperiod' | 'autoflower';
+  sourceType: 'seed' | 'clone';
+  durationMin: number;
+  durationMax: number;
+  description?: string;
+  strainId?: number;
+}
+
 export interface Plant {
   id: number;
   name: string;
   strainId?: number;
   strain?: Strain;
+  sourceType: 'seed' | 'clone';
   notes?: string;
   isActive: boolean;
   phases: PlantPhase[];
@@ -52,8 +65,8 @@ export interface Plant {
 export interface CreatePlantRequest {
   name: string;
   strainId?: number;
+  sourceType?: 'seed' | 'clone';
   notes?: string;
-  phases?: Omit<PlantPhase, 'id' | 'plantId'>[];
 }
 
 export interface CreateEventRequest {

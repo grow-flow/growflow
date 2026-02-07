@@ -1,29 +1,47 @@
 export interface PhaseTemplate {
   name: string;
-  duration_min: number;
-  duration_max: number;
+  sortOrder: number;
+  growType: 'photoperiod' | 'autoflower';
+  sourceType: 'seed' | 'clone';
+  durationMin: number;
+  durationMax: number;
   description?: string;
 }
 
-export interface PlantPhaseInstance {
-  id: string;
-  name: string;
-  start_date?: string;
-  duration_min: number;
-  duration_max: number;
-  description?: string;
-  is_active: boolean;
-  is_completed: boolean;
-  notes?: string;
-}
+export const PHASE_PRESETS: PhaseTemplate[] = [
+  // photoperiod + seed
+  { name: 'Germination', sortOrder: 0, growType: 'photoperiod', sourceType: 'seed', durationMin: 3, durationMax: 7 },
+  { name: 'Seedling', sortOrder: 1, growType: 'photoperiod', sourceType: 'seed', durationMin: 14, durationMax: 21 },
+  { name: 'Vegetation', sortOrder: 2, growType: 'photoperiod', sourceType: 'seed', durationMin: 21, durationMax: 60 },
+  { name: 'Pre-Flower', sortOrder: 3, growType: 'photoperiod', sourceType: 'seed', durationMin: 7, durationMax: 14 },
+  { name: 'Flowering', sortOrder: 4, growType: 'photoperiod', sourceType: 'seed', durationMin: 49, durationMax: 77 },
+  { name: 'Flushing', sortOrder: 5, growType: 'photoperiod', sourceType: 'seed', durationMin: 7, durationMax: 14 },
+  { name: 'Drying', sortOrder: 6, growType: 'photoperiod', sourceType: 'seed', durationMin: 7, durationMax: 14 },
+  { name: 'Curing', sortOrder: 7, growType: 'photoperiod', sourceType: 'seed', durationMin: 14, durationMax: 60 },
 
-export const DEFAULT_PHASES: PhaseTemplate[] = [
-  { name: 'Germination', duration_min: 3, duration_max: 7, description: 'Seeds sprouting' },
-  { name: 'Seedling', duration_min: 14, duration_max: 21, description: 'First leaves developing' },
-  { name: 'Vegetation', duration_min: 21, duration_max: 60, description: 'Rapid growth phase' },
-  { name: 'Pre-Flower', duration_min: 7, duration_max: 14, description: 'Transition to flowering' },
-  { name: 'Flowering', duration_min: 49, duration_max: 77, description: 'Producing buds' },
-  { name: 'Flushing', duration_min: 7, duration_max: 14, description: 'Final flush' },
-  { name: 'Drying', duration_min: 7, duration_max: 14, description: 'Drying buds' },
-  { name: 'Curing', duration_min: 14, duration_max: 60, description: 'Final curing' }
+  // photoperiod + clone
+  { name: 'Vegetation', sortOrder: 0, growType: 'photoperiod', sourceType: 'clone', durationMin: 14, durationMax: 45 },
+  { name: 'Pre-Flower', sortOrder: 1, growType: 'photoperiod', sourceType: 'clone', durationMin: 7, durationMax: 14 },
+  { name: 'Flowering', sortOrder: 2, growType: 'photoperiod', sourceType: 'clone', durationMin: 49, durationMax: 77 },
+  { name: 'Flushing', sortOrder: 3, growType: 'photoperiod', sourceType: 'clone', durationMin: 7, durationMax: 14 },
+  { name: 'Drying', sortOrder: 4, growType: 'photoperiod', sourceType: 'clone', durationMin: 7, durationMax: 14 },
+  { name: 'Curing', sortOrder: 5, growType: 'photoperiod', sourceType: 'clone', durationMin: 14, durationMax: 60 },
+
+  // autoflower + seed
+  { name: 'Germination', sortOrder: 0, growType: 'autoflower', sourceType: 'seed', durationMin: 3, durationMax: 7 },
+  { name: 'Seedling', sortOrder: 1, growType: 'autoflower', sourceType: 'seed', durationMin: 10, durationMax: 14 },
+  { name: 'Vegetation', sortOrder: 2, growType: 'autoflower', sourceType: 'seed', durationMin: 14, durationMax: 28 },
+  { name: 'Flowering', sortOrder: 3, growType: 'autoflower', sourceType: 'seed', durationMin: 49, durationMax: 63 },
+  { name: 'Flushing', sortOrder: 4, growType: 'autoflower', sourceType: 'seed', durationMin: 7, durationMax: 14 },
+  { name: 'Drying', sortOrder: 5, growType: 'autoflower', sourceType: 'seed', durationMin: 7, durationMax: 14 },
+  { name: 'Curing', sortOrder: 6, growType: 'autoflower', sourceType: 'seed', durationMin: 14, durationMax: 60 },
+
+  // autoflower + clone
+  { name: 'Vegetation', sortOrder: 0, growType: 'autoflower', sourceType: 'clone', durationMin: 14, durationMax: 21 },
+  { name: 'Flowering', sortOrder: 1, growType: 'autoflower', sourceType: 'clone', durationMin: 49, durationMax: 63 },
+  { name: 'Flushing', sortOrder: 2, growType: 'autoflower', sourceType: 'clone', durationMin: 7, durationMax: 14 },
+  { name: 'Drying', sortOrder: 3, growType: 'autoflower', sourceType: 'clone', durationMin: 7, durationMax: 14 },
+  { name: 'Curing', sortOrder: 4, growType: 'autoflower', sourceType: 'clone', durationMin: 14, durationMax: 60 },
 ];
+
+export const DEFAULT_PHASES = PHASE_PRESETS.filter(p => p.growType === 'photoperiod' && p.sourceType === 'seed');
