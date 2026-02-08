@@ -5,7 +5,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import path from 'path';
 import { CONFIG } from './config/settings';
-import { initializeDatabase } from './database';
+import { initializeDatabase, prisma } from './database';
 import { errorHandler } from './middleware/errorHandler';
 import { plantRoutes } from './controllers/plantController';
 import { strainRoutes } from './controllers/strainController';
@@ -152,8 +152,9 @@ const start = async () => {
       console.log(`GrowFlow server running on port ${CONFIG.API.PORT}`);
     });
 
-    process.on('SIGTERM', () => {
+    process.on('SIGTERM', async () => {
       console.log('Shutting down gracefully...');
+      await prisma.$disconnect();
       process.exit(0);
     });
   } catch (error) {
