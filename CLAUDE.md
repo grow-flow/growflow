@@ -1,6 +1,11 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+GrowFlow — Home Assistant Add-on for cannabis cultivation with full lifecycle tracking.
+
+## Code Style
+- Compact, elegant code — extend existing patterns
+- Centralize config in `backend/src/config/settings.ts`
+- Minimal comments, save tokens
 
 ## Development Commands
 
@@ -34,18 +39,23 @@ React (Vite, :3000) ↔ Express API (:8080) ↔ SQLite (Prisma)
 
 - **Schema**: `backend/prisma/schema.prisma` — source of truth for all models
 - **Config**: `backend/src/config/settings.ts` — centralized CONFIG object from env vars
-- **Controllers**: `backend/src/controllers/` — REST handlers (plant, strain, preset)
+- **Controllers**: `backend/src/controllers/` — REST handlers (plant, strain, preset, upload)
 - **Utils**: `backend/src/utils/phaseUtils.ts` — phase resolution logic (strain-specific → generic → hardcoded defaults)
 - **Types**: `backend/src/types/` — phase presets per grow/source type, event data structures
+- **Middleware**: `backend/src/middleware/errorHandler.ts` — global error → HTTP status mapping
+- **Uploads**: `backend/data/uploads/` — plant photo storage, served statically via `/api/uploads/files`
 - **Entry**: `backend/src/index.ts`
 
 ### Frontend: React + Material-UI + React Query + Vite
 
 - **Pages**: Dashboard, PlantsOverview, PlantDetail (tabs: Timeline/Events/Stats), StrainsOverview, Settings
 - **Hooks**: `frontend/src/hooks/` — usePlants, useStrains (React Query wrappers with mutations)
-- **API**: `frontend/src/services/api.ts` — Axios client with HA Ingress auto-detection
+- **API**: `frontend/src/services/api.ts` — Axios client with HA Ingress auto-detection, getPhotoUrl helper
 - **Types**: `frontend/src/types/models.ts` — mirrors Prisma models
-- **Utils**: `frontend/src/utils/PlantTimeline.ts` — PlantTimeline class for progress calculation
+- **Utils**: `frontend/src/utils/PlantTimeline.ts` — progress calc; `formatDuration.ts` — duration display
+- **Components**: CreatePlantDialog, EditPlantDialog, PlantHeader, EventDialog/EventCard, ImageUpload, PhotoGallery, Navbar, ErrorBoundary
+- **Timeline**: `frontend/src/components/timeline/` — TimelineStepper, PhaseConfigDialog, PhaseEditDialog
+- **Event Forms**: `frontend/src/components/events/` — WateringForm, TrainingForm
 - **Path alias**: `@/` → `frontend/src/`
 - **Theme**: Dark mode, primary #4caf50, secondary #ff9800
 
@@ -73,6 +83,8 @@ Plant creation → phases auto-generated from presets (4 combos: photoperiod/aut
 - `POST/PUT/DELETE /api/plants/:id/events(/:eventId)`
 - `GET/POST/PUT/DELETE /api/strains(/:id)`
 - `GET/POST/PUT/DELETE /api/presets(/:id)`, `POST /api/presets/seed`
+- `POST /api/uploads/:plantId` — photo upload (multipart), `DELETE /api/uploads/:filename`
+- `GET /api/uploads/files/:filename` — static photo serving
 
 ## Key Patterns
 

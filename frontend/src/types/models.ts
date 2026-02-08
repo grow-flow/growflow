@@ -22,7 +22,7 @@ export interface PlantEvent {
   id: number;
   plantId: number;
   phaseId?: number;
-  type: 'watering' | 'observation' | 'training' | 'harvest' | 'transplant';
+  type: 'watering' | 'note' | 'training' | 'harvest' | 'observation' | 'transplant' | 'custom';
   title: string;
   timestamp: string;
   notes?: string;

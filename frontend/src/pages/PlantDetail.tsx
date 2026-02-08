@@ -1,38 +1,23 @@
 import React, { useState, useMemo } from "react";
 import { useParams } from "react-router-dom";
-import {
-  Typography,
-  Grid,
-  Paper,
-  Box,
-  Tabs,
-  Tab,
-  Chip,
-} from "@mui/material";
-import { usePlant, useCreateEvent, useUpdateEvent, useDeleteEvent, useUpdatePlant } from "../hooks/usePlants";
-import { Plant, PlantEvent, PlantPhase } from "../types/models";
-import { apiService } from "../services/api";
-import DynamicPlantTimeline from "../components/DynamicPlantTimeline";
-import PlantHeader from "../components/PlantHeader";
-import EventCard from "../components/EventCard";
-import EventDialog from "../components/EventDialog";
-import EditPlantDialog from "../components/EditPlantDialog";
-import PhotoGallery from "../components/PhotoGallery";
+import { Typography, Paper, Box, Tabs, Tab, Chip, Fab } from "@mui/material";
+import { Add } from "@mui/icons-material";
+import { usePlant, useCreateEvent, useUpdateEvent, useDeleteEvent, useUpdatePlant } from "@/hooks/usePlants";
+import { Plant, PlantEvent, PlantPhase } from "@/types/models";
+import { apiService } from "@/services/api";
+import DynamicPlantTimeline from "@/components/DynamicPlantTimeline";
+import PlantHeader from "@/components/PlantHeader";
+import EventCard from "@/components/EventCard";
+import EventDialog, { EVENT_META, EventFormData } from "@/components/EventDialog";
+import EditPlantDialog from "@/components/EditPlantDialog";
+import PhotoGallery from "@/components/PhotoGallery";
 
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => (
-  <div hidden={value !== index}>
-    {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
-  </div>
+const TabPanel: React.FC<{ children?: React.ReactNode; index: number; value: number }> = ({ children, value, index }) => (
+  <div hidden={value !== index}>{value === index && <Box sx={{ p: 3 }}>{children}</Box>}</div>
 );
 
 interface PhaseGroup {
-  phase: PlantPhase | null;
+  phase: PlantPhase;
   events: PlantEvent[];
 }
 
@@ -50,64 +35,57 @@ const PlantDetail: React.FC = () => {
   const [eventDialog, setEventDialog] = useState<{ open: boolean; event: PlantEvent | null }>({ open: false, event: null });
   const [editPlantDialog, setEditPlantDialog] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
-  const [eventData, setEventData] = useState<{
-    type: PlantEvent['type'];
-    title: string;
-    notes: string;
-    timestamp: string;
-    data?: PlantEvent['data'];
-  }>({
+  const [eventData, setEventData] = useState<EventFormData>({
     type: "watering",
     title: "Watering",
     notes: "",
     timestamp: new Date().toISOString(),
-    data: {}
+    data: {},
   });
 
   const eventsByPhase = useMemo((): PhaseGroup[] => {
     if (!plant) return [];
-    const groups = new Map<number | 0, PlantEvent[]>();
-    (plant.events || []).forEach(e => {
-      const key = e.phaseId || 0;
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key)!.push(e);
+    const startedPhases = plant.phases
+      .filter((p) => p.startDate)
+      .sort((a, b) => new Date(a.startDate!).getTime() - new Date(b.startDate!).getTime());
+
+    const result: PhaseGroup[] = startedPhases.map((phase, i) => {
+      const start = new Date(phase.startDate!).getTime();
+      const end = i < startedPhases.length - 1 ? new Date(startedPhases[i + 1].startDate!).getTime() : Infinity;
+      const events = (plant.events || [])
+        .filter((e) => {
+          const t = new Date(e.timestamp).getTime();
+          return t >= start && t < end;
+        })
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      return { phase, events };
     });
 
-    const result: PhaseGroup[] = [];
-    plant.phases.forEach(phase => {
-      const events = groups.get(phase.id);
-      if (events?.length) {
-        result.push({ phase, events: events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) });
-      }
-    });
-
-    const unassigned = groups.get(0);
-    if (unassigned?.length) {
-      result.push({ phase: null, events: unassigned.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) });
-    }
-    return result;
+    return result.filter((g) => g.events.length > 0);
   }, [plant]);
 
-  const galleryByPhase = useMemo(() =>
-    eventsByPhase
-      .map(g => ({
-        name: g.phase?.name || 'Other',
-        startDate: g.phase?.startDate,
-        photos: g.events.flatMap(e => e.data?.photos || []),
-      }))
-      .filter(g => g.photos.length > 0),
+  const galleryByPhase = useMemo(
+    () =>
+      eventsByPhase
+        .map((g) => ({
+          name: g.phase?.name || "Other",
+          startDate: g.phase?.startDate,
+          photos: g.events.flatMap((e) => e.data?.photos || []),
+        }))
+        .filter((g) => g.photos.length > 0),
     [eventsByPhase]
   );
 
   const totalPhotos = galleryByPhase.reduce((sum, g) => sum + g.photos.length, 0);
 
-  const handleCreateEvent = () => {
+  const openEventDialog = (type: PlantEvent["type"]) => {
+    const meta = EVENT_META[type];
     setEventData({
-      type: "watering",
-      title: "Quick Watering",
-      notes: "Quick watering logged from plant detail page",
+      type,
+      title: meta?.label || type,
+      notes: "",
       timestamp: new Date().toISOString(),
-      data: {}
+      data: {},
     });
     setPendingFiles([]);
     setEventDialog({ open: true, event: null });
@@ -119,7 +97,7 @@ const PlantDetail: React.FC = () => {
       title: event.title,
       notes: event.notes || "",
       timestamp: event.timestamp,
-      data: event.data || {}
+      data: event.data || {},
     });
     setPendingFiles([]);
     setEventDialog({ open: true, event });
@@ -143,13 +121,13 @@ const PlantDetail: React.FC = () => {
       }
       setPendingFiles([]);
       setEventDialog({ open: false, event: null });
-    } catch (error) {
-      console.error("Failed to save event:", error);
+    } catch (err) {
+      console.error("Failed to save event:", err);
     }
   };
 
   const handlePhotoRemove = (photo: string) => {
-    const photos = (eventData.data?.photos || []).filter(p => p !== photo);
+    const photos = (eventData.data?.photos || []).filter((p) => p !== photo);
     setEventData({ ...eventData, data: { ...eventData.data, photos } });
     apiService.deletePhoto(photo).catch(() => {});
   };
@@ -158,8 +136,8 @@ const PlantDetail: React.FC = () => {
     if (!plant) return;
     try {
       await deleteEvent.mutateAsync({ plantId: plant.id, eventId });
-    } catch (error) {
-      console.error("Failed to delete event:", error);
+    } catch (err) {
+      console.error("Failed to delete event:", err);
     }
   };
 
@@ -167,8 +145,8 @@ const PlantDetail: React.FC = () => {
     if (!plant) return;
     try {
       await updatePlant.mutateAsync({ id: plant.id, data });
-    } catch (error) {
-      console.error("Failed to update plant:", error);
+    } catch (err) {
+      console.error("Failed to update plant:", err);
     }
   };
 
@@ -178,20 +156,16 @@ const PlantDetail: React.FC = () => {
 
   return (
     <Box>
-      <PlantHeader
-        plant={plant}
-        onWaterClick={handleCreateEvent}
-        onEditClick={() => setEditPlantDialog(true)}
-      />
+      <PlantHeader plant={plant} onEditClick={() => setEditPlantDialog(true)} />
 
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3, height: "fit-content" }}>
+      <Box sx={{ display: "flex", gap: 3, flexDirection: { xs: "column", md: "row" } }}>
+        <Box sx={{ width: { xs: "100%", md: 340 }, flexShrink: 0 }}>
+          <Paper sx={{ p: 3 }}>
             <DynamicPlantTimeline plant={plant} />
           </Paper>
-        </Grid>
+        </Box>
 
-        <Grid item xs={12} md={8}>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
           <Paper>
             <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)}>
               <Tab label={`Journal (${plant.events?.length || 0})`} />
@@ -202,22 +176,22 @@ const PlantDetail: React.FC = () => {
               {eventsByPhase.length === 0 ? (
                 <Typography color="textSecondary">No events logged yet</Typography>
               ) : (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
                   {eventsByPhase.map((group) => (
-                    <Box key={group.phase?.id || 'unassigned'}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-                        <Typography variant="overline" fontWeight={600} sx={{ letterSpacing: 1.5, color: 'text.secondary' }}>
-                          {group.phase?.name || 'General'}
+                    <Box key={group.phase.id}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
+                        <Typography variant="overline" fontWeight={600} sx={{ letterSpacing: 1.5, color: "text.secondary" }}>
+                          {group.phase.name}
                         </Typography>
-                        {group.phase?.startDate && (
+                        {group.phase.startDate && (
                           <Typography variant="caption" color="textSecondary">
                             — {new Date(group.phase.startDate).toLocaleDateString()}
                           </Typography>
                         )}
-                        <Chip label={group.events.length} size="small" variant="outlined" sx={{ height: 20, fontSize: '0.7rem' }} />
+                        <Chip label={group.events.length} size="small" variant="outlined" sx={{ height: 20, fontSize: "0.7rem" }} />
                       </Box>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                        {group.events.map(event => (
+                      <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                        {group.events.map((event) => (
                           <EventCard key={event.id} event={event} onEdit={handleEditEvent} />
                         ))}
                       </Box>
@@ -228,11 +202,11 @@ const PlantDetail: React.FC = () => {
             </TabPanel>
 
             <TabPanel value={tabValue} index={1}>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
                 {galleryByPhase.map((group) => (
                   <Box key={group.name}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <Typography variant="overline" fontWeight={600} sx={{ letterSpacing: 1.5, color: 'text.secondary' }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+                      <Typography variant="overline" fontWeight={600} sx={{ letterSpacing: 1.5, color: "text.secondary" }}>
                         {group.name}
                       </Typography>
                       {group.startDate && (
@@ -247,8 +221,16 @@ const PlantDetail: React.FC = () => {
               </Box>
             </TabPanel>
           </Paper>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
+
+      <Fab
+        color="primary"
+        onClick={() => openEventDialog("watering")}
+        sx={{ position: "fixed", bottom: 24, right: 24, zIndex: 1200 }}
+      >
+        <Add />
+      </Fab>
 
       <EventDialog
         open={eventDialog.open}
@@ -258,7 +240,7 @@ const PlantDetail: React.FC = () => {
         onClose={() => { setEventDialog({ open: false, event: null }); setPendingFiles([]); }}
         onSave={handleSaveEvent}
         onDelete={handleDeleteEvent}
-        onChange={(data) => setEventData(data)}
+        onChange={setEventData}
         onFilesChange={setPendingFiles}
         onPhotoRemove={handlePhotoRemove}
       />
