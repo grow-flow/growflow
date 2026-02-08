@@ -7,9 +7,10 @@ import {
   Box,
   Tabs,
   Tab,
+  Chip,
 } from "@mui/material";
 import { usePlant, useCreateEvent, useUpdateEvent, useDeleteEvent, useUpdatePlant } from "../hooks/usePlants";
-import { Plant, PlantEvent } from "../types/models";
+import { Plant, PlantEvent, PlantPhase } from "../types/models";
 import { apiService } from "../services/api";
 import DynamicPlantTimeline from "../components/DynamicPlantTimeline";
 import PlantHeader from "../components/PlantHeader";
@@ -29,6 +30,11 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => (
     {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
   </div>
 );
+
+interface PhaseGroup {
+  phase: PlantPhase | null;
+  events: PlantEvent[];
+}
 
 const PlantDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -58,32 +64,42 @@ const PlantDetail: React.FC = () => {
     data: {}
   });
 
-  const galleryByPhase = useMemo(() => {
+  const eventsByPhase = useMemo((): PhaseGroup[] => {
     if (!plant) return [];
-    const phaseMap = new Map<number, { name: string; startDate?: string; photos: string[] }>();
-    const noPhase: string[] = [];
+    const groups = new Map<number | 0, PlantEvent[]>();
+    (plant.events || []).forEach(e => {
+      const key = e.phaseId || 0;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(e);
+    });
 
-    plant.phases.forEach(p => phaseMap.set(p.id, { name: p.name, startDate: p.startDate, photos: [] }));
-
-    plant.events?.forEach(e => {
-      const photos = e.data?.photos;
-      if (!photos?.length) return;
-      if (e.phaseId && phaseMap.has(e.phaseId)) {
-        phaseMap.get(e.phaseId)!.photos.push(...photos);
-      } else {
-        noPhase.push(...photos);
+    const result: PhaseGroup[] = [];
+    plant.phases.forEach(phase => {
+      const events = groups.get(phase.id);
+      if (events?.length) {
+        result.push({ phase, events: events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) });
       }
     });
 
-    const result = [...phaseMap.values()].filter(p => p.photos.length > 0);
-    if (noPhase.length) result.push({ name: 'Other', photos: noPhase });
+    const unassigned = groups.get(0);
+    if (unassigned?.length) {
+      result.push({ phase: null, events: unassigned.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()) });
+    }
     return result;
   }, [plant]);
 
-  const totalPhotos = useMemo(() =>
-    galleryByPhase.reduce((sum, p) => sum + p.photos.length, 0),
-    [galleryByPhase]
+  const galleryByPhase = useMemo(() =>
+    eventsByPhase
+      .map(g => ({
+        name: g.phase?.name || 'Other',
+        startDate: g.phase?.startDate,
+        photos: g.events.flatMap(e => e.data?.photos || []),
+      }))
+      .filter(g => g.photos.length > 0),
+    [eventsByPhase]
   );
+
+  const totalPhotos = galleryByPhase.reduce((sum, g) => sum + g.photos.length, 0);
 
   const handleCreateEvent = () => {
     setEventData({
@@ -111,15 +127,12 @@ const PlantDetail: React.FC = () => {
 
   const handleSaveEvent = async () => {
     if (!plant) return;
-
     try {
       let photos = eventData.data?.photos || [];
-
       if (pendingFiles.length > 0) {
         const uploaded = await apiService.uploadPhotos(plant.id, pendingFiles);
         photos = [...photos, ...uploaded];
       }
-
       const dataWithPhotos = { ...eventData.data, photos: photos.length ? photos : undefined };
       const payload = { ...eventData, data: dataWithPhotos };
 
@@ -128,7 +141,6 @@ const PlantDetail: React.FC = () => {
       } else {
         await createEvent.mutateAsync({ plantId: plant.id, eventData: payload });
       }
-
       setPendingFiles([]);
       setEventDialog({ open: false, event: null });
     } catch (error) {
@@ -182,43 +194,57 @@ const PlantDetail: React.FC = () => {
         <Grid item xs={12} md={8}>
           <Paper>
             <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)}>
-              <Tab label={`Events (${plant.events?.length || 0})`} />
-              <Tab label={`Gallery (${totalPhotos})`} />
+              <Tab label={`Journal (${plant.events?.length || 0})`} />
+              <Tab label={`Gallery (${totalPhotos})`} disabled={totalPhotos === 0} />
             </Tabs>
 
             <TabPanel value={tabValue} index={0}>
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                {plant.events?.map((event) => (
-                  <EventCard key={event.id} event={event} onEdit={handleEditEvent} />
-                )) || []}
-                {(!plant.events || plant.events.length === 0) && (
-                  <Typography color="textSecondary">No events logged yet</Typography>
-                )}
-              </Box>
-            </TabPanel>
-
-            <TabPanel value={tabValue} index={1}>
-              {galleryByPhase.length === 0 ? (
-                <Typography color="textSecondary">
-                  No photos yet — add photos when logging events
-                </Typography>
+              {eventsByPhase.length === 0 ? (
+                <Typography color="textSecondary">No events logged yet</Typography>
               ) : (
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                  {galleryByPhase.map((phase) => (
-                    <Box key={phase.name}>
-                      <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
-                        {phase.name}
-                        {phase.startDate && (
-                          <Typography component="span" variant="caption" color="textSecondary" sx={{ ml: 1 }}>
-                            {new Date(phase.startDate).toLocaleDateString()}
+                  {eventsByPhase.map((group) => (
+                    <Box key={group.phase?.id || 'unassigned'}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+                        <Typography variant="overline" fontWeight={600} sx={{ letterSpacing: 1.5, color: 'text.secondary' }}>
+                          {group.phase?.name || 'General'}
+                        </Typography>
+                        {group.phase?.startDate && (
+                          <Typography variant="caption" color="textSecondary">
+                            — {new Date(group.phase.startDate).toLocaleDateString()}
                           </Typography>
                         )}
-                      </Typography>
-                      <PhotoGallery photos={phase.photos} thumbSize={100} />
+                        <Chip label={group.events.length} size="small" variant="outlined" sx={{ height: 20, fontSize: '0.7rem' }} />
+                      </Box>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                        {group.events.map(event => (
+                          <EventCard key={event.id} event={event} onEdit={handleEditEvent} />
+                        ))}
+                      </Box>
                     </Box>
                   ))}
                 </Box>
               )}
+            </TabPanel>
+
+            <TabPanel value={tabValue} index={1}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                {galleryByPhase.map((group) => (
+                  <Box key={group.name}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                      <Typography variant="overline" fontWeight={600} sx={{ letterSpacing: 1.5, color: 'text.secondary' }}>
+                        {group.name}
+                      </Typography>
+                      {group.startDate && (
+                        <Typography variant="caption" color="textSecondary">
+                          — {new Date(group.startDate).toLocaleDateString()}
+                        </Typography>
+                      )}
+                    </Box>
+                    <PhotoGallery photos={group.photos} variant="grid" thumbSize={140} />
+                  </Box>
+                ))}
+              </Box>
             </TabPanel>
           </Paper>
         </Grid>
