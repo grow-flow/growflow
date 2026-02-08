@@ -10,6 +10,7 @@ import { errorHandler } from './middleware/errorHandler';
 import { plantRoutes } from './controllers/plantController';
 import { strainRoutes } from './controllers/strainController';
 import { presetRoutes } from './controllers/presetController';
+import { uploadRoutes } from './controllers/uploadController';
 
 const app = express();
 
@@ -84,9 +85,9 @@ app.use((req, res, next) => {
 });
 
 app.use('/api/plants', plantRoutes);
-// Care events are now handled via plant routes: POST /api/plants/:id/events
 app.use('/api/strains', strainRoutes);
 app.use('/api/presets', presetRoutes);
+app.use('/api/uploads', uploadRoutes);
 
 app.get('/api/health', async (req, res) => {
   try {
@@ -120,6 +121,12 @@ app.get('/api/health', async (req, res) => {
     });
   }
 });
+
+// Serve uploaded images
+app.use('/api/uploads/files', express.static(CONFIG.UPLOADS.PATH, {
+  maxAge: '7d',
+  immutable: true
+}));
 
 // Serve React frontend static files
 const frontendPath = path.join(__dirname, '../../frontend/build');

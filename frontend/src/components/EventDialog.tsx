@@ -24,6 +24,7 @@ import { PlantEvent } from "../types/models";
 import { EVENT_TYPES, QUICK_EVENT_TEMPLATES, EventType } from "../config/eventTypes";
 import WateringForm from "./events/WateringForm";
 import TrainingForm from "./events/TrainingForm";
+import ImageUpload from "./ImageUpload";
 
 interface EventDialogProps {
   open: boolean;
@@ -35,26 +36,32 @@ interface EventDialogProps {
     timestamp: string;
     data?: PlantEvent['data'];
   };
+  pendingFiles: File[];
   onClose: () => void;
   onSave: () => void;
   onDelete?: (eventId: number) => void;
-  onChange: (data: { 
-    type: PlantEvent['type']; 
-    title: string; 
-    notes: string; 
-    timestamp: string; 
+  onChange: (data: {
+    type: PlantEvent['type'];
+    title: string;
+    notes: string;
+    timestamp: string;
     data?: PlantEvent['data'];
   }) => void;
+  onFilesChange: (files: File[]) => void;
+  onPhotoRemove: (photo: string) => void;
 }
 
 const EventDialog: React.FC<EventDialogProps> = ({
   open,
   event,
   eventData,
+  pendingFiles,
   onClose,
   onSave,
   onDelete,
   onChange,
+  onFilesChange,
+  onPhotoRemove,
 }) => {
   const eventDateTime = new Date(eventData.timestamp);
   const eventType = EVENT_TYPES[eventData.type as EventType];
@@ -225,6 +232,14 @@ const EventDialog: React.FC<EventDialogProps> = ({
             multiline
             rows={3}
             sx={{ mt: 2 }}
+          />
+
+          <ImageUpload
+            photos={eventData.data?.photos || []}
+            pendingFiles={pendingFiles}
+            onFilesAdd={(files) => onFilesChange([...pendingFiles, ...files])}
+            onFileRemove={(i) => onFilesChange(pendingFiles.filter((_, idx) => idx !== i))}
+            onExistingRemove={onPhotoRemove}
           />
         </DialogContent>
         

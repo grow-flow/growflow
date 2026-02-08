@@ -33,6 +33,7 @@ export interface PlantEvent {
     training_method?: string;
     wet_weight?: number;
     dry_weight?: number;
+    photos?: string[];
   };
 }
 

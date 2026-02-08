@@ -16,6 +16,15 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+const getBasePath = () => {
+  const p = window.location.pathname;
+  const m = p.match(/^(\/api\/hassio_ingress\/[^\/]+)/);
+  return m ? m[1] : '';
+};
+
+export const getPhotoUrl = (filename: string) =>
+  `${getBasePath()}/api/uploads/files/${filename}`;
+
 export const apiService = {
   // Plants
   getPlants: async (): Promise<Plant[]> => {
@@ -114,5 +123,20 @@ export const apiService = {
     if (sourceType) params.set('sourceType', sourceType);
     const response = await api.get(`/presets?${params}`);
     return response.data;
+  },
+
+  // Uploads
+  uploadPhotos: async (plantId: number, files: File[]): Promise<string[]> => {
+    const formData = new FormData();
+    files.forEach(f => formData.append('photos', f));
+    const response = await api.post(`/uploads/${plantId}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 60000
+    });
+    return response.data.photos;
+  },
+
+  deletePhoto: async (filename: string): Promise<void> => {
+    await api.delete(`/uploads/${filename}`);
   },
 };

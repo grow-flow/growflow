@@ -6,13 +6,24 @@ const router = Router();
 
 const plantIncludes = { strain: true, phases: true, events: true };
 
+const serializePlant = (plant: any) => {
+  if (!plant) return plant;
+  return {
+    ...plant,
+    events: plant.events?.map((e: any) => ({
+      ...e,
+      data: e.data ? (typeof e.data === 'string' ? JSON.parse(e.data) : e.data) : null,
+    })),
+  };
+};
+
 router.get("/", async (_req: Request, res: Response) => {
   try {
     const plants = await prisma.plant.findMany({
       where: { isActive: true },
       include: plantIncludes,
     });
-    res.json(plants);
+    res.json(plants.map(serializePlant));
   } catch (error) {
     console.error("🔴 [Plants] Error fetching plants:", error);
     res.status(500).json({ error: "Failed to fetch plants" });
@@ -31,7 +42,7 @@ router.get("/:id", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Plant not found" });
     }
 
-    res.json(plant);
+    res.json(serializePlant(plant));
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch plant" });
   }
@@ -79,7 +90,7 @@ router.post("/", async (req: Request, res: Response) => {
       include: plantIncludes,
     });
 
-    res.status(201).json(plant);
+    res.status(201).json(serializePlant(plant));
   } catch (error: any) {
     console.error("🔴 [Plants] Failed to create plant:", error.message);
     res.status(500).json({ error: "Failed to create plant", details: error.message });
@@ -120,7 +131,7 @@ router.put("/:id/phases", async (req: Request, res: Response) => {
       include: plantIncludes,
     });
 
-    res.json(updated);
+    res.json(serializePlant(updated));
   } catch (error: any) {
     console.error("Failed to update plant phases:", error);
     res.status(500).json({ error: "Failed to update plant phases" });
@@ -141,7 +152,7 @@ router.put("/:id", async (req: Request, res: Response) => {
       include: plantIncludes,
     });
 
-    res.json(plant);
+    res.json(serializePlant(plant));
   } catch (error: any) {
     if (error.code === "P2025") {
       return res.status(404).json({ error: "Plant not found" });
@@ -198,7 +209,7 @@ router.post("/:id/events", async (req: Request, res: Response) => {
       include: plantIncludes,
     });
 
-    res.status(201).json(updated);
+    res.status(201).json(serializePlant(updated));
   } catch (error) {
     console.error("Failed to create event:", error);
     res.status(500).json({ error: "Failed to create event" });
@@ -228,7 +239,7 @@ router.put("/:id/events/:eventId", async (req: Request, res: Response) => {
       include: plantIncludes,
     });
 
-    res.json(plant);
+    res.json(serializePlant(plant));
   } catch (error: any) {
     if (error.code === "P2025") {
       return res.status(404).json({ error: "Event not found" });
@@ -250,7 +261,7 @@ router.delete("/:id/events/:eventId", async (req: Request, res: Response) => {
       include: plantIncludes,
     });
 
-    res.json(plant);
+    res.json(serializePlant(plant));
   } catch (error: any) {
     if (error.code === "P2025") {
       return res.status(404).json({ error: "Event not found" });

@@ -10,6 +10,7 @@ import {
 } from "@mui/material";
 import { PlantEvent } from "../types/models";
 import { getEventIcon, getEventColor } from "../config/eventTypes";
+import PhotoGallery from "./PhotoGallery";
 
 interface EventCardProps {
   event: PlantEvent;
@@ -99,6 +100,10 @@ const EventCard: React.FC<EventCardProps> = ({ event, onEdit }) => {
         </Typography>
 
         {renderEventData()}
+
+        {event.data?.photos && event.data.photos.length > 0 && (
+          <PhotoGallery photos={event.data.photos} />
+        )}
 
         {event.notes && (
           <>
