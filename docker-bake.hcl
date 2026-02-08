@@ -14,12 +14,6 @@ group "default" {
   targets = ["growflow"]
 }
 
-group "addon" {
-  targets = ["addon-amd64", "addon-aarch64"]
-}
-
-# --- Base app image (multi-arch manifest) ---
-
 target "growflow" {
   dockerfile = "Dockerfile"
   platforms = ["linux/amd64", "linux/arm64"]
@@ -42,29 +36,4 @@ target "growflow-local" {
   output = ["type=docker"]
   cache-from = ["type=registry,ref=${REGISTRY}/${IMAGE_NAME}:buildcache"]
   cache-to = []
-}
-
-# --- HA addon images (per-arch, required by HA Supervisor) ---
-
-target "_addon-base" {
-  dockerfile = "growflow-addon/growflow/Dockerfile"
-  args = {
-    BUILD_FROM = "${REGISTRY}/${IMAGE_NAME}:${VERSION}"
-  }
-  labels = {
-    "io.hass.type"    = "addon"
-    "io.hass.version" = "${VERSION}"
-  }
-}
-
-target "addon-amd64" {
-  inherits  = ["_addon-base"]
-  platforms = ["linux/amd64"]
-  tags      = ["${REGISTRY}/${IMAGE_NAME}-amd64:${VERSION}"]
-}
-
-target "addon-aarch64" {
-  inherits  = ["_addon-base"]
-  platforms = ["linux/arm64"]
-  tags      = ["${REGISTRY}/${IMAGE_NAME}-aarch64:${VERSION}"]
 }

@@ -48,22 +48,12 @@ jobs:
           echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
           echo "Building version: ${VERSION}"
 
-      - name: Build and push base image
+      - name: Build and push with Bake
         uses: docker/bake-action@v5
         env:
           VERSION: ${{ steps.version.outputs.VERSION }}
         with:
           push: true
-          files: |
-            ./docker-bake.hcl
-
-      - name: Build and push addon images (per-arch)
-        uses: docker/bake-action@v5
-        env:
-          VERSION: ${{ steps.version.outputs.VERSION }}
-        with:
-          push: true
-          targets: addon
           files: |
             ./docker-bake.hcl
 
