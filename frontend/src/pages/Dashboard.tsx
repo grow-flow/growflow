@@ -173,7 +173,7 @@ const Dashboard: React.FC = () => {
             <Grid container spacing={2}>
               {allPlants.slice(0, 6).map((plant) => {
                 const timeline = createPlantTimeline(plant.phases, plant.events || []);
-                const currentPhaseInfo = timeline.timeline.find(p => p.isCurrent);
+                const currentPhaseInfo = timeline.flatTimeline.find(p => p.isCurrent);
                 const currentPhase = currentPhaseInfo?.phase;
                 const daysInPhase = currentPhaseInfo?.daysElapsed || 0;
                 

@@ -16,7 +16,7 @@ const PlantHeader: React.FC<PlantHeaderProps> = ({ plant, onEditClick }) => {
     [plant.phases, plant.events, plant.id, plant.updatedAt]
   );
 
-  const currentPhaseInfo = timeline.timeline.find((p) => p.isCurrent);
+  const currentPhaseInfo = timeline.flatTimeline.find((p) => p.isCurrent);
   const currentPhase = currentPhaseInfo?.phase;
 
   const getTotalDays = () => {

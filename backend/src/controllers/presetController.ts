@@ -14,7 +14,7 @@ router.get('/', async (req: Request, res: Response) => {
 
     const presets = await prisma.phasePreset.findMany({
       where,
-      orderBy: { sortOrder: 'asc' }
+      orderBy: { sortOrder: 'asc' },
     });
     res.json(presets);
   } catch (error: any) {
@@ -25,9 +25,7 @@ router.get('/', async (req: Request, res: Response) => {
 
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const preset = await prisma.phasePreset.create({
-      data: req.body
-    });
+    const preset = await prisma.phasePreset.create({ data: req.body });
     res.status(201).json(preset);
   } catch (error: any) {
     console.error('🔴 [Presets] Failed to create preset:', error.message);
@@ -38,15 +36,10 @@ router.post('/', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
-    const preset = await prisma.phasePreset.update({
-      where: { id },
-      data: req.body
-    });
+    const preset = await prisma.phasePreset.update({ where: { id }, data: req.body });
     res.json(preset);
   } catch (error: any) {
-    if (error.code === 'P2025') {
-      return res.status(404).json({ error: 'Preset not found' });
-    }
+    if (error.code === 'P2025') return res.status(404).json({ error: 'Preset not found' });
     res.status(500).json({ error: 'Failed to update preset' });
   }
 });
@@ -54,27 +47,35 @@ router.put('/:id', async (req: Request, res: Response) => {
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
-    await prisma.phasePreset.delete({
-      where: { id }
-    });
+    await prisma.phasePreset.delete({ where: { id } });
     res.status(204).send();
   } catch (error: any) {
-    if (error.code === 'P2025') {
-      return res.status(404).json({ error: 'Preset not found' });
-    }
+    if (error.code === 'P2025') return res.status(404).json({ error: 'Preset not found' });
     res.status(500).json({ error: 'Failed to delete preset' });
   }
 });
 
 router.post('/seed', async (req: Request, res: Response) => {
   try {
-    await prisma.$transaction([
-      prisma.phasePreset.deleteMany({ where: { strainId: null } }),
-      prisma.phasePreset.createMany({ data: PHASE_PRESETS })
-    ]);
+    await prisma.phasePreset.deleteMany({ where: { strainId: null } });
+
+    for (const preset of PHASE_PRESETS) {
+      await prisma.phasePreset.create({
+        data: {
+          name: preset.name,
+          sortOrder: preset.sortOrder,
+          growType: preset.growType,
+          sourceType: preset.sourceType,
+          durationMin: preset.durationMin,
+          durationMax: preset.durationMax,
+          description: preset.description || null,
+        },
+      });
+    }
+
     const presets = await prisma.phasePreset.findMany({
       where: { strainId: null },
-      orderBy: { sortOrder: 'asc' }
+      orderBy: { sortOrder: 'asc' },
     });
     res.json(presets);
   } catch (error: any) {

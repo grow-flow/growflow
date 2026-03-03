@@ -20,59 +20,47 @@ const DynamicPlantTimeline: React.FC<DynamicPlantTimelineProps> = ({ plant }) =>
   const [configModalOpen, setConfigModalOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  const plantTimeline = useMemo(
-    () => createPlantTimeline(plant.phases || [], plant.events || []),
-    [plant.phases, plant.events, plant.id, plant.updatedAt]
-  );
+  const { plantTimeline, flatTimeline, totalProgress } = useMemo(() => {
+    const timeline = createPlantTimeline(plant.phases || [], plant.events || []);
+    return { plantTimeline: timeline, flatTimeline: timeline.flatTimeline, totalProgress: timeline.totalProgress };
+  }, [plant.phases, plant.events, plant.id, plant.updatedAt]);
 
-  const timeline = plantTimeline.timeline;
-  const totalProgress = plantTimeline.totalProgress;
-  const daysUntilHarvest = plantTimeline.daysUntilHarvest;
-  const daysUntilNext = plantTimeline.daysUntilNextPhase;
+  const invalidatePlant = () => {
+    queryClient.invalidateQueries({ queryKey: ["plants"] });
+    queryClient.invalidateQueries({ queryKey: ["plant", plant.id] });
+  };
 
   const updatePhaseDateMutation = useMutation({
     mutationFn: ({ phaseId, startDate }: { phaseId: number; startDate: string | null }) =>
       apiService.updatePhaseStartDate(plant.id, phaseId, startDate),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["plants"] });
-      queryClient.invalidateQueries({ queryKey: ["plant", plant.id] });
-    },
+    onSuccess: invalidatePlant,
   });
 
   const startNextPhaseMutation = useMutation({
     mutationFn: () => apiService.startNextPhase(plant.id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["plants"] });
-      queryClient.invalidateQueries({ queryKey: ["plant", plant.id] });
-    },
+    onSuccess: invalidatePlant,
   });
 
   const updatePhasesMutation = useMutation({
     mutationFn: (phases: any[]) => apiService.updatePlantPhases(plant.id, phases),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["plants"] });
-      queryClient.invalidateQueries({ queryKey: ["plant", plant.id] });
-      setConfigModalOpen(false);
-    },
+    onSuccess: () => { invalidatePlant(); setConfigModalOpen(false); },
   });
 
   useEffect(() => {
-    const currentPhaseId = plantTimeline.currentPhase?.id;
-    if (currentPhaseId && currentPhaseId !== lastCurrentPhaseId) {
-      setExpandedPhase(currentPhaseId);
-      setLastCurrentPhaseId(currentPhaseId);
+    const current = flatTimeline.find(p => p.isCurrent);
+    if (current && current.phase.id !== lastCurrentPhaseId) {
+      setExpandedPhase(current.phase.id);
+      setLastCurrentPhaseId(current.phase.id);
     }
-  }, [plantTimeline.currentPhase?.id, lastCurrentPhaseId]);
+  }, [flatTimeline, lastCurrentPhaseId]);
 
   const handlePhaseClick = (phaseId: number) => {
     setExpandedPhase(expandedPhase === phaseId ? null : phaseId);
   };
 
   const handleDateChange = async (phaseId: number, newDate: Date | null) => {
-    const phaseIndex = plantTimeline.getPhaseIndex(phaseId);
-
     if (newDate) {
-      const validation = plantTimeline.validatePhaseDate(phaseIndex, newDate);
+      const validation = plantTimeline.validatePhaseDate(phaseId, newDate);
       if (!validation.isValid) {
         console.error("Invalid date:", validation.error);
         return;
@@ -106,16 +94,6 @@ const DynamicPlantTimeline: React.FC<DynamicPlantTimelineProps> = ({ plant }) =>
             <Typography variant="caption" color="textSecondary">
               {Math.round(totalProgress)}% Complete
             </Typography>
-            {daysUntilHarvest && (
-              <Typography variant="caption" color="textSecondary">
-                ~{daysUntilHarvest} days to harvest
-              </Typography>
-            )}
-            {daysUntilNext !== null && daysUntilNext > 0 && (
-              <Typography variant="caption" color="textSecondary">
-                {daysUntilNext} days until next phase
-              </Typography>
-            )}
             <IconButton size="small" onClick={() => setConfigModalOpen(true)} sx={{ ml: 1 }}>
               <MoreVertIcon />
             </IconButton>
@@ -129,7 +107,7 @@ const DynamicPlantTimeline: React.FC<DynamicPlantTimelineProps> = ({ plant }) =>
         />
 
         <TimelineStepper
-          timeline={timeline}
+          flatTimeline={flatTimeline}
           plantTimeline={plantTimeline}
           expandedPhase={expandedPhase}
           onPhaseClick={handlePhaseClick}

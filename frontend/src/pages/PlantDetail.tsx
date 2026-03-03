@@ -49,24 +49,25 @@ const PlantDetail: React.FC = () => {
       .filter((p) => p.startDate)
       .sort((a, b) => new Date(a.startDate!).getTime() - new Date(b.startDate!).getTime());
 
-    const result: PhaseGroup[] = startedPhases.map((phase, i) => {
-      const start = new Date(phase.startDate!).getTime();
-      const end = i < startedPhases.length - 1 ? new Date(startedPhases[i + 1].startDate!).getTime() : Infinity;
-      const events = (plant.events || [])
-        .filter((e) => {
-          const t = new Date(e.timestamp).getTime();
-          return t >= start && t < end;
-        })
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      return { phase, events };
-    });
-
-    return result.filter((g) => g.events.length > 0);
+    return startedPhases
+      .map((phase, i) => {
+        const start = new Date(phase.startDate!).getTime();
+        const end = i < startedPhases.length - 1 ? new Date(startedPhases[i + 1].startDate!).getTime() : Infinity;
+        const events = (plant.events || [])
+          .filter((e) => {
+            const t = new Date(e.timestamp).getTime();
+            return t >= start && t < end;
+          })
+          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        return { phase, events };
+      })
+      .reverse();
   }, [plant]);
 
   const galleryByPhase = useMemo(
     () =>
-      eventsByPhase
+      [...eventsByPhase]
+        .reverse()
         .map((g) => ({
           name: g.phase?.name || "Other",
           startDate: g.phase?.startDate,
@@ -190,11 +191,15 @@ const PlantDetail: React.FC = () => {
                         )}
                         <Chip label={group.events.length} size="small" variant="outlined" sx={{ height: 20, fontSize: "0.7rem" }} />
                       </Box>
-                      <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-                        {group.events.map((event) => (
-                          <EventCard key={event.id} event={event} onEdit={handleEditEvent} />
-                        ))}
-                      </Box>
+                      {group.events.length === 0 ? (
+                        <Typography variant="body2" color="textSecondary" sx={{ pl: 0.5 }}>No events in this phase</Typography>
+                      ) : (
+                        <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                          {group.events.map((event) => (
+                            <EventCard key={event.id} event={event} onEdit={handleEditEvent} />
+                          ))}
+                        </Box>
+                      )}
                     </Box>
                   ))}
                 </Box>

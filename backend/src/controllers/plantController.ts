@@ -4,7 +4,11 @@ import { createPlantPhases, getCurrentPhase } from "../utils/phaseUtils";
 
 const router = Router();
 
-const plantIncludes = { strain: true, phases: true, events: true };
+const plantIncludes = {
+  strain: true,
+  phases: { orderBy: { sortOrder: 'asc' as const } },
+  events: true,
+};
 
 const serializePlant = (plant: any) => {
   if (!plant) return plant;
@@ -37,11 +41,7 @@ router.get("/:id", async (req: Request, res: Response) => {
       where: { id },
       include: plantIncludes,
     });
-
-    if (!plant) {
-      return res.status(404).json({ error: "Plant not found" });
-    }
-
+    if (!plant) return res.status(404).json({ error: "Plant not found" });
     res.json(serializePlant(plant));
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch plant" });
@@ -75,22 +75,29 @@ router.post("/", async (req: Request, res: Response) => {
         sourceType,
         notes: req.body.notes || "",
         isActive: req.body.isActive ?? true,
-        phases: {
-          create: phasesData.map((p: any, index: number) => ({
-            name: p.name,
-            durationMin: p.durationMin ?? p.duration_min ?? 7,
-            durationMax: p.durationMax ?? p.duration_max ?? 14,
-            startDate: index === 0 ? new Date() : null,
-            isActive: index === 0,
-            isCompleted: false,
-            notes: p.notes || null,
-          })),
-        },
       },
-      include: plantIncludes,
     });
 
-    res.status(201).json(serializePlant(plant));
+    for (let i = 0; i < phasesData.length; i++) {
+      const p = phasesData[i];
+      const startDate = i === 0 ? new Date() : (p.startDate ? new Date(p.startDate) : null);
+      await prisma.plantPhase.create({
+        data: {
+          plantId: plant.id,
+          name: p.name,
+          sortOrder: p.sortOrder ?? i,
+          durationMin: p.durationMin ?? 7,
+          durationMax: p.durationMax ?? 14,
+          startDate,
+          isActive: i === 0 || (p.isActive ?? false),
+          isCompleted: p.isCompleted ?? false,
+          notes: p.notes || null,
+        },
+      });
+    }
+
+    const fullPlant = await prisma.plant.findUnique({ where: { id: plant.id }, include: plantIncludes });
+    res.status(201).json(serializePlant(fullPlant));
   } catch (error: any) {
     console.error("🔴 [Plants] Failed to create plant:", error.message);
     res.status(500).json({ error: "Failed to create plant", details: error.message });
@@ -107,30 +114,27 @@ router.put("/:id/phases", async (req: Request, res: Response) => {
     }
 
     const plant = await prisma.plant.findUnique({ where: { id } });
-    if (!plant) {
-      return res.status(404).json({ error: "Plant not found" });
-    }
+    if (!plant) return res.status(404).json({ error: "Plant not found" });
 
     await prisma.plantPhase.deleteMany({ where: { plantId: id } });
 
-    await prisma.plantPhase.createMany({
-      data: phases.map((p: any) => ({
-        plantId: id,
-        name: p.name,
-        durationMin: p.durationMin ?? p.duration_min ?? 7,
-        durationMax: p.durationMax ?? p.duration_max ?? 14,
-        startDate: p.startDate ? new Date(p.startDate) : null,
-        isActive: p.isActive ?? p.is_active ?? false,
-        isCompleted: p.isCompleted ?? p.is_completed ?? false,
-        notes: p.notes || null,
-      })),
-    });
+    for (const p of phases) {
+      await prisma.plantPhase.create({
+        data: {
+          plantId: id,
+          name: p.name,
+          sortOrder: p.sortOrder ?? 0,
+          durationMin: p.durationMin ?? 7,
+          durationMax: p.durationMax ?? 14,
+          startDate: p.startDate ? new Date(p.startDate) : null,
+          isActive: p.isActive ?? false,
+          isCompleted: p.isCompleted ?? false,
+          notes: p.notes || null,
+        },
+      });
+    }
 
-    const updated = await prisma.plant.findUnique({
-      where: { id },
-      include: plantIncludes,
-    });
-
+    const updated = await prisma.plant.findUnique({ where: { id }, include: plantIncludes });
     res.json(serializePlant(updated));
   } catch (error: any) {
     console.error("Failed to update plant phases:", error);
@@ -142,7 +146,6 @@ router.put("/:id", async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
     const { phases, events, strain, ...rest } = req.body;
-
     const data: any = { ...rest };
     if (rest.strainId !== undefined) data.strainId = rest.strainId;
 
@@ -151,12 +154,9 @@ router.put("/:id", async (req: Request, res: Response) => {
       data,
       include: plantIncludes,
     });
-
     res.json(serializePlant(plant));
   } catch (error: any) {
-    if (error.code === "P2025") {
-      return res.status(404).json({ error: "Plant not found" });
-    }
+    if (error.code === "P2025") return res.status(404).json({ error: "Plant not found" });
     console.error(`🔴 [Plants] Failed to update plant ${req.params.id}:`, error.message);
     res.status(500).json({ error: "Failed to update plant", details: error.message });
   }
@@ -168,9 +168,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
     await prisma.plant.delete({ where: { id } });
     res.status(204).send();
   } catch (error: any) {
-    if (error.code === "P2025") {
-      return res.status(404).json({ error: "Plant not found" });
-    }
+    if (error.code === "P2025") return res.status(404).json({ error: "Plant not found" });
     console.error("Delete plant error:", error);
     res.status(500).json({ error: "Failed to delete plant" });
   }
@@ -185,10 +183,7 @@ router.post("/:id/events", async (req: Request, res: Response) => {
       where: { id: plantId },
       include: { phases: true },
     });
-
-    if (!plant) {
-      return res.status(404).json({ error: "Plant not found" });
-    }
+    if (!plant) return res.status(404).json({ error: "Plant not found" });
 
     const currentPhase = getCurrentPhase(plant.phases);
 
@@ -204,11 +199,7 @@ router.post("/:id/events", async (req: Request, res: Response) => {
       },
     });
 
-    const updated = await prisma.plant.findUnique({
-      where: { id: plantId },
-      include: plantIncludes,
-    });
-
+    const updated = await prisma.plant.findUnique({ where: { id: plantId }, include: plantIncludes });
     res.status(201).json(serializePlant(updated));
   } catch (error) {
     console.error("Failed to create event:", error);
@@ -229,21 +220,12 @@ router.put("/:id/events/:eventId", async (req: Request, res: Response) => {
     if (timestamp !== undefined) updateData.timestamp = new Date(timestamp);
     if (data !== undefined) updateData.data = JSON.stringify(data);
 
-    await prisma.plantEvent.update({
-      where: { id: eventId },
-      data: updateData,
-    });
+    await prisma.plantEvent.update({ where: { id: eventId }, data: updateData });
 
-    const plant = await prisma.plant.findUnique({
-      where: { id: plantId },
-      include: plantIncludes,
-    });
-
+    const plant = await prisma.plant.findUnique({ where: { id: plantId }, include: plantIncludes });
     res.json(serializePlant(plant));
   } catch (error: any) {
-    if (error.code === "P2025") {
-      return res.status(404).json({ error: "Event not found" });
-    }
+    if (error.code === "P2025") return res.status(404).json({ error: "Event not found" });
     console.error("Failed to update event:", error);
     res.status(500).json({ error: "Failed to update event" });
   }
@@ -256,16 +238,10 @@ router.delete("/:id/events/:eventId", async (req: Request, res: Response) => {
 
     await prisma.plantEvent.delete({ where: { id: eventId } });
 
-    const plant = await prisma.plant.findUnique({
-      where: { id: plantId },
-      include: plantIncludes,
-    });
-
+    const plant = await prisma.plant.findUnique({ where: { id: plantId }, include: plantIncludes });
     res.json(serializePlant(plant));
   } catch (error: any) {
-    if (error.code === "P2025") {
-      return res.status(404).json({ error: "Event not found" });
-    }
+    if (error.code === "P2025") return res.status(404).json({ error: "Event not found" });
     console.error("Failed to delete event:", error);
     res.status(500).json({ error: "Failed to delete event" });
   }

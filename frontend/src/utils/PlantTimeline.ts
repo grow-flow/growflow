@@ -24,7 +24,7 @@ export class PlantTimeline {
   private currentDate: Date;
 
   constructor(phases: PlantPhase[], _events: PlantEvent[] = [], currentDate = new Date()) {
-    this.phases = [...phases];
+    this.phases = [...phases].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
     this.currentDate = currentDate;
   }
 
@@ -40,7 +40,7 @@ export class PlantTimeline {
     return idx >= 0 ? this.phases[idx] : null;
   }
 
-  get timeline(): DynamicPhaseInfo[] {
+  get flatTimeline(): DynamicPhaseInfo[] {
     const firstStarted = this.phases.find(p => p.startDate);
     let estimatedDate = firstStarted?.startDate ? new Date(firstStarted.startDate) : this.currentDate;
 
@@ -54,7 +54,7 @@ export class PlantTimeline {
         estimatedDate = addDays(estimatedDate, this.phases[index - 1].durationMax);
       }
 
-      const estimatedEndDate = addDays(estimatedDate, phase.durationMax);
+      const estimatedEndDate = addDays(actualDate || estimatedDate, phase.durationMax);
 
       let daysElapsed = 0;
       if (actualDate) {
@@ -67,8 +67,7 @@ export class PlantTimeline {
         }
       }
 
-      const isOverdue = actualDate && isCurrent && daysElapsed > phase.durationMax;
-      const progressPercentage = actualDate && isCurrent
+      const progress = actualDate && isCurrent
         ? Math.min((daysElapsed / phase.durationMax) * 100, 100)
         : isCompleted ? 100 : 0;
 
@@ -77,53 +76,42 @@ export class PlantTimeline {
         actualDate,
         estimatedDate: new Date(estimatedDate),
         estimatedEndDate,
-        daysElapsed,
+        daysElapsed: actualDate ? daysElapsed : 0,
         isCurrent,
         isCompleted,
         isFuture,
-        isOverdue: !!isOverdue,
-        progressPercentage
+        isOverdue: !!(actualDate && isCurrent && daysElapsed > phase.durationMax),
+        progressPercentage: progress,
       };
     });
   }
 
   get totalProgress(): number {
-    const tl = this.timeline;
-    const completed = tl.filter(p => p.isCompleted).length;
-    const current = tl.find(p => p.isCurrent);
+    const timeline = this.flatTimeline;
+    if (timeline.length === 0) return 0;
+    const completed = timeline.filter(p => p.isCompleted).length;
+    const current = timeline.find(p => p.isCurrent);
     const currentProgress = current ? current.progressPercentage / 100 : 0;
-    return ((completed + currentProgress) / tl.length) * 100;
+    return ((completed + currentProgress) / timeline.length) * 100;
   }
 
-  get daysUntilHarvest(): number | null {
-    const floweringIdx = this.timeline.findIndex(p => p.phase.name.toLowerCase() === 'flowering');
-    if (floweringIdx === -1) return null;
-    const days = differenceInDays(this.timeline[floweringIdx].estimatedEndDate!, new Date());
-    return Math.max(0, days);
-  }
-
-  get daysUntilNextPhase(): number | null {
-    const current = this.timeline.find(p => p.isCurrent);
-    if (!current?.actualDate) return null;
-    const daysSinceStart = differenceInDays(new Date(), current.actualDate) + 1;
-    return Math.max(0, current.phase.durationMin - daysSinceStart);
-  }
-
-  getMinDateForPhase(phaseIndex: number): Date | null {
-    if (phaseIndex === 0) return null;
-    const prev = this.phases[phaseIndex - 1];
+  getMinDateForPhase(phaseId: number): Date | null {
+    const idx = this.phases.findIndex(p => p.id === phaseId);
+    if (idx <= 0) return null;
+    const prev = this.phases[idx - 1];
     return prev.startDate ? new Date(prev.startDate) : null;
   }
 
-  getMaxDateForPhase(phaseIndex: number): Date | null {
-    if (phaseIndex >= this.phases.length - 1) return null;
-    const next = this.phases[phaseIndex + 1];
+  getMaxDateForPhase(phaseId: number): Date | null {
+    const idx = this.phases.findIndex(p => p.id === phaseId);
+    if (idx < 0 || idx >= this.phases.length - 1) return null;
+    const next = this.phases[idx + 1];
     return next.startDate ? new Date(next.startDate) : null;
   }
 
-  validatePhaseDate(phaseIndex: number, newDate: Date): ValidationResult {
-    const minDate = this.getMinDateForPhase(phaseIndex);
-    const maxDate = this.getMaxDateForPhase(phaseIndex);
+  validatePhaseDate(phaseId: number, newDate: Date): ValidationResult {
+    const minDate = this.getMinDateForPhase(phaseId);
+    const maxDate = this.getMaxDateForPhase(phaseId);
 
     if (minDate && newDate < minDate) {
       return { isValid: false, error: `Date cannot be earlier than ${format(minDate, 'dd/MM/yyyy')}` };
@@ -132,10 +120,6 @@ export class PlantTimeline {
       return { isValid: false, error: `Date cannot be later than ${format(maxDate, 'dd/MM/yyyy')}` };
     }
     return { isValid: true };
-  }
-
-  getPhaseIndex(phaseId: number): number {
-    return this.phases.findIndex(p => p.id === phaseId);
   }
 
   canAdvanceToNextPhase(): boolean {

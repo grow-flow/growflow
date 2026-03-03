@@ -9,6 +9,7 @@ export interface Strain {
 export interface PlantPhase {
   id: number;
   plantId: number;
+  sortOrder: number;
   name: string;
   durationMin: number;
   durationMax: number;

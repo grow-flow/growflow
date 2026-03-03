@@ -1,4 +1,4 @@
-.PHONY: help build push clean
+.PHONY: help build push clean release-patch release-minor release-major
 
 VERSION ?= dev
 
@@ -8,6 +8,11 @@ help:
 	@echo "  make build          Build and load local image"
 	@echo "  make push           Build multi-arch and push to registry"
 	@echo "  make clean          Remove local images"
+	@echo ""
+	@echo "Release:"
+	@echo "  make release-patch          Bump patch (0.4.2 → 0.4.3)"
+	@echo "  make release-minor          Bump minor (0.4.2 → 0.5.0)"
+	@echo "  make release-major          Bump major (0.4.2 → 1.0.0)"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make build                  Build local dev image"
@@ -21,3 +26,12 @@ push:
 
 clean:
 	docker rmi growflow:dev 2>/dev/null || true
+
+release-patch:
+	npm version patch && git push && git push --tags
+
+release-minor:
+	npm version minor && git push && git push --tags
+
+release-major:
+	npm version major && git push && git push --tags

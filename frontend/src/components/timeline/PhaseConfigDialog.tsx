@@ -45,7 +45,7 @@ export const PhaseConfigDialog: React.FC<PhaseConfigDialogProps> = ({
   const [editPhaseDialog, setEditPhaseDialog] = useState<PlantPhase | null>(null);
 
   useEffect(() => {
-    if (open) setEditablePhases([...phases]);
+    if (open) setEditablePhases(phases.map(p => ({ ...p })));
   }, [open, phases]);
 
   const handleDeletePhase = (phaseId: number) => {
@@ -61,6 +61,15 @@ export const PhaseConfigDialog: React.FC<PhaseConfigDialogProps> = ({
     setEditablePhases(editablePhases.map(p => p.id === updatedPhase.id ? updatedPhase : p));
   };
 
+  const handleAddPhase = (phase: PlantPhase) => {
+    setEditablePhases([...editablePhases, { ...phase, sortOrder: editablePhases.length }]);
+  };
+
+  const closeEditDialog = () => {
+    setNewPhaseDialog(false);
+    setEditPhaseDialog(null);
+  };
+
   return (
     <>
       <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -72,16 +81,13 @@ export const PhaseConfigDialog: React.FC<PhaseConfigDialogProps> = ({
         </DialogTitle>
 
         <DialogContent>
-          <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-            Click a phase to edit. Delete phases that haven't started.
-          </Typography>
-
           {editablePhases.map((phase, index) => {
             const isStarted = !!phase.startDate;
             const isCurrent = plantTimeline.currentPhase?.id === phase.id;
+
             return (
               <Card
-                key={phase.id}
+                key={phase.id || `new-${index}`}
                 sx={{
                   mb: 1,
                   border: isCurrent ? '2px solid' : '1px solid',
@@ -140,12 +146,11 @@ export const PhaseConfigDialog: React.FC<PhaseConfigDialogProps> = ({
       <PhaseEditDialog
         phase={newPhaseDialog ? null : editPhaseDialog}
         open={newPhaseDialog || !!editPhaseDialog}
-        onClose={() => { setNewPhaseDialog(false); setEditPhaseDialog(null); }}
+        onClose={closeEditDialog}
         onSave={(phase) => {
-          if (newPhaseDialog) setEditablePhases([...editablePhases, phase]);
+          if (newPhaseDialog) handleAddPhase(phase);
           else handleUpdatePhase(phase);
-          setNewPhaseDialog(false);
-          setEditPhaseDialog(null);
+          closeEditDialog();
         }}
       />
     </>

@@ -39,6 +39,7 @@ model PlantPhase {
   id          Int          @id @default(autoincrement())
   plantId     Int
   plant       Plant        @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  sortOrder   Int          @default(0)
   name        String
   durationMin Int          @default(7)
   durationMax Int          @default(14)
@@ -69,16 +70,16 @@ model PlantEvent {
 }
 
 model PhasePreset {
-  id          Int     @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   name        String
-  sortOrder   Int     @default(0)
-  growType    String  @default("photoperiod") // photoperiod | autoflower
-  sourceType  String  @default("seed") // seed | clone
-  durationMin Int     @default(7)
-  durationMax Int     @default(14)
+  sortOrder   Int      @default(0)
+  growType    String   @default("photoperiod")
+  sourceType  String   @default("seed")
+  durationMin Int      @default(7)
+  durationMax Int      @default(14)
   description String?
   strainId    Int?
-  strain      Strain? @relation(fields: [strainId], references: [id], onDelete: Cascade)
+  strain      Strain?  @relation(fields: [strainId], references: [id], onDelete: Cascade)
 
   @@unique([name, growType, sourceType, strainId])
   @@map("phase_presets")

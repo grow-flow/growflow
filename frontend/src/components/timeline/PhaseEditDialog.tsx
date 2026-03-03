@@ -39,30 +39,14 @@ export const PhaseEditDialog: React.FC<PhaseEditDialogProps> = ({
         notes: phase.notes || ''
       });
     } else {
-      setFormData({
-        name: '',
-        durationMin: 7,
-        durationMax: 14,
-        notes: ''
-      });
+      setFormData({ name: '', durationMin: 7, durationMax: 14, notes: '' });
     }
   }, [phase, open]);
 
   const handleSave = () => {
-    if (!formData.name.trim()) {
-      alert('Phase name is required');
-      return;
-    }
-
-    if (formData.durationMin <= 0 || formData.durationMax <= 0) {
-      alert('Duration must be positive numbers');
-      return;
-    }
-
-    if (formData.durationMin > formData.durationMax) {
-      alert('Minimum duration cannot be greater than maximum duration');
-      return;
-    }
+    if (!formData.name.trim()) return alert('Phase name is required');
+    if (formData.durationMin <= 0 || formData.durationMax <= 0) return alert('Duration must be positive numbers');
+    if (formData.durationMin > formData.durationMax) return alert('Minimum duration cannot be greater than maximum duration');
 
     const savedPhase: PlantPhase = phase
       ? {
@@ -70,17 +54,18 @@ export const PhaseEditDialog: React.FC<PhaseEditDialogProps> = ({
           name: formData.name.trim(),
           durationMin: formData.durationMin,
           durationMax: formData.durationMax,
-          notes: formData.notes.trim() || undefined
+          notes: formData.notes.trim() || undefined,
         }
       : {
           id: 0,
           plantId: 0,
+          sortOrder: 0,
           name: formData.name.trim(),
           durationMin: formData.durationMin,
           durationMax: formData.durationMax,
           notes: formData.notes.trim() || undefined,
           isActive: false,
-          isCompleted: false
+          isCompleted: false,
         };
 
     onSave(savedPhase);
@@ -100,7 +85,6 @@ export const PhaseEditDialog: React.FC<PhaseEditDialogProps> = ({
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           sx={{ mb: 2 }}
         />
-
         <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
           <TextField
             label="Min Duration (days)"
@@ -117,7 +101,6 @@ export const PhaseEditDialog: React.FC<PhaseEditDialogProps> = ({
             inputProps={{ min: 1 }}
           />
         </Box>
-
         <TextField
           label="Notes (optional)"
           fullWidth

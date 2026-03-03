@@ -3,6 +3,7 @@ import { prisma } from '../database';
 
 export interface PlantPhaseCreateInput {
   name: string;
+  sortOrder: number;
   durationMin: number;
   durationMax: number;
   startDate: Date | null;
@@ -18,10 +19,10 @@ export interface PlantPhaseDb {
 }
 
 export const getCurrentPhase = (phases: PlantPhaseDb[]): PlantPhaseDb | null => {
-  for (let i = phases.length - 1; i >= 0; i--) {
-    if (phases[i].startDate || phases[i].isActive) return phases[i];
-  }
-  return null;
+  const started = phases
+    .filter(p => p.startDate)
+    .sort((a, b) => new Date(b.startDate!).getTime() - new Date(a.startDate!).getTime());
+  return started[0] || null;
 };
 
 export const resolvePhasePresets = async (
@@ -48,9 +49,18 @@ export const resolvePhasePresets = async (
       const strainMap = new Map(strainPresets.map(p => [p.name, p]));
       return base.map((p, i) => {
         const override = strainMap.get(p.name);
-        return override
-          ? { name: override.name, sortOrder: override.sortOrder, growType, sourceType, durationMin: override.durationMin, durationMax: override.durationMax, description: override.description ?? undefined } as PhaseTemplate
-          : { name: p.name, sortOrder: p.sortOrder ?? i, growType, sourceType, durationMin: p.durationMin, durationMax: p.durationMax, description: p.description ?? undefined } as PhaseTemplate;
+        if (override) {
+          return {
+            name: override.name, sortOrder: override.sortOrder, growType, sourceType,
+            durationMin: override.durationMin, durationMax: override.durationMax,
+            description: override.description ?? undefined,
+          } as PhaseTemplate;
+        }
+        return {
+          name: p.name, sortOrder: p.sortOrder ?? i, growType, sourceType,
+          durationMin: p.durationMin, durationMax: p.durationMax,
+          description: (p as any).description ?? undefined,
+        } as PhaseTemplate;
       });
     }
   }
@@ -58,7 +68,8 @@ export const resolvePhasePresets = async (
   if (genericPresets.length > 0) {
     return genericPresets.map(p => ({
       name: p.name, sortOrder: p.sortOrder, growType, sourceType,
-      durationMin: p.durationMin, durationMax: p.durationMax, description: p.description ?? undefined,
+      durationMin: p.durationMin, durationMax: p.durationMax,
+      description: p.description ?? undefined,
     } as PhaseTemplate));
   }
 
@@ -73,6 +84,7 @@ export const createPlantPhases = async (
   const templates = await resolvePhasePresets(growType, sourceType, strainId);
   return templates.map((t, i) => ({
     name: t.name,
+    sortOrder: t.sortOrder,
     durationMin: t.durationMin,
     durationMax: t.durationMax,
     startDate: i === 0 ? new Date() : null,

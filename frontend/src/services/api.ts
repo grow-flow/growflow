@@ -67,15 +67,19 @@ export const apiService = {
 
   startNextPhase: async (plantId: number): Promise<Plant> => {
     const plant = await apiService.getPlant(plantId);
+    const phases = plant.phases.sort((a, b) => a.sortOrder - b.sortOrder);
+
     let currentIdx = -1;
-    for (let i = 0; i < plant.phases.length; i++) {
-      if (plant.phases[i].startDate) currentIdx = i;
+    for (let i = 0; i < phases.length; i++) {
+      if (phases[i].startDate) currentIdx = i;
     }
-    if (currentIdx === -1 || currentIdx >= plant.phases.length - 1) {
+    if (currentIdx === -1 || currentIdx >= phases.length - 1) {
       throw new Error('Cannot start next phase');
     }
-    const updatedPhases = plant.phases.map((phase, i) =>
-      i === currentIdx + 1 ? { ...phase, startDate: new Date().toISOString() } : phase
+
+    const now = new Date().toISOString();
+    const updatedPhases = phases.map((p, i) =>
+      i === currentIdx + 1 ? { ...p, startDate: now } : p
     );
     return apiService.updatePlantPhases(plantId, updatedPhases);
   },

@@ -12,15 +12,15 @@ import {
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import {
-  CheckCircle as CheckIcon,
   Warning as WarningIcon,
   PlayArrow as StartIcon,
 } from "@mui/icons-material";
 import { DynamicPhaseInfo, PlantTimeline } from "@/utils/PlantTimeline";
-import { formatDaysAsWeeks, formatDurationRange } from "@/utils/formatDuration";
+import { formatDaysAsWeeks } from "@/utils/formatDuration";
+import { format } from "date-fns";
 
 interface TimelineStepperProps {
-  timeline: DynamicPhaseInfo[];
+  flatTimeline: DynamicPhaseInfo[];
   plantTimeline: PlantTimeline;
   expandedPhase: number | null;
   onPhaseClick: (phaseId: number) => void;
@@ -29,24 +29,18 @@ interface TimelineStepperProps {
 }
 
 export const TimelineStepper: React.FC<TimelineStepperProps> = ({
-  timeline,
+  flatTimeline,
   plantTimeline,
   expandedPhase,
   onPhaseClick,
   onDateChange,
   onStartNextPhase,
 }) => {
-  const activeStepIndex = timeline.findIndex((p) => p.isCurrent);
-
-  const getPhaseIcon = (phaseInfo: DynamicPhaseInfo) => {
-    if (phaseInfo.isOverdue) return <WarningIcon fontSize="small" color="warning" />;
-    if (phaseInfo.isCompleted && phaseInfo.actualDate) return <CheckIcon fontSize="small" color="success" />;
-    return null;
-  };
+  const activeStepIndex = flatTimeline.findIndex((p) => p.isCurrent);
 
   return (
-    <Stepper activeStep={activeStepIndex} orientation="vertical">
-      {timeline.map((phaseInfo) => {
+    <Stepper activeStep={activeStepIndex} orientation="vertical" nonLinear>
+      {flatTimeline.map((phaseInfo) => {
         const isExpanded = expandedPhase === phaseInfo.phase.id;
 
         return (
@@ -54,7 +48,10 @@ export const TimelineStepper: React.FC<TimelineStepperProps> = ({
             key={phaseInfo.phase.id}
             completed={phaseInfo.isCompleted}
             active={isExpanded}
-            sx={{ cursor: "pointer", "&:hover": { "& .MuiStepIcon-root": { transform: "scale(1.1)" } } }}
+            sx={{
+              cursor: "pointer",
+              "&:hover": { "& .MuiStepIcon-root": { transform: "scale(1.1)" } },
+            }}
           >
             <StepLabel
               sx={{
@@ -77,7 +74,7 @@ export const TimelineStepper: React.FC<TimelineStepperProps> = ({
                   <Chip label={`${formatDaysAsWeeks(phaseInfo.daysElapsed)} / ${phaseInfo.phase.durationMax}d`} size="small" color="primary" />
                 )}
 
-                {phaseInfo.isCompleted && (
+                {phaseInfo.isCompleted && phaseInfo.daysElapsed > 0 && (
                   <Chip
                     label={formatDaysAsWeeks(phaseInfo.daysElapsed)}
                     size="small"
@@ -86,11 +83,16 @@ export const TimelineStepper: React.FC<TimelineStepperProps> = ({
                   />
                 )}
 
-                {!phaseInfo.actualDate && !phaseInfo.isCurrent && !phaseInfo.isCompleted && (
-                  <Chip label={`Est. ${formatDurationRange(phaseInfo.phase.durationMin, phaseInfo.phase.durationMax)}`} size="small" variant="outlined" color="default" />
+                {phaseInfo.isFuture && phaseInfo.estimatedDate && (
+                  <Chip
+                    label={`Est. ${format(phaseInfo.estimatedDate, "MMM d")}`}
+                    size="small"
+                    variant="outlined"
+                    color="default"
+                  />
                 )}
 
-                {getPhaseIcon(phaseInfo)}
+                {phaseInfo.isOverdue && <WarningIcon fontSize="small" color="warning" />}
               </Box>
             </StepLabel>
 
@@ -102,9 +104,9 @@ export const TimelineStepper: React.FC<TimelineStepperProps> = ({
                       format="dd/MM/yy"
                       value={phaseInfo.actualDate}
                       onChange={(date) => onDateChange(phaseInfo.phase.id, date)}
-                      minDate={plantTimeline.getMinDateForPhase(plantTimeline.getPhaseIndex(phaseInfo.phase.id))}
+                      minDate={plantTimeline.getMinDateForPhase(phaseInfo.phase.id) ?? undefined}
                       maxDate={(() => {
-                        const phaseMaxDate = plantTimeline.getMaxDateForPhase(plantTimeline.getPhaseIndex(phaseInfo.phase.id));
+                        const phaseMaxDate = plantTimeline.getMaxDateForPhase(phaseInfo.phase.id);
                         const today = new Date();
                         return phaseMaxDate && phaseMaxDate < today ? phaseMaxDate : today;
                       })()}
@@ -116,15 +118,15 @@ export const TimelineStepper: React.FC<TimelineStepperProps> = ({
                   </Box>
 
                   {phaseInfo.isOverdue && (
-                    <Box sx={{ p: 1, bgcolor: "warning.light", borderRadius: 1 }}>
+                    <Box sx={{ p: 1, bgcolor: "warning.light", borderRadius: 1, mb: 1 }}>
                       <Typography variant="caption" color="warning.dark">This phase is running longer than expected</Typography>
                     </Box>
                   )}
 
                   {phaseInfo.isCurrent && (
-                    <Box sx={{ mt: 1 }}>
+                    <Box>
                       <Typography variant="caption" color="textSecondary">
-                        Phase Progress: {Math.round(phaseInfo.progressPercentage)}%
+                        Progress: {Math.round(phaseInfo.progressPercentage)}%
                       </Typography>
                       <LinearProgress variant="determinate" value={phaseInfo.progressPercentage} sx={{ mt: 0.5, height: 4, borderRadius: 2 }} />
                       {plantTimeline.canAdvanceToNextPhase() && (

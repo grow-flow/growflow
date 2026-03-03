@@ -75,4 +75,4 @@ LABEL \
     org.opencontainers.image.source="https://github.com/grow-flow/growflow"
 
 # Start script: migrate DB and start app
-CMD ["sh", "-c", "cd /app/backend && npx prisma db push --skip-generate && node /app/backend/dist/index.js"]
+CMD ["sh", "-c", "cd /app/backend && npx prisma db push --skip-generate --accept-data-loss && node /app/backend/dist/index.js"]
