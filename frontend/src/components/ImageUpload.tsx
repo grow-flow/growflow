@@ -2,6 +2,14 @@ import React, { useCallback, useRef, useState } from "react";
 import { Box, IconButton, Typography, CircularProgress, alpha } from "@mui/material";
 import { AddAPhoto, Close } from "@mui/icons-material";
 import { getPhotoUrl } from "@/services/api";
+import imageCompression from "browser-image-compression";
+
+const COMPRESSION_OPTIONS = {
+  maxSizeMB: 2,
+  maxWidthOrHeight: 1920,
+  useWebWorker: true,
+  fileType: "image/jpeg" as const,
+};
 
 interface ImageUploadProps {
   photos: string[];
@@ -22,6 +30,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [compressing, setCompressing] = useState(false);
   const [previews] = useState<Map<File, string>>(new Map());
 
   const getPreview = (file: File) => {
@@ -31,10 +40,17 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
     return previews.get(file)!;
   };
 
-  const handleFiles = useCallback((fileList: FileList | null) => {
+  const handleFiles = useCallback(async (fileList: FileList | null) => {
     if (!fileList) return;
-    const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
-    if (files.length) onFilesAdd(files);
+    const files = Array.from(fileList).filter(f => f.type.startsWith('image/') || /heic|heif/i.test(f.name));
+    if (!files.length) return;
+    setCompressing(true);
+    try {
+      const compressed = await Promise.all(files.map(f => imageCompression(f, COMPRESSION_OPTIONS)));
+      onFilesAdd(compressed);
+    } finally {
+      setCompressing(false);
+    }
   }, [onFilesAdd]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -106,7 +122,10 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
             '&:hover': { borderColor: 'primary.main', bgcolor: (t) => alpha(t.palette.primary.main, 0.04) },
           }}
         >
-          <AddAPhoto sx={{ color: 'text.secondary', fontSize: 24 }} />
+          {compressing
+            ? <CircularProgress size={24} />
+            : <AddAPhoto sx={{ color: 'text.secondary', fontSize: 24 }} />
+          }
         </Box>
       </Box>
 

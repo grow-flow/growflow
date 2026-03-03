@@ -1,11 +1,22 @@
 import React, { useState, useMemo } from 'react';
-import { Grid, Typography, Card, CardContent, Button, Box, Alert, Paper, Chip, Avatar, LinearProgress, CardActionArea } from '@mui/material';
+import { Grid, Typography, Card, CardContent, CardMedia, Button, Box, Alert, Paper, Chip, Avatar, LinearProgress, CardActionArea } from '@mui/material';
 import { Add as AddIcon, LocalFlorist as PlantIcon, Timeline, Speed, TrendingUp, LocalFlorist } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { usePlants, useCreatePlant } from '../hooks/usePlants';
-import { CreatePlantRequest } from '../types/models';
+import { Plant, CreatePlantRequest } from '../types/models';
 import CreatePlantDialog from '../components/CreatePlantDialog';
 import { createPlantTimeline } from '../utils/PlantTimeline';
+import { getPhotoUrl } from '../services/api';
+
+const getLatestPhoto = (plant: Plant): string | null => {
+  const sorted = [...(plant.events || [])].sort(
+    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  );
+  for (const event of sorted) {
+    if (event.data?.photos?.length) return getPhotoUrl(event.data.photos[0]);
+  }
+  return null;
+};
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -177,10 +188,18 @@ const Dashboard: React.FC = () => {
                 const currentPhase = currentPhaseInfo?.phase;
                 const daysInPhase = currentPhaseInfo?.daysElapsed || 0;
                 
+                const photoUrl = getLatestPhoto(plant);
                 return (
                   <Grid item xs={12} md={6} key={plant.id}>
                     <Card>
                       <CardActionArea onClick={() => navigate(`/plant/${plant.id}`)}>
+                        {photoUrl ? (
+                          <CardMedia component="img" height={180} image={photoUrl} alt={plant.name} sx={{ objectFit: 'cover' }} />
+                        ) : (
+                          <Box sx={{ height: 180, bgcolor: 'grey.900', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <LocalFlorist sx={{ fontSize: 56, color: 'grey.700' }} />
+                          </Box>
+                        )}
                         <CardContent>
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                             <Typography variant="h6">{plant.name}</Typography>

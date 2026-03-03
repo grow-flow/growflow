@@ -1,10 +1,12 @@
 import React, { useState, useMemo } from "react";
 import { useParams } from "react-router-dom";
-import { Typography, Paper, Box, Tabs, Tab, Chip, Fab } from "@mui/material";
-import { Add } from "@mui/icons-material";
+import { Typography, Paper, Box, Tabs, Tab, Chip, Fab, Button } from "@mui/material";
+import { Add, Download } from "@mui/icons-material";
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
 import { usePlant, useCreateEvent, useUpdateEvent, useDeleteEvent, useUpdatePlant } from "@/hooks/usePlants";
 import { Plant, PlantEvent, PlantPhase } from "@/types/models";
-import { apiService } from "@/services/api";
+import { apiService, getPhotoUrl } from "@/services/api";
 import DynamicPlantTimeline from "@/components/DynamicPlantTimeline";
 import PlantHeader from "@/components/PlantHeader";
 import EventCard from "@/components/EventCard";
@@ -35,6 +37,7 @@ const PlantDetail: React.FC = () => {
   const [eventDialog, setEventDialog] = useState<{ open: boolean; event: PlantEvent | null }>({ open: false, event: null });
   const [editPlantDialog, setEditPlantDialog] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [downloading, setDownloading] = useState(false);
   const [eventData, setEventData] = useState<EventFormData>({
     type: "watering",
     title: "Watering",
@@ -78,6 +81,28 @@ const PlantDetail: React.FC = () => {
   );
 
   const totalPhotos = galleryByPhase.reduce((sum, g) => sum + g.photos.length, 0);
+  const allPhotos = galleryByPhase.flatMap((g) => g.photos);
+
+  const handleDownloadPhotos = async () => {
+    if (!plant || allPhotos.length === 0) return;
+    setDownloading(true);
+    try {
+      const zip = new JSZip();
+      await Promise.all(
+        allPhotos.map(async (filename) => {
+          const res = await fetch(getPhotoUrl(filename));
+          const blob = await res.blob();
+          zip.file(filename.split("/").pop()!, blob);
+        })
+      );
+      const content = await zip.generateAsync({ type: "blob" });
+      saveAs(content, `${plant.name}-photos.zip`);
+    } catch (err) {
+      console.error("Failed to download photos:", err);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const openEventDialog = (type: PlantEvent["type"]) => {
     const meta = EVENT_META[type];
@@ -207,6 +232,17 @@ const PlantDetail: React.FC = () => {
             </TabPanel>
 
             <TabPanel value={tabValue} index={1}>
+              <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<Download />}
+                  onClick={handleDownloadPhotos}
+                  disabled={allPhotos.length === 0 || downloading}
+                >
+                  {downloading ? "Zipping…" : "Download All Photos"}
+                </Button>
+              </Box>
               <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
                 {galleryByPhase.map((group) => (
                   <Box key={group.name}>
