@@ -184,7 +184,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({ photos, variant = 'grid', t
 
       <Dialog
         open={lightbox !== null}
-        onClose={closeLightbox}
+        onClose={() => closeLightbox()}
         maxWidth={false}
         onClick={(e) => e.stopPropagation()}
         PaperProps={{ sx: { bgcolor: 'black', maxWidth: '95vw', maxHeight: '95vh', overflow: 'hidden', m: 1 } }}

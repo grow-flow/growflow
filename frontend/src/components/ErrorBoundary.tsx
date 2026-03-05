@@ -92,7 +92,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 <Typography variant="body2">
                   <strong>Version:</strong> v0.1.7<br />
                   <strong>Build Time:</strong> {buildVersion}<br />
-                  <strong>Environment:</strong> {process.env.NODE_ENV || 'production'}
+                  <strong>Environment:</strong> {import.meta.env.MODE || 'production'}
                 </Typography>
               </Alert>
 
