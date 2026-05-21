@@ -24,8 +24,14 @@ const EventCard: React.FC<EventCardProps> = ({ event, onEdit }) => {
 
   return (
     <Card
-      variant="outlined"
-      sx={{ cursor: "pointer", "&:hover": { backgroundColor: "rgba(0,0,0,0.04)" } }}
+      sx={{
+        cursor: "pointer",
+        transition: "border-color 120ms ease, background-color 120ms ease",
+        "&:hover": {
+          borderColor: "primary.main",
+          backgroundColor: "rgba(76,175,80,0.04)",
+        },
+      }}
       onClick={() => onEdit(event)}
     >
       {hasPhotos && <PhotoGallery photos={photos} variant="hero" />}

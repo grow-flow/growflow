@@ -20,35 +20,76 @@ model Strain {
 }
 
 model Plant {
-  id         Int          @id @default(autoincrement())
-  name       String
-  strainId   Int?
-  strain     Strain?      @relation(fields: [strainId], references: [id])
-  sourceType String       @default("seed") // seed | clone
-  notes      String?      @default("")
-  isActive   Boolean      @default(true)
-  phases     PlantPhase[]
-  events     PlantEvent[]
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
+  id          Int                   @id @default(autoincrement())
+  name        String
+  strainId    Int?
+  strain      Strain?               @relation(fields: [strainId], references: [id])
+  sourceType  String                @default("seed") // seed | clone
+  notes       String?               @default("")
+  isActive    Boolean               @default(true)
+  areaId      Int?
+  area        GrowArea?             @relation(fields: [areaId], references: [id], onDelete: SetNull)
+  phases      PlantPhase[]
+  events      PlantEvent[]
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
 
   @@map("plants")
 }
 
+model GrowArea {
+  id            Int                   @id @default(autoincrement())
+  name          String                @unique
+  type          String                @default("tent") // tent | room | outdoor | closet | custom
+  description   String?
+  isActive      Boolean               @default(true)
+  lightSchedule String? // "18/6", "12/12", "20/4", "24/0", etc.
+  plants        Plant[]
+  events        AreaEvent[]
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  @@map("grow_areas")
+}
+
+model AreaEvent {
+  id        Int      @id @default(autoincrement())
+  areaId    Int
+  area      GrowArea @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  type      String   // light_schedule | environment | equipment | note
+  title     String
+  timestamp DateTime @default(now())
+  notes     String?
+  data      String?  // JSON für type-spezifische Daten
+  source    String   @default("manual") // manual | ha_sensor | ha_mqtt
+  createdAt DateTime @default(now())
+
+  @@index([areaId, timestamp])
+  @@index([areaId, type])
+  @@map("area_events")
+}
+
 model PlantPhase {
-  id          Int          @id @default(autoincrement())
-  plantId     Int
-  plant       Plant        @relation(fields: [plantId], references: [id], onDelete: Cascade)
-  sortOrder   Int          @default(0)
-  name        String
-  durationMin Int          @default(7)
-  durationMax Int          @default(14)
-  startDate   DateTime?
-  isActive    Boolean      @default(false)
-  isCompleted Boolean      @default(false)
-  notes       String?
-  events      PlantEvent[]
-  createdAt   DateTime     @default(now())
+  id           Int          @id @default(autoincrement())
+  plantId      Int
+  plant        Plant        @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  sortOrder    Int          @default(0)
+  name         String
+  durationMin  Int          @default(7)
+  durationMax  Int          @default(14)
+  startDate    DateTime?
+  isActive     Boolean      @default(false)
+  isCompleted  Boolean      @default(false)
+  notes        String?
+  vpdMin       Float?
+  vpdMax       Float?
+  tempMin      Float?
+  tempMax      Float?
+  humidityMin  Float?
+  humidityMax  Float?
+  lightOnHours Float?
+  events       PlantEvent[]
+  createdAt    DateTime     @default(now())
 
   @@map("plant_phases")
 }
@@ -70,17 +111,23 @@ model PlantEvent {
 }
 
 model PhasePreset {
-  id          Int      @id @default(autoincrement())
-  name        String
-  sortOrder   Int      @default(0)
-  growType    String   @default("photoperiod")
-  sourceType  String   @default("seed")
-  durationMin Int      @default(7)
-  durationMax Int      @default(14)
-  description String?
-  strainId    Int?
-  strain      Strain?  @relation(fields: [strainId], references: [id], onDelete: Cascade)
-
+  id           Int      @id @default(autoincrement())
+  name         String
+  sortOrder    Int      @default(0)
+  growType     String   @default("photoperiod")
+  sourceType   String   @default("seed")
+  durationMin  Int      @default(7)
+  durationMax  Int      @default(14)
+  vpdMin       Float?
+  vpdMax       Float?
+  tempMin      Float?
+  tempMax      Float?
+  humidityMin  Float?
+  humidityMax  Float?
+  lightOnHours Float?
+  description  String?
+  strainId     Int?
+  strain       Strain?  @relation(fields: [strainId], references: [id], onDelete: Cascade)
   @@unique([name, growType, sourceType, strainId])
   @@map("phase_presets")
 }

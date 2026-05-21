@@ -6,11 +6,13 @@ import morgan from 'morgan';
 import path from 'path';
 import { CONFIG } from './config/settings';
 import { initializeDatabase, prisma } from './database';
+import { runStartupTasks } from './utils/startupTasks';
 import { errorHandler } from './middleware/errorHandler';
 import { plantRoutes } from './controllers/plantController';
 import { strainRoutes } from './controllers/strainController';
 import { presetRoutes } from './controllers/presetController';
 import { uploadRoutes } from './controllers/uploadController';
+import { areaRoutes } from './controllers/areaController';
 
 const app = express();
 
@@ -88,6 +90,7 @@ app.use('/api/plants', plantRoutes);
 app.use('/api/strains', strainRoutes);
 app.use('/api/presets', presetRoutes);
 app.use('/api/uploads', uploadRoutes);
+app.use('/api/areas', areaRoutes);
 
 app.get('/api/health', async (req, res) => {
   try {
@@ -147,7 +150,8 @@ app.use(errorHandler);
 const start = async () => {
   try {
     await initializeDatabase();
-    
+    await runStartupTasks();
+
     app.listen(CONFIG.API.PORT, '0.0.0.0', () => {
       console.log(`GrowFlow server running on port ${CONFIG.API.PORT}`);
     });

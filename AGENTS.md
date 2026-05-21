@@ -1,4 +1,4 @@
-# CLAUDE.md
+# AGENTS.md
 
 GrowFlow — Home Assistant Add-on for cannabis cultivation with full lifecycle tracking.
 

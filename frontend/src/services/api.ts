@@ -1,5 +1,8 @@
 import axios from 'axios';
-import { Plant, PlantPhase, PlantEvent, CreatePlantRequest, CreateEventRequest, PhasePreset } from '../types/models';
+import {
+  Plant, PlantPhase, PlantEvent, CreatePlantRequest, CreateEventRequest, PhasePreset,
+  GrowArea, AreaEvent, CreateAreaRequest, CreateAreaEventRequest,
+} from '../types/models';
 import { Strain, CreateStrainData, UpdateStrainData } from '../types/strain';
 
 const api = axios.create({
@@ -142,5 +145,76 @@ export const apiService = {
 
   deletePhoto: async (filename: string): Promise<void> => {
     await api.delete(`/uploads/${filename}`);
+  },
+
+  // Grow Areas
+  getAreas: async (): Promise<GrowArea[]> => {
+    const response = await api.get('/areas');
+    return response.data;
+  },
+
+  getArea: async (id: number): Promise<GrowArea> => {
+    const response = await api.get(`/areas/${id}`);
+    return response.data;
+  },
+
+  createArea: async (data: CreateAreaRequest): Promise<GrowArea> => {
+    const response = await api.post('/areas', data);
+    return response.data;
+  },
+
+  updateArea: async (id: number, data: Partial<GrowArea>): Promise<GrowArea> => {
+    const response = await api.put(`/areas/${id}`, data);
+    return response.data;
+  },
+
+  deleteArea: async (id: number): Promise<void> => {
+    await api.delete(`/areas/${id}`);
+  },
+
+  // Area Events
+  getAreaEvents: async (
+    areaId: number,
+    filters?: { type?: string; from?: string; to?: string; limit?: number; offset?: number },
+  ): Promise<AreaEvent[]> => {
+    const params = new URLSearchParams();
+    if (filters?.type) params.set('type', filters.type);
+    if (filters?.from) params.set('from', filters.from);
+    if (filters?.to) params.set('to', filters.to);
+    if (filters?.limit) params.set('limit', String(filters.limit));
+    if (filters?.offset) params.set('offset', String(filters.offset));
+    const response = await api.get(`/areas/${areaId}/events?${params}`);
+    return response.data;
+  },
+
+  createAreaEvent: async (areaId: number, data: CreateAreaEventRequest): Promise<AreaEvent> => {
+    const response = await api.post(`/areas/${areaId}/events`, data);
+    return response.data;
+  },
+
+  updateAreaEvent: async (areaId: number, eventId: number, data: Partial<AreaEvent>): Promise<AreaEvent> => {
+    const response = await api.put(`/areas/${areaId}/events/${eventId}`, data);
+    return response.data;
+  },
+
+  deleteAreaEvent: async (areaId: number, eventId: number): Promise<void> => {
+    await api.delete(`/areas/${areaId}/events/${eventId}`);
+  },
+
+  assignPlantToArea: async (areaId: number, plantId: number): Promise<GrowArea> => {
+    const response = await api.post(`/areas/${areaId}/plants`, { plantId });
+    return response.data;
+  },
+
+  removePlantFromArea: async (areaId: number, plantId: number): Promise<void> => {
+    await api.delete(`/areas/${areaId}/plants/${plantId}`);
+  },
+
+  flipArea: async (
+    areaId: number,
+    payload: { newSchedule: string; transitionPlants?: boolean; timestamp?: string },
+  ): Promise<{ area: GrowArea; transitioned: number[] }> => {
+    const response = await api.post(`/areas/${areaId}/flip`, payload);
+    return response.data;
   },
 };

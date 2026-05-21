@@ -1,8 +1,14 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../database';
-import { PHASE_PRESETS } from '../types/phase';
+import { PHASE_PRESETS, pickEnvTargets, mergeEnvTargets, PhaseEnvTargets } from '../types/phase';
 
 const router = Router();
+
+const hasTargetDiff = (a: PhaseEnvTargets, b: PhaseEnvTargets) =>
+  a.vpdMin !== b.vpdMin || a.vpdMax !== b.vpdMax ||
+  a.tempMin !== b.tempMin || a.tempMax !== b.tempMax ||
+  a.humidityMin !== b.humidityMin || a.humidityMax !== b.humidityMax ||
+  a.lightOnHours !== b.lightOnHours;
 
 router.get('/', async (req: Request, res: Response) => {
   try {
@@ -57,20 +63,40 @@ router.delete('/:id', async (req: Request, res: Response) => {
 
 router.post('/seed', async (req: Request, res: Response) => {
   try {
-    await prisma.phasePreset.deleteMany({ where: { strainId: null } });
-
     for (const preset of PHASE_PRESETS) {
-      await prisma.phasePreset.create({
-        data: {
+      const existing = await prisma.phasePreset.findFirst({
+        where: {
           name: preset.name,
-          sortOrder: preset.sortOrder,
           growType: preset.growType,
           sourceType: preset.sourceType,
-          durationMin: preset.durationMin,
-          durationMax: preset.durationMax,
-          description: preset.description || null,
+          strainId: null,
         },
       });
+
+      if (!existing) {
+        await prisma.phasePreset.create({
+          data: {
+            name: preset.name,
+            sortOrder: preset.sortOrder,
+            growType: preset.growType,
+            sourceType: preset.sourceType,
+            durationMin: preset.durationMin,
+            durationMax: preset.durationMax,
+            description: preset.description ?? null,
+            ...pickEnvTargets(preset),
+          },
+        });
+        continue;
+      }
+
+      const current = pickEnvTargets(existing);
+      const targets = mergeEnvTargets(current, preset);
+      if (hasTargetDiff(current, targets)) {
+        await prisma.phasePreset.update({
+          where: { id: existing.id },
+          data: targets,
+        });
+      }
     }
 
     const presets = await prisma.phasePreset.findMany({

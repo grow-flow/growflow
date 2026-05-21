@@ -6,6 +6,8 @@ import Dashboard from './pages/Dashboard';
 import PlantsOverview from './pages/PlantsOverview';
 import StrainsOverview from './pages/StrainsOverview';
 import PlantDetail from './pages/PlantDetail';
+import AreasOverview from './pages/AreasOverview';
+import AreaDetail from './pages/AreaDetail';
 import Settings from './pages/Settings';
 
 function App() {
@@ -18,6 +20,8 @@ function App() {
           <Route path="/plants" element={<PlantsOverview />} />
           <Route path="/strains" element={<StrainsOverview />} />
           <Route path="/plant/:id" element={<PlantDetail />} />
+          <Route path="/areas" element={<AreasOverview />} />
+          <Route path="/area/:id" element={<AreaDetail />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
       </Container>

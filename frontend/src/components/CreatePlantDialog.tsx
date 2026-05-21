@@ -14,9 +14,14 @@ import {
   ListItemText,
   ToggleButton,
   ToggleButtonGroup,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import { useStrains, useCreateStrain } from "../hooks/useStrains";
 import { usePlants } from "../hooks/usePlants";
+import { useAreas } from "../hooks/useAreas";
 import { CreatePlantRequest } from "../types/models";
 import { Strain } from "../types/strain";
 
@@ -29,12 +34,14 @@ interface CreatePlantDialogProps {
 const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({ open, onClose, onSuccess }) => {
   const { data: strains = [] } = useStrains();
   const { data: plants = [] } = usePlants();
+  const { data: areas = [] } = useAreas();
   const createStrainMutation = useCreateStrain();
 
   const [formData, setFormData] = useState({
     strainId: null as number | null,
     plantName: "",
     sourceType: "seed" as "seed" | "clone",
+    areaId: null as number | null,
   });
   const [newStrainName, setNewStrainName] = useState("");
   const [loading, setLoading] = useState(false);
@@ -62,10 +69,11 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({ open, onClose, on
         strainId: strainId || undefined,
         sourceType: formData.sourceType,
         notes: "",
+        areaId: formData.areaId || undefined,
       };
 
       await onSuccess(plantData);
-      setFormData({ strainId: null, plantName: "", sourceType: "seed" });
+      setFormData({ strainId: null, plantName: "", sourceType: "seed", areaId: null });
       setNewStrainName("");
     } catch (error) {
       console.error("Failed to create plant:", error);
@@ -75,7 +83,7 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({ open, onClose, on
   };
 
   const handleClose = () => {
-    setFormData({ strainId: null, plantName: "", sourceType: "seed" });
+    setFormData({ strainId: null, plantName: "", sourceType: "seed", areaId: null });
     setNewStrainName("");
     onClose();
   };
@@ -142,6 +150,33 @@ const CreatePlantDialog: React.FC<CreatePlantDialogProps> = ({ open, onClose, on
                   onChange={(e) => setFormData({ ...formData, plantName: e.target.value })}
                   required
                 />
+              </Grid>
+            )}
+
+            {areas.length > 0 && (
+              <Grid item xs={12}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Grow Area (optional)</InputLabel>
+                  <Select
+                    value={formData.areaId ?? ""}
+                    label="Grow Area (optional)"
+                    onChange={(e) =>
+                      setFormData({ ...formData, areaId: e.target.value ? Number(e.target.value) : null })
+                    }
+                  >
+                    <MenuItem value="">
+                      <em>None</em>
+                    </MenuItem>
+                    {areas
+                      .filter((a) => a.isActive)
+                      .map((area) => (
+                        <MenuItem key={area.id} value={area.id}>
+                          {area.name}
+                          {area.lightSchedule ? ` · ${area.lightSchedule}` : ""}
+                        </MenuItem>
+                      ))}
+                  </Select>
+                </FormControl>
               </Grid>
             )}
           </Grid>

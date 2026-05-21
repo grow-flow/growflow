@@ -17,6 +17,7 @@ import {
 } from "@mui/material";
 import { Plant } from "../types/models";
 import { useStrains } from "../hooks/useStrains";
+import { useAreas } from "../hooks/useAreas";
 
 interface EditPlantDialogProps {
   open: boolean;
@@ -27,10 +28,12 @@ interface EditPlantDialogProps {
 
 const EditPlantDialog: React.FC<EditPlantDialogProps> = ({ open, plant, onClose, onSave }) => {
   const { data: strains = [] } = useStrains();
+  const { data: areas = [] } = useAreas();
   const [formData, setFormData] = useState({
     name: plant.name,
     strainId: plant.strainId,
     notes: plant.notes || "",
+    areaId: plant.areaId ?? null,
   });
   const [loading, setLoading] = useState(false);
 
@@ -39,6 +42,7 @@ const EditPlantDialog: React.FC<EditPlantDialogProps> = ({ open, plant, onClose,
       name: plant.name,
       strainId: plant.strainId,
       notes: plant.notes || "",
+      areaId: plant.areaId ?? null,
     });
   }, [plant]);
 
@@ -50,7 +54,8 @@ const EditPlantDialog: React.FC<EditPlantDialogProps> = ({ open, plant, onClose,
         name: formData.name,
         strainId: formData.strainId,
         notes: formData.notes || undefined,
-      });
+        areaId: formData.areaId,
+      } as Partial<Plant>);
       onClose();
     } catch (error) {
       console.error("Failed to update plant:", error);
@@ -93,6 +98,36 @@ const EditPlantDialog: React.FC<EditPlantDialogProps> = ({ open, plant, onClose,
                 )}
               />
             </Grid>
+
+            {areas.length > 0 && (
+              <Grid item xs={12}>
+                <FormControl fullWidth>
+                  <InputLabel>Grow Area</InputLabel>
+                  <Select
+                    value={formData.areaId ?? ""}
+                    label="Grow Area"
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        areaId: e.target.value === "" ? null : Number(e.target.value),
+                      })
+                    }
+                  >
+                    <MenuItem value="">
+                      <em>None</em>
+                    </MenuItem>
+                    {areas
+                      .filter((a) => a.isActive)
+                      .map((area) => (
+                        <MenuItem key={area.id} value={area.id}>
+                          {area.name}
+                          {area.lightSchedule ? ` · ${area.lightSchedule}` : ""}
+                        </MenuItem>
+                      ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+            )}
 
             <Grid item xs={12}>
               <TextField

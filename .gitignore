@@ -25,6 +25,8 @@ logs/
 # IDE
 .vscode/
 .idea/
+.agents/
+.codex/
 *.swp
 *.swo
 

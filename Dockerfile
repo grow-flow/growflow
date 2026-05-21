@@ -40,9 +40,10 @@ WORKDIR /app
 # Copy package files
 COPY backend/package*.json ./backend/
 
-# Copy prisma schema and config for production
+# Copy prisma schema, config, and init scripts for production
 COPY backend/prisma ./backend/prisma/
 COPY backend/prisma.config.ts ./backend/
+COPY backend/scripts ./backend/scripts/
 
 # Install production dependencies and generate Prisma client
 RUN --mount=type=cache,target=/root/.npm \
@@ -74,5 +75,7 @@ LABEL \
     org.opencontainers.image.url="https://github.com/grow-flow/growflow" \
     org.opencontainers.image.source="https://github.com/grow-flow/growflow"
 
-# Start script: migrate DB and start app
-CMD ["sh", "-c", "cd /app/backend && npx prisma db push --skip-generate --accept-data-loss && node /app/backend/dist/index.js"]
+# Start script: run real migrations (with legacy db-push baseline support) and start app.
+# init-db.sh detects whether the DB is fresh, a legacy db-push install, or already
+# migrated, and bootstraps the migration history without data loss.
+CMD ["sh", "-c", "cd /app/backend && sh scripts/init-db.sh && node /app/backend/dist/index.js"]

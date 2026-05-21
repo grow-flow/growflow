@@ -29,6 +29,7 @@ import { format, differenceInDays } from "date-fns";
 import { usePlants, useCreatePlant, useDeletePlant } from "../hooks/usePlants";
 import { Plant, CreatePlantRequest } from "../types/models";
 import CreatePlantDialog from "../components/CreatePlantDialog";
+import { evaluatePlantHappiness, happinessColor } from "../utils/plantEnvironment";
 
 const getStrainName = (plant: Plant): string => plant.strain?.name || "Unknown";
 
@@ -38,14 +39,6 @@ const getCurrentPhase = (plant: Plant) => {
     if (plant.phases[i].startDate) lastStartedIndex = i;
   }
   return lastStartedIndex >= 0 ? plant.phases[lastStartedIndex] : null;
-};
-
-const getPhaseColor = (phase: string) => {
-  const colors: Record<string, "success" | "primary" | "warning" | "secondary" | "info" | "default"> = {
-    germination: "success", seedling: "success", vegetation: "primary",
-    "pre-flower": "warning", flowering: "secondary", flushing: "info",
-  };
-  return colors[phase.toLowerCase()] || "default";
 };
 
 const PlantsOverview: React.FC = () => {
@@ -144,6 +137,7 @@ const PlantsOverview: React.FC = () => {
             <TableBody>
               {filteredPlants.map(plant => {
                 const phase = getCurrentPhase(plant);
+                const happiness = evaluatePlantHappiness(plant, plant.area ?? null);
                 return (
                   <TableRow
                     key={plant.id}
@@ -154,7 +148,12 @@ const PlantsOverview: React.FC = () => {
                     <TableCell><Typography variant="subtitle2">{plant.name}</Typography></TableCell>
                     <TableCell>{getStrainName(plant)}</TableCell>
                     <TableCell>
-                      <Chip label={phase?.name || "Unknown"} size="small" color={getPhaseColor(phase?.name || "")} />
+                      <Chip
+                        label={phase?.name || "Unknown"}
+                        size="small"
+                        color={happinessColor(happiness.overall)}
+                        title={happiness.summary}
+                      />
                     </TableCell>
                     <TableCell>{getDaysInPhase(plant)}</TableCell>
                     <TableCell>{getTotalDays(plant)}</TableCell>

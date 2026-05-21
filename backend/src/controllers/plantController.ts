@@ -1,11 +1,21 @@
 import { Router, Request, Response } from "express";
 import { prisma } from "../database";
 import { createPlantPhases, getCurrentPhase } from "../utils/phaseUtils";
+import { pickEnvTargets } from "../types/phase";
 
 const router = Router();
 
 const plantIncludes = {
   strain: true,
+  area: {
+    include: {
+      events: {
+        where: { type: 'environment' },
+        orderBy: { timestamp: 'desc' as const },
+        take: 1,
+      },
+    },
+  },
   phases: { orderBy: { sortOrder: 'asc' as const } },
   events: true,
 };
@@ -14,6 +24,15 @@ const serializePlant = (plant: any) => {
   if (!plant) return plant;
   return {
     ...plant,
+    area: plant.area
+      ? {
+          ...plant.area,
+          events: plant.area.events?.map((e: any) => ({
+            ...e,
+            data: e.data ? (typeof e.data === 'string' ? JSON.parse(e.data) : e.data) : null,
+          })),
+        }
+      : plant.area,
     events: plant.events?.map((e: any) => ({
       ...e,
       data: e.data ? (typeof e.data === 'string' ? JSON.parse(e.data) : e.data) : null,
@@ -67,6 +86,7 @@ router.post("/", async (req: Request, res: Response) => {
     }
 
     const phasesData = req.body.phases || await createPlantPhases(growType, sourceType, strainId);
+    const areaId = req.body.areaId ?? null;
 
     const plant = await prisma.plant.create({
       data: {
@@ -75,6 +95,7 @@ router.post("/", async (req: Request, res: Response) => {
         sourceType,
         notes: req.body.notes || "",
         isActive: req.body.isActive ?? true,
+        areaId,
       },
     });
 
@@ -92,6 +113,7 @@ router.post("/", async (req: Request, res: Response) => {
           isActive: i === 0 || (p.isActive ?? false),
           isCompleted: p.isCompleted ?? false,
           notes: p.notes || null,
+          ...pickEnvTargets(p),
         },
       });
     }
@@ -99,6 +121,7 @@ router.post("/", async (req: Request, res: Response) => {
     const fullPlant = await prisma.plant.findUnique({ where: { id: plant.id }, include: plantIncludes });
     res.status(201).json(serializePlant(fullPlant));
   } catch (error: any) {
+    if (error.code === "P2003") return res.status(404).json({ error: "Area not found" });
     console.error("🔴 [Plants] Failed to create plant:", error.message);
     res.status(500).json({ error: "Failed to create plant", details: error.message });
   }
@@ -130,6 +153,7 @@ router.put("/:id/phases", async (req: Request, res: Response) => {
           isActive: p.isActive ?? false,
           isCompleted: p.isCompleted ?? false,
           notes: p.notes || null,
+          ...pickEnvTargets(p),
         },
       });
     }
@@ -145,7 +169,7 @@ router.put("/:id/phases", async (req: Request, res: Response) => {
 router.put("/:id", async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
-    const { phases, events, strain, ...rest } = req.body;
+    const { phases, events, strain, area, ...rest } = req.body;
     const data: any = { ...rest };
     if (rest.strainId !== undefined) data.strainId = rest.strainId;
 
@@ -157,6 +181,7 @@ router.put("/:id", async (req: Request, res: Response) => {
     res.json(serializePlant(plant));
   } catch (error: any) {
     if (error.code === "P2025") return res.status(404).json({ error: "Plant not found" });
+    if (error.code === "P2003") return res.status(404).json({ error: "Area not found" });
     console.error(`🔴 [Plants] Failed to update plant ${req.params.id}:`, error.message);
     res.status(500).json({ error: "Failed to update plant", details: error.message });
   }
